@@ -45,6 +45,7 @@ export async function readSession() {
 /** Kasuta igas halduspaneeli lehes ja serveri toimingus. Suunab sisselogimisele, kui sessiooni pole. */
 export async function requireSession() {
   const session = await readSession();
-  if (!session) redirect("/logi-sisse");
+  // aegunud/kehtetu küpsis kustutatakse route handleris (lehe renderdamise ajal küpsiseid muuta ei saa)
+  if (!session) redirect("/api/auth/valja");
   return session;
 }

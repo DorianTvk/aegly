@@ -14,7 +14,9 @@ export function proxy(req: NextRequest) {
     if (pathname !== "/") url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
-  if (hasSession && isPublic) return NextResponse.redirect(new URL("/toolaud", req.url));
+  // NB: sisseloginud kasutajat ei suunata siin sisselogimislehelt ära – küpsis võib olla aegunud
+  // (nt pärast andmebaasi uuesti seemendamist) ja see tekitaks lõputu ümbersuunamise.
+  // Seda kontrollib sisselogimisleht ise päris sessiooni järgi.
   return NextResponse.next();
 }
 
