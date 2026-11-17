@@ -11,7 +11,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="et" className="h-full antialiased">
-      <body className="min-h-full">{children}</body>
+      {/* suppressHydrationWarning: brauserilaiendused (nt ColorZilla) lisavad body-le atribuute */}
+      <body className="min-h-full" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }
