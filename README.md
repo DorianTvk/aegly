@@ -41,7 +41,7 @@ Näidiskonto: **triin@studiolumi.ee** / **aegly-demo**
 - [x] Sisselogimine ja registreerumine (sessioonid andmebaasis, scrypt)
 - [x] 03–04 Teenused ja kategooriad, 06–07 Töötajad (profiil, teenused, tööaeg, puudumised), 08 Tööajad ja vabad ajad
 - [x] Vabade aegade mootor (testitud raporti näitega) ja Eesti riigipühad
-- [ ] Hinna mootor (hinnareeglid, kampaaniad, koodid)
+- [x] Hinna mootor (raporti 3 näidet testides) ja vaated 05 Paketid, 09 Hinnakiri, 10 Sooduskoodid, 11 Kampaaniad
 - [ ] Ülejäänud halduspaneeli vaated
 - [ ] Broneerimisvidin (W0–W9), Stripe
 - [ ] Teavitused, iseteenindus, ootenimekiri

@@ -36,6 +36,13 @@
       "when": 1794908001206,
       "tag": "0004_slots_holidays",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794910240934,
+      "tag": "0005_pricing",
+      "breakpoints": true
     }
   ]
 }

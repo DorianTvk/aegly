@@ -149,38 +149,61 @@ async function main() {
 
   // Hinnareeglid (09)
   await db.insert(s.priceRules).values([
-    { businessId: biz.id, name: "Nädalavahetus", kind: "PERCENT", value: 10, weekdays: [6, 7] },
-    { businessId: biz.id, name: "Õhtune aeg", kind: "FIXED", value: 500, fromTime: "18:00", toTime: "23:59" },
+    { businessId: biz.id, name: "Nädalavahetuse lisatasu", kind: "PERCENT", value: 10, weekdays: [6, 7], sortOrder: 1 },
+    { businessId: biz.id, name: "Õhtune aeg", kind: "FIXED", value: 500, fromTime: "18:00", categoryIds: [cat["Massaažid"]], sortOrder: 2 },
+    { businessId: biz.id, name: "Viimase hetke soodustus", kind: "PERCENT", value: -15, maxLeadHours: 3, active: false, sortOrder: 3 },
+    { businessId: biz.id, name: "Pühade hinnad", kind: "PERCENT", value: 15, dateFrom: "2026-12-24", dateTo: "2027-01-01", active: false, sortOrder: 4 },
   ]);
 
   // Kampaaniad (11)
-  await db.insert(s.campaigns).values([
-    {
-      businessId: biz.id, name: "Sügisene hoolitsus", kind: "PERCENT", value: 20,
-      startsAt: zonedDateTime("2026-10-01", "00:00"), endsAt: zonedDateTime("2026-11-30", "23:59"),
-      categoryIds: [cat["Näohooldused"]], showBanner: true,
-    },
-    {
-      businessId: biz.id, name: "Hommikune massaaž", kind: "PERCENT", value: 10,
-      startsAt: zonedDateTime("2026-10-01", "00:00"), endsAt: zonedDateTime("2026-12-31", "23:59"),
-      weekdays: [1, 3], fromTime: "09:00", toTime: "12:00", categoryIds: [cat["Massaažid"]],
-    },
-  ]);
+  const [cSygis] = await db
+    .insert(s.campaigns)
+    .values([
+      {
+        businessId: biz.id, name: "Sügisene hoolitsus", kind: "PERCENT", value: 20,
+        startsAt: zonedDateTime("2026-10-15", "00:00"), endsAt: zonedDateTime("2026-11-30", "23:59"),
+        categoryIds: [cat["Näohooldused"]], showBanner: true, bannerText: "Sügisene hoolitsus: −20% kõigilt näohooldustelt!",
+      },
+      {
+        businessId: biz.id, name: "Hommikune massaaž", kind: "PERCENT", value: 10,
+        startsAt: zonedDateTime("2026-10-01", "00:00"), endsAt: zonedDateTime("2026-12-31", "23:59"),
+        weekdays: [1, 3], fromTime: "09:00", toTime: "12:00", categoryIds: [cat["Massaažid"]],
+      },
+      {
+        businessId: biz.id, name: "Black Friday", kind: "PERCENT", value: 25,
+        startsAt: zonedDateTime("2026-11-27", "00:00"), endsAt: zonedDateTime("2026-11-30", "23:59"),
+      },
+      {
+        businessId: biz.id, name: "Suvine sära", kind: "PERCENT", value: 15,
+        startsAt: zonedDateTime("2026-06-01", "00:00"), endsAt: zonedDateTime("2026-08-31", "23:59"),
+      },
+    ])
+    .returning();
 
   // Sooduskoodid (10)
   await db.insert(s.discountCodes).values([
-    { businessId: biz.id, code: "TERE10", kind: "PERCENT", value: 10, maxUses: 100, usedCount: 12, newClientsOnly: true },
+    { businessId: biz.id, code: "TERE10", kind: "PERCENT", value: 10, maxUses: 100, usedCount: 12, maxUsesPerClient: 1, newClientsOnly: true },
+    { businessId: biz.id, code: "SÜGIS15", kind: "PERCENT", value: 15, maxUses: 50, usedCount: 18, categoryIds: [cat["Massaažid"]], startsAt: zonedDateTime("2026-10-01", "00:00"), endsAt: zonedDateTime("2026-12-01", "00:00") },
+    { businessId: biz.id, code: "SÕBER5", kind: "FIXED", value: 500, usedCount: 7, minAmountCents: 3000 },
+    { businessId: biz.id, code: "VIP25", kind: "PERCENT", value: 25, maxUses: 20, usedCount: 4, active: false },
+    { businessId: biz.id, code: "SUVI20", kind: "PERCENT", value: 20, usedCount: 41, startsAt: zonedDateTime("2026-06-01", "00:00"), endsAt: zonedDateTime("2026-09-01", "00:00") },
   ]);
 
   // Paketid (05)
-  const [pkg] = await db
+  const [pkg5, pkgDay] = await db
     .insert(s.packages)
     .values([
-      { businessId: biz.id, type: "MULTI_VISIT", name: "Massaaži 5 korra pakett", priceCents: 24750, validityDays: 180 },
-      { businessId: biz.id, type: "BUNDLE", name: "Ilupäev", priceCents: 12000, validityDays: 90 },
+      { businessId: biz.id, type: "MULTI_VISIT", name: "Massaaži 5 korra pakett", priceCents: 25000, validityDays: 180, sortOrder: 1 },
+      { businessId: biz.id, type: "BUNDLE", name: "Ilupäev", priceCents: 12000, validityDays: null, sortOrder: 2 },
+      { businessId: biz.id, type: "MULTI_VISIT", name: "Sügavmassaaži 4 korda", priceCents: 28000, validityDays: 180, sellInWidget: false, sortOrder: 3 },
     ])
     .returning();
-  await db.insert(s.packageItems).values({ packageId: pkg.id, serviceId: svc.klass.id, quantity: 5 });
+  await db.insert(s.packageItems).values([
+    { packageId: pkg5.id, serviceId: svc.klass.id, quantity: 5 },
+    { packageId: pkgDay.id, serviceId: svc.nao.id, quantity: 1 },
+    { packageId: pkgDay.id, serviceId: svc.mani.id, quantity: 1 },
+    { packageId: pkgDay.id, serviceId: svc.naistel.id, quantity: 1 },
+  ]);
 
   // Kliendid (14)
   const clientDefs = [
@@ -209,6 +232,13 @@ async function main() {
     )
     .returning();
   const client = Object.fromEntries(clientDefs.map((d, i) => [d[0], clientRows[i]]));
+
+  // Müüdud paketid (kliendikaardi saldo)
+  await db.insert(s.clientPackages).values([
+    { clientId: client.marko.id, packageId: pkg5.id, usesTotal: 5, usesLeft: 2, expiresAt: zonedDateTime("2027-03-14", "00:00") },
+    { clientId: client.helen.id, packageId: pkg5.id, usesTotal: 5, usesLeft: 3, expiresAt: zonedDateTime("2027-04-02", "00:00") },
+    { clientId: client.laura.id, packageId: pkgDay.id, usesTotal: 1, usesLeft: 1 },
+  ]);
 
   let n = 20400;
   const book = (
@@ -253,7 +283,19 @@ async function main() {
       if (wd === 6 && st !== "liis") return;
       if ((back + i) % 3 === 0) return; // mitte iga päev täis
       const status = (back * 7 + i) % 41 === 0 ? "NO_SHOW" : "COMPLETED";
-      history.push(book(d, t, st, sv, ck[(back + i) % ck.length] as keyof typeof client, status));
+      const b = book(d, t, st, sv, ck[(back + i) % ck.length] as keyof typeof client, status);
+      if ((sv === "nao" || sv === "naomask") && d >= "2026-10-15") {
+        const disc = Math.round(b.basePriceCents * 0.2);
+        Object.assign(b, {
+          campaignId: cSygis.id,
+          finalPriceCents: b.basePriceCents - disc,
+          priceBreakdown: [
+            { label: "Baashind", amountCents: b.basePriceCents, kind: "base" },
+            { label: "Kampaania Sügisene hoolitsus −20 %", amountCents: -disc, kind: "campaign" },
+          ],
+        });
+      }
+      history.push(b);
     });
   }
 

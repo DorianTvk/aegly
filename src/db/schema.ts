@@ -32,7 +32,7 @@ const ts = (name: string) => timestamp(name, { withTimezone: true });
 export const roleEnum = pgEnum("role", ["OWNER", "ADMIN", "STAFF"]);
 export const timeOffTypeEnum = pgEnum("time_off_type", ["VACATION", "TRAINING", "SICK", "OTHER"]);
 export const serviceStatusEnum = pgEnum("service_status", ["ACTIVE", "DRAFT", "ARCHIVED"]);
-export const adjustmentKindEnum = pgEnum("adjustment_kind", ["PERCENT", "FIXED"]);
+export const adjustmentKindEnum = pgEnum("adjustment_kind", ["PERCENT", "FIXED", "FIXED_PRICE"]);
 export const packageTypeEnum = pgEnum("package_type", ["MULTI_VISIT", "BUNDLE"]);
 export const codeKindEnum = pgEnum("code_kind", ["PERCENT", "FIXED", "FREE_SERVICE"]);
 export const bookingStatusEnum = pgEnum("booking_status", [
@@ -256,9 +256,12 @@ export const priceRules = pgTable("price_rules", {
   toTime: text("to_time"),
   minLeadHours: integer("min_lead_hours"),
   maxLeadHours: integer("max_lead_hours"),
+  dateFrom: date("date_from"),
+  dateTo: date("date_to"),
   serviceIds: text("service_ids").array().notNull().default(sql`'{}'::text[]`),
   categoryIds: text("category_ids").array().notNull().default(sql`'{}'::text[]`),
   active: boolean("active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
 });
 
 // ---------- Müük (05 · 10 · 11 · 17) ----------
@@ -272,7 +275,10 @@ export const packages = pgTable("packages", {
   priceCents: integer("price_cents").notNull(),
   validityDays: integer("validity_days"),
   sellInWidget: boolean("sell_in_widget").notNull().default(true),
+  shareable: boolean("shareable").notNull().default(false),
   active: boolean("active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: createdAt(),
 });
 
 export const packageItems = pgTable(
@@ -306,7 +312,11 @@ export const campaigns = pgTable("campaigns", {
   staffIds: text("staff_ids").array().notNull().default(sql`'{}'::text[]`),
   combinable: boolean("combinable").notNull().default(false),
   showBanner: boolean("show_banner").notNull().default(false),
+  bannerText: text("banner_text"),
+  bannerColor: text("banner_color").notNull().default("#fff4ed"),
+  packageIds: text("package_ids").array().notNull().default(sql`'{}'::text[]`),
   active: boolean("active").notNull().default(true),
+  createdAt: createdAt(),
 });
 
 export const discountCodes = pgTable(
@@ -327,7 +337,10 @@ export const discountCodes = pgTable(
     combinable: boolean("combinable").notNull().default(false),
     appliesToPackages: boolean("applies_to_packages").notNull().default(false),
     serviceIds: text("service_ids").array().notNull().default(sql`'{}'::text[]`),
+    categoryIds: text("category_ids").array().notNull().default(sql`'{}'::text[]`),
+    packageIds: text("package_ids").array().notNull().default(sql`'{}'::text[]`),
     active: boolean("active").notNull().default(true),
+    createdAt: createdAt(),
   },
   (t) => [uniqueIndex("discount_codes_business_code").on(t.businessId, t.code)],
 );
@@ -386,7 +399,7 @@ export const clientPackages = pgTable("client_packages", {
   purchasedAt: createdAt(),
 });
 
-export type PriceLine = { label: string; amountCents: number };
+export type PriceLine = { label: string; amountCents: number; kind?: string };
 
 export const bookings = pgTable(
   "bookings",
@@ -495,6 +508,21 @@ export const categoriesRelations = relations(serviceCategories, ({ many }) => ({
 export const staffServicesRelations = relations(staffServices, ({ one }) => ({
   staff: one(staffMembers, { fields: [staffServices.staffId], references: [staffMembers.id] }),
   service: one(services, { fields: [staffServices.serviceId], references: [services.id] }),
+}));
+
+export const packagesRelations = relations(packages, ({ many }) => ({
+  items: many(packageItems),
+  sold: many(clientPackages),
+}));
+
+export const packageItemsRelations = relations(packageItems, ({ one }) => ({
+  package: one(packages, { fields: [packageItems.packageId], references: [packages.id] }),
+  service: one(services, { fields: [packageItems.serviceId], references: [services.id] }),
+}));
+
+export const clientPackagesRelations = relations(clientPackages, ({ one }) => ({
+  package: one(packages, { fields: [clientPackages.packageId], references: [packages.id] }),
+  client: one(clients, { fields: [clientPackages.clientId], references: [clients.id] }),
 }));
 
 export const bookingsRelations = relations(bookings, ({ one, many }) => ({

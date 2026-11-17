@@ -85,5 +85,45 @@ check("Karli kohandatud hind 60,00", (await page.$eval("input[name^='staffPrice_
 await page.click("main button[type=submit], form button[type=submit]:not([aria-label])"); await wait(1500);
 check("teenuse salvestus", (await text()).includes("Muudatused salvestatud"));
 
+// 8. Sooduskood: loo uus ja kontrolli nimekirjas
+await page.goto(B + "/sooduskoodid", { waitUntil: "networkidle0" });
+await page.click("button ::-p-text(Lisa sooduskood)"); await wait(300);
+const testCode = "TEST" + String(Date.now()).slice(-5);
+await page.type("#code", testCode);
+await page.click("dialog button ::-p-text(Loo sooduskood)"); await wait(1500);
+check("sooduskood loodud", (await text()).includes(testCode));
+await page.click("dialog button ::-p-text(Loo sooduskood)").catch(() => {});
+
+// 9. Hinnareegel: lülita viimase hetke soodustus sisse ja välja
+await page.goto(B + "/hinnakiri", { waitUntil: "networkidle0" });
+check("hinnakiri: Karli hind 60,00 €", (await text()).includes("60,00 €"));
+const sw = await page.$$("button[role=switch]");
+const before = await sw[2].evaluate((e) => e.getAttribute("aria-checked"));
+await sw[2].click(); await wait(1200);
+await page.reload({ waitUntil: "networkidle0" });
+const after = await (await page.$$("button[role=switch]"))[2].evaluate((e) => e.getAttribute("aria-checked"));
+check("hinnareegli lüliti salvestub", before !== after);
+await (await page.$$("button[role=switch]"))[2].click(); await wait(1000);
+
+// 10. Pakett: loo komplekt
+await page.goto(B + "/paketid", { waitUntil: "networkidle0" });
+await page.click("button ::-p-text(Loo uus pakett)"); await wait(300);
+await page.type("#pName", "Testkomplekt");
+await page.click("dialog button ::-p-text(Teenuste komplekt)");
+const opts = await page.$$eval("dialog select[aria-label='Lisa teenus'] option", (o) => o.map((x) => x.value).filter(Boolean));
+await page.select("dialog select[aria-label='Lisa teenus']", opts[0]); await wait(200);
+await page.select("dialog select[aria-label='Lisa teenus']", opts[1]); await wait(200);
+await page.type("#pPrice", "99,00");
+check("pakett: säästu arvutus", (await text()).includes("Klient säästab"));
+await page.click("dialog button ::-p-text(Loo pakett)"); await wait(1500);
+check("pakett loodud", (await text()).includes("Testkomplekt"));
+
+// 11. Kampaania: loo uus
+await page.goto(B + "/kampaaniad?id=uus", { waitUntil: "networkidle0" });
+await page.type("#cName", "Testkampaania");
+await page.click("main button ::-p-text(Salvesta)");
+await until(/kampaaniad\?id=\w{10,}/); await wait(800);
+check("kampaania loodud", (await text()).includes("Testkampaania"));
+
 console.log("errors:", errors);
 await browser.close();
