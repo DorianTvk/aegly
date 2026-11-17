@@ -160,5 +160,23 @@ await page.type("#gRec", "Test Saaja");
 await page.click("dialog button ::-p-text(Loo kinkekaart)"); await wait(1500);
 check("kinkekaart loodud", /Kinkekaart GC-\w{4}-\w{3} loodud/.test(await text()));
 
+// 15. Kõik halduspaneeli lehed laadivad ilma vigadeta
+for (const r of ["/toolaud", "/kalender", "/kliendid", "/aruanded?p=week", "/aruanded?p=year", "/teenused", "/paketid", "/hinnakiri", "/tootajad", "/tooajad", "/sooduskoodid", "/kampaaniad", "/kinkekaardid", "/vidin", "/profiil", "/teavitused", "/seaded"]) {
+  const res = await page.goto(B + r, { waitUntil: "networkidle0" });
+  check(`leht ${r} (${res.status()})`, res.status() === 200 && !(await text()).includes("This page couldn"));
+}
+// 16. Teavitused: SMS saatja salvestub
+await page.goto(B + "/teavitused", { waitUntil: "networkidle0" });
+await page.$eval("#nSms", (e) => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; set.call(e, ""); e.dispatchEvent(new Event("input", { bubbles: true })); });
+await page.type("#nSms", "TestLumi");
+await page.click("main button ::-p-text(Salvesta)"); await wait(1200);
+await page.reload({ waitUntil: "networkidle0" });
+check("teavitused: SMS saatja salvestatud", (await page.$eval("#nSms", (e) => e.value)) === "TestLumi");
+// 17. Vidin: põhivärv salvestub
+await page.goto(B + "/vidin", { waitUntil: "networkidle0" });
+await page.click("button[aria-label='Roos']");
+await page.click("button ::-p-text(Avalda muudatused)"); await wait(1200);
+check("vidina seaded avaldatud", (await text()).includes("Muudatused avaldatud"));
+
 console.log("errors:", errors);
 await browser.close();

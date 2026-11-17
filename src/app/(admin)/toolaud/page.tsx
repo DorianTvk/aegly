@@ -93,7 +93,7 @@ async function Dashboard() {
     { label: "Teenused ja hinnad", done: serviceCount > 0 },
     { label: "Tööajad määratud", done: scheduleCount > 0 },
     { label: "Vidina välimus kohandatud", done: Boolean(business.logoUrl) },
-    { label: "Vidin kodulehele lisatud", done: false }, // TODO: märgitakse, kui vidin esimest korda laaditakse
+    { label: "Vidin kodulehele lisatud", done: Boolean(business.widgetInstalledAt) },
   ];
   const doneCount = setup.filter((x) => x.done).length;
 

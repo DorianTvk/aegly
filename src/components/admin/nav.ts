@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Building2,
   Bell,
   CalendarDays,
   Clock,
@@ -57,6 +58,7 @@ export const NAV: { section: string; items: NavItem[] }[] = [
     section: "Kanal",
     items: [
       { href: "/vidin", label: "Broneerimisvidin", icon: Code2, section: "Kanal" },
+      { href: "/profiil", label: "Ettevõtte profiil", icon: Building2, section: "Kanal" },
       { href: "/teavitused", label: "Teavitused", icon: Bell, section: "Kanal" },
     ],
   },

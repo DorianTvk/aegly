@@ -50,6 +50,20 @@
       "when": 1794911212841,
       "tag": "0006_gift_cards",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794911631079,
+      "tag": "0007_widget_profile_files",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794911927434,
+      "tag": "0008_notifications",
+      "breakpoints": true
     }
   ]
 }

@@ -63,12 +63,28 @@ export const businesses = pgTable("businesses", {
   locale: text("locale").notNull().default("et"),
   logoUrl: text("logo_url"),
   bannerUrl: text("banner_url"),
+  description: text("description"),
+  industry: text("industry"),
+  website: text("website"),
+  instagram: text("instagram"),
+  facebook: text("facebook"),
+  logoInEmails: boolean("logo_in_emails").notNull().default(true),
   // Vidina välimus (12)
   widgetPrimary: text("widget_primary").notNull().default("#0f766e"),
   widgetButtonText: text("widget_button_text").notNull().default("Broneeri aeg"),
   widgetTheme: text("widget_theme").notNull().default("light"),
   widgetShowPrices: boolean("widget_show_prices").notNull().default(true),
   widgetShowStaff: boolean("widget_show_staff").notNull().default(true),
+  widgetButtonColor: text("widget_button_color").notNull().default("#ffffff"),
+  widgetBackground: text("widget_background").notNull().default("#ffffff"),
+  widgetTextColor: text("widget_text_color").notNull().default("#1f2a2a"),
+  widgetFont: text("widget_font").notNull().default("inherit"),
+  widgetShowLogo: boolean("widget_show_logo").notNull().default(true),
+  widgetShowBanner: boolean("widget_show_banner").notNull().default(true),
+  widgetShowCampaignBanner: boolean("widget_show_campaign_banner").notNull().default(true),
+  widgetLanguages: text("widget_languages").array().notNull().default(sql`'{et}'::text[]`),
+  widgetEmbed: text("widget_embed").$type<"popup" | "iframe">().notNull().default("popup"),
+  widgetInstalledAt: ts("widget_installed_at"),
   allowedDomains: text("allowed_domains").array().notNull().default(sql`'{}'::text[]`),
   // Broneerimisreeglid (08)
   slotStepMinutes: integer("slot_step_minutes").notNull().default(15), // 0 = teenuse kestus
@@ -84,6 +100,11 @@ export const businesses = pgTable("businesses", {
   // Mitteilmumise kaitse
   noShowProtection: boolean("no_show_protection").notNull().default(true),
   noShowThreshold: integer("no_show_threshold").notNull().default(2),
+  // Teavitused (19)
+  emailSenderName: text("email_sender_name"),
+  smsSender: text("sms_sender"),
+  replyToEmail: text("reply_to_email"),
+  googleReviewUrl: text("google_review_url"),
   // Kinkekaardid (17)
   giftCardsEnabled: boolean("gift_cards_enabled").notNull().default(true),
   giftCardAmounts: integer("gift_card_amounts").array().notNull().default(sql`'{2500,5000,7500,10000}'::int[]`),
@@ -123,6 +144,17 @@ export const sessions = pgTable(
   },
   (t) => [index("sessions_user").on(t.userId)],
 );
+
+/** Üleslaaditud failid (logo, bänner, teenuse pilt). Väikesed failid hoitakse andmebaasis. */
+export const files = pgTable("files", {
+  id: id(),
+  businessId: businessId(),
+  name: text("name").notNull(),
+  contentType: text("content_type").notNull(),
+  size: integer("size").notNull(),
+  data: text("data").notNull(), // base64
+  createdAt: createdAt(),
+});
 
 // ---------- Töötajad ja ajad (06 · 07 · 08) ----------
 
@@ -380,6 +412,28 @@ export const giftCardRedemptions = pgTable("gift_card_redemptions", {
   note: text("note"),
   createdAt: createdAt(),
 });
+
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "CONFIRMATION", "REMINDER", "CHANGED", "CANCELLED", "PAYMENT_PENDING", "WAITLIST", "REVIEW", "BIRTHDAY",
+]);
+
+/** Teavituse seaded ja mallid; puuduv rida = vaikeväärtus koodis */
+export const notificationSettings = pgTable(
+  "notification_settings",
+  {
+    id: id(),
+    businessId: businessId(),
+    type: notificationTypeEnum("type").notNull(),
+    emailEnabled: boolean("email_enabled").notNull(),
+    smsEnabled: boolean("sms_enabled").notNull(),
+    /** minutid: meeldetuletus = enne algust, arvustus/ettemaks = pärast */
+    offsetMinutes: integer("offset_minutes"),
+    emailSubject: text("email_subject"),
+    emailBody: text("email_body"),
+    smsBody: text("sms_body"),
+  },
+  (t) => [uniqueIndex("notification_settings_business_type").on(t.businessId, t.type)],
+);
 
 // ---------- Kliendid ja broneeringud (14 · 15 · 02 · W6–W8) ----------
 
