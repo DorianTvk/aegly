@@ -45,7 +45,9 @@ Näidiskonto: **triin@studiolumi.ee** / **aegly-demo**
 - [x] 14–15 Kliendid ja kliendikaart (mitteilmumise kaitse, märkmed, GDPR eksport/kustutus), 16 Uus broneering, broneeringu vaade, 17 Kinkekaardid
 - [x] 12 Broneerimisvidina seaded, 13 Ettevõtte profiil (logo/bänner), 18 Aruanded, 19 Teavitused (mallid), Seaded (kasutajad, kaitse, konto)
 - [x] Aegly paketid (Solo 9 €, Salong 19 €, Suur salong 29 € kuus + km): valik registreerumisel (`/registreeru?pakett=solo&periood=year`), töötajate piirang, Seaded → Pakett ja arveldus, superadmin-vaade `/platvorm` (`SUPERADMIN_EMAILS`)
-- [ ] Broneerimisvidin (W0–W9), mobiilivaated, kliendi iseteenindus
+- [x] Broneerimisvidin: `/w/<salong>` (W1–W8, ootenimekiri W5b), telefonis täisekraanil (M0–M5), paigaldusskript `/w/aegly.js` (W0, pop-up), näidisleht `/w/<salong>/proov`
+- [x] Kliendi iseteenindus `/b/<token>`: vaata, muuda aega, tühista, lisa kalendrisse (.ics) (S1–S3)
+- [ ] Vidina makseosa (W7 makseviisid, W7b pangalink + aja hoidmine, W7c) ja kinkekaardi ost (W9) – koos Stripe'iga
 - [ ] Teavituste saatmine (e-posti ja SMS-i teenusepakkuja)
 - [ ] Stripe Connect maksed ja Stripe Billing (paketi kuumaks)
-- [ ] Teavitused, iseteenindus, ootenimekiri
+- [ ] Ootenimekirja teavitused

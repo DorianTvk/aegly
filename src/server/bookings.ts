@@ -21,6 +21,8 @@ export type CreateBookingInput = {
   /** halduspaneel: ei kontrolli etteteatamisaega */
   ignoreLead?: boolean;
   paid?: boolean;
+  /** vidin enne maksete lisandumist: ettemaks tasutakse kohapeal, broneering kinnitatakse kohe */
+  deferPayment?: boolean;
   note?: string | null;
 };
 
@@ -114,7 +116,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
         .limit(1);
       if (clash.length) throw new Error("CLASH");
 
-      const needsPayment = input.source === "WIDGET" && deposit > 0 && !input.paid;
+      const needsPayment = input.source === "WIDGET" && deposit > 0 && !input.paid && !input.deferPayment;
       const status = needsPayment ? "PENDING_PAYMENT" : business.autoConfirm || input.source === "ADMIN" ? "CONFIRMED" : "PENDING_PAYMENT";
       const [b] = await tx
         .insert(s.bookings)

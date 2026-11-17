@@ -67,7 +67,7 @@ export function WidgetSettingsView({
         subtitle="Kohanda vidina välimus oma kodulehega ja lisa see lehele ühe koodireaga."
         actions={
           <>
-            <a href={`${appUrl}/w/${business.slug}`} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-[10px] border border-line bg-white px-3.5 text-sm font-semibold hover:bg-[#f9fafb]">
+            <a href={`${appUrl}/w/${business.slug}/proov`} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-[10px] border border-line bg-white px-3.5 text-sm font-semibold hover:bg-[#f9fafb]">
               <ExternalLink size={16} /> Ava testleht
             </a>
             <Button variant="primary" disabled={pending} onClick={() => start(async () => setState(await saveWidgetSettings({ ...v, widgetEmbed: tab === "iframe" ? "iframe" : "popup" })))}>

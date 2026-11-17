@@ -22,5 +22,5 @@ export function proxy(req: NextRequest) {
 
 export const config = {
   // vidin, API ja staatilised failid ei vaja halduspaneeli sessiooni
-  matcher: ["/((?!api|w/|_next/static|_next/image|favicon.ico|.*\\.(?:png|svg|jpg|jpeg|webp|ico|css|js|woff2?)$).*)"],
+  matcher: ["/((?!api|w/|b/|_next/static|_next/image|favicon.ico|.*\\.(?:png|svg|jpg|jpeg|webp|ico|css|js|woff2?)$).*)"],
 };
