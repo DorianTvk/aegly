@@ -43,6 +43,13 @@
       "when": 1794910240934,
       "tag": "0005_pricing",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794911212841,
+      "tag": "0006_gift_cards",
+      "breakpoints": true
     }
   ]
 }

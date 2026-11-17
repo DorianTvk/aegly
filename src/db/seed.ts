@@ -228,10 +228,35 @@ async function main() {
     .values(
       clientDefs.map(([, name, email, phone]) => ({
         businessId: biz.id, name, email, phone, consentTermsAt: new Date("2025-03-12"), consentSms: true,
+        createdAt: name === "Kertu Lill" ? new Date() : new Date("2025-03-12T10:00:00Z"),
       })),
     )
     .returning();
   const client = Object.fromEntries(clientDefs.map((d, i) => [d[0], clientRows[i]]));
+  await db.update(s.clients).set({ tags: ["VIP"], birthday: "1988-11-23" }).where(eq(s.clients.id, client.helen.id));
+  await db.update(s.clients).set({ birthday: "1992-11-05" }).where(eq(s.clients.id, client.laura.id));
+  await db
+    .update(s.clients)
+    .set({
+      notes: [
+        { text: "Eelistab tugevamat survet, vasak õlg tundlik.", author: "Kadri Tamm", at: zonedDateTime(addDaysIso(today, -33), "12:00").toISOString() },
+        { text: "Palub meeldetuletust ka e-postiga.", author: "Anni Lepp", at: zonedDateTime(addDaysIso(today, -138), "12:00").toISOString() },
+      ],
+    })
+    .where(eq(s.clients.id, client.marko.id));
+
+  // Kinkekaardid (17)
+  const months = (n: number) => { const d = new Date(); d.setMonth(d.getMonth() + n); return d; };
+  const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000);
+  await db.insert(s.giftCards).values([
+    { businessId: biz.id, code: "GC-7K2M-4QX", buyerName: "Laura Vaher", buyerEmail: "laura.vaher@gmail.com", recipientName: "Liisa Vaher", recipientEmail: "liisa@example.com", valueCents: 5000, balanceCents: 2500, expiresAt: months(11), createdAt: daysAgo(24), source: "WIDGET" },
+    { businessId: biz.id, code: "GC-9PL3-B7D", buyerName: "Toomas Raud", recipientName: "Kristi Raud", recipientEmail: "kristi.raud@gmail.com", valueCents: 10000, balanceCents: 10000, expiresAt: months(11), createdAt: daysAgo(30), source: "WIDGET" },
+    { businessId: biz.id, code: "GC-2HQ8-M1Z", buyerName: null, recipientName: null, valueCents: 7500, balanceCents: 0, expiresAt: months(9), createdAt: daysAgo(75), source: "ADMIN", paymentMethod: "kaart" },
+    { businessId: biz.id, code: "GC-5TX6-R2C", buyerName: "Mart Lill", recipientName: "Kertu Lill", recipientEmail: "kertu@example.com", valueCents: 5000, balanceCents: 5000, expiresAt: months(8), createdAt: daysAgo(98), source: "WIDGET" },
+    { businessId: biz.id, code: "GC-8WN4-E9K", buyerName: "Anu Kallas", recipientName: "Anu Kallas", recipientEmail: "anu.kallas@gmail.com", valueCents: 2500, balanceCents: 2500, expiresAt: new Date(Date.now() + 16 * 86_400_000), createdAt: daysAgo(350), source: "WIDGET" },
+    { businessId: biz.id, code: "GC-3JD7-F5H", buyerName: "Piret Sild", recipientName: "Piret Sild", valueCents: 6000, balanceCents: 1200, expiresAt: months(7), createdAt: daysAgo(5), source: "WIDGET" },
+    { businessId: biz.id, code: "GC-4ZZ2-A8B", buyerName: "Siim Rebane", recipientName: "Kati Lõhmus", valueCents: 5000, balanceCents: 5000, expiresAt: daysAgo(12), createdAt: daysAgo(378), source: "WIDGET" },
+  ]);
 
   // Müüdud paketid (kliendikaardi saldo)
   await db.insert(s.clientPackages).values([
@@ -298,6 +323,10 @@ async function main() {
       history.push(b);
     });
   }
+
+  // Marko: kaks mitteilmumist (mitteilmumise kaitse), Elina: tühistus
+  history.push(book(addDaysIso(today, -54), "11:00", "kadri", "sugav", "marko", "NO_SHOW"));
+  history.push(book(addDaysIso(today, -24), "15:00", "kadri", "sugav", "marko", "NO_SHOW"));
 
   // Täna – Figma "02 Kalender" järgi (Karl puhkusel)
   const todays = [

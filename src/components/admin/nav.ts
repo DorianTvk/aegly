@@ -64,7 +64,12 @@ export const NAV: { section: string; items: NavItem[] }[] = [
 
 export const SETTINGS_ITEM: NavItem = { href: "/seaded", label: "Seaded", icon: SlidersHorizontal, section: "Seaded" };
 
+const EXTRA: NavItem[] = [
+  { href: "/broneeringud/uus", label: "Uus broneering", icon: CalendarDays, section: "Kalender" },
+  { href: "/broneeringud", label: "Broneering", icon: CalendarDays, section: "Kalender" },
+];
+
 export function findNav(pathname: string): NavItem | undefined {
-  const all = [...NAV.flatMap((g) => g.items), SETTINGS_ITEM];
+  const all = [...EXTRA, ...NAV.flatMap((g) => g.items), SETTINGS_ITEM];
   return all.find((i) => pathname === i.href || pathname.startsWith(i.href + "/"));
 }

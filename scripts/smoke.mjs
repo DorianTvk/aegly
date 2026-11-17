@@ -125,5 +125,40 @@ await page.click("main button ::-p-text(Salvesta)");
 await until(/kampaaniad\?id=\w{10,}/); await wait(800);
 check("kampaania loodud", (await text()).includes("Testkampaania"));
 
+// 12. Kliendid ja kliendikaart
+await page.goto(B + "/kliendid", { waitUntil: "networkidle0" });
+check("kliendid: Marko ei ilmunud 2×", (await text()).includes("Ei ilmunud 2×"));
+const marko = await page.$$eval("a[href^='/kliendid/']", (as) => as.find((a) => a.textContent.includes("Marko"))?.getAttribute("href"));
+await page.goto(B + marko, { waitUntil: "networkidle0" });
+check("kliendikaart: mitteilmumise kaitse aktiivne", (await text()).includes("Ettemaks 100% nõutud"));
+await page.type("input[aria-label='Uus märge']", "Testmärge");
+await page.click("main form button[type=submit]"); await wait(1200);
+check("märge lisatud", (await text()).includes("Testmärge"));
+
+// 13. Käsitsi broneering: Katrin, homme esimene vaba aeg
+await page.goto(B + "/broneeringud/uus", { waitUntil: "networkidle0" });
+await page.type("input[aria-label='Otsi klienti']", "Katrin"); await wait(1200);
+await page.click("ul button ::-p-text(Katrin)"); await wait(300);
+const tomorrow = new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10);
+await page.$eval("#mDate", (e, v) => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; set.call(e, v); e.dispatchEvent(new Event("input", { bubbles: true })); }, tomorrow);
+await wait(1500);
+const slotBtns = await page.$$("button[aria-pressed]");
+const firstSlot = await (async () => { for (const b of slotBtns) { const t = await b.evaluate((e) => e.textContent); if (/^\d\d:\d\d$/.test(t)) return b; } })();
+await firstSlot.click(); await wait(1500);
+await page.click("main button ::-p-text(Loo broneering)");
+await until(/\/broneeringud\/(?!uus)\w+/); await wait(800);
+check("käsitsi broneering loodud", (await text()).includes("Katrin Mänd") && (await text()).includes("Kinnitatud"));
+// topeltbroneering samale ajale peab ebaõnnestuma
+await page.click("button ::-p-text(Tühista)"); await wait(300);
+await page.click("dialog button ::-p-text(Tühista broneering)"); await wait(1200);
+check("broneering tühistatud", (await text()).includes("Tühistatud"));
+
+// 14. Kinkekaart: müü kohapeal
+await page.goto(B + "/kinkekaardid", { waitUntil: "networkidle0" });
+await page.click("button ::-p-text(Müü kinkekaart)"); await wait(300);
+await page.type("#gRec", "Test Saaja");
+await page.click("dialog button ::-p-text(Loo kinkekaart)"); await wait(1500);
+check("kinkekaart loodud", /Kinkekaart GC-\w{4}-\w{3} loodud/.test(await text()));
+
 console.log("errors:", errors);
 await browser.close();

@@ -84,6 +84,12 @@ export const businesses = pgTable("businesses", {
   // Mitteilmumise kaitse
   noShowProtection: boolean("no_show_protection").notNull().default(true),
   noShowThreshold: integer("no_show_threshold").notNull().default(2),
+  // Kinkekaardid (17)
+  giftCardsEnabled: boolean("gift_cards_enabled").notNull().default(true),
+  giftCardAmounts: integer("gift_card_amounts").array().notNull().default(sql`'{2500,5000,7500,10000}'::int[]`),
+  giftCardCustomAmount: boolean("gift_card_custom_amount").notNull().default(true),
+  giftCardMinCents: integer("gift_card_min_cents").notNull().default(2000),
+  giftCardValidityMonths: integer("gift_card_validity_months").notNull().default(12),
   // Stripe Connect
   stripeAccountId: text("stripe_account_id"),
   stripeChargesEnabled: boolean("stripe_charges_enabled").notNull().default(false),
@@ -358,6 +364,20 @@ export const giftCards = pgTable("gift_cards", {
   balanceCents: integer("balance_cents").notNull(),
   expiresAt: ts("expires_at").notNull(),
   sendAt: ts("send_at"),
+  source: text("source").$type<"WIDGET" | "ADMIN">().notNull().default("ADMIN"),
+  paymentMethod: text("payment_method"),
+  createdAt: createdAt(),
+});
+
+/** Kinkekaardi kasutamised (saldo muutus) */
+export const giftCardRedemptions = pgTable("gift_card_redemptions", {
+  id: id(),
+  giftCardId: text("gift_card_id")
+    .notNull()
+    .references(() => giftCards.id, { onDelete: "cascade" }),
+  bookingId: text("booking_id").references(() => bookings.id),
+  amountCents: integer("amount_cents").notNull(),
+  note: text("note"),
   createdAt: createdAt(),
 });
 
