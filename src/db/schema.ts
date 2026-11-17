@@ -43,6 +43,7 @@ export const bookingStatusEnum = pgEnum("booking_status", [
   "CANCELLED",
   "NO_SHOW",
 ]);
+export const priceTypeEnum = pgEnum("price_type", ["FIXED", "FROM", "FREE", "HIDDEN"]);
 export const bookingSourceEnum = pgEnum("booking_source", ["WIDGET", "ADMIN"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["PENDING", "SUCCEEDED", "FAILED", "REFUNDED"]);
 
@@ -70,7 +71,9 @@ export const businesses = pgTable("businesses", {
   widgetShowStaff: boolean("widget_show_staff").notNull().default(true),
   allowedDomains: text("allowed_domains").array().notNull().default(sql`'{}'::text[]`),
   // Broneerimisreeglid (08)
-  slotStepMinutes: integer("slot_step_minutes").notNull().default(15),
+  slotStepMinutes: integer("slot_step_minutes").notNull().default(15), // 0 = teenuse kestus
+  slotMode: text("slot_mode").$type<"ALL" | "OPTIMIZED">().notNull().default("ALL"),
+  useNationalHolidays: boolean("use_national_holidays").notNull().default(true),
   minLeadMinutes: integer("min_lead_minutes").notNull().default(120),
   maxAdvanceDays: integer("max_advance_days").notNull().default(60),
   cancelUntilHours: integer("cancel_until_hours").notNull().default(24),
@@ -98,7 +101,21 @@ export const users = pgTable(
     role: roleEnum("role").notNull().default("OWNER"),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex("users_business_email").on(t.businessId, t.email)],
+  (t) => [uniqueIndex("users_email").on(t.email)],
+);
+
+/** Sisselogimise sessioon; küpsises on token, andmebaasis selle SHA-256 räsi */
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: text("id").primaryKey(), // tokeni räsi
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: ts("expires_at").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("sessions_user").on(t.userId)],
 );
 
 // ---------- Töötajad ja ajad (06 · 07 · 08) ----------
@@ -118,6 +135,7 @@ export const staffMembers = pgTable("staff_members", {
   active: boolean("active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   externalCalendar: text("external_calendar"),
+  invitedAt: ts("invited_at"),
   createdAt: createdAt(),
 });
 
@@ -189,11 +207,21 @@ export const services = pgTable("services", {
   description: text("description"),
   imageUrl: text("image_url"),
   durationMinutes: integer("duration_minutes").notNull(),
+  bufferBeforeMinutes: integer("buffer_before_minutes").notNull().default(0),
   bufferMinutes: integer("buffer_minutes").notNull().default(0),
+  priceType: priceTypeEnum("price_type").notNull().default("FIXED"),
   priceCents: integer("price_cents").notNull(),
   depositPercent: integer("deposit_percent").notNull().default(0),
   vatRate: numeric("vat_rate", { precision: 5, scale: 2 }),
   bookableOnline: boolean("bookable_online").notNull().default(true),
+  showPrice: boolean("show_price").notNull().default(true),
+  allowStaffChoice: boolean("allow_staff_choice").notNull().default(true),
+  // tühi = ettevõtte vaikeväärtus (08)
+  minLeadMinutes: integer("min_lead_minutes"),
+  maxAdvanceDays: integer("max_advance_days"),
+  cancelUntilHours: integer("cancel_until_hours"),
+  updatedAt: ts("updated_at"),
+  updatedBy: text("updated_by"),
   maxParticipants: integer("max_participants").notNull().default(1),
   status: serviceStatusEnum("status").notNull().default("ACTIVE"),
   sortOrder: integer("sort_order").notNull().default(0),
@@ -430,6 +458,14 @@ export const businessesRelations = relations(businesses, ({ many }) => ({
   staff: many(staffMembers),
   services: many(services),
   bookings: many(bookings),
+}));
+
+export const usersRelations = relations(users, ({ one }) => ({
+  business: one(businesses, { fields: [users.businessId], references: [businesses.id] }),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, { fields: [sessions.userId], references: [users.id] }),
 }));
 
 export const staffRelations = relations(staffMembers, ({ many }) => ({

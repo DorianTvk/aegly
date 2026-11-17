@@ -5,7 +5,7 @@ import { getCurrentBusiness, getCurrentUser, ROLE_LABEL } from "@/lib/tenant";
 
 async function SidebarWithData() {
   const business = await getCurrentBusiness();
-  const user = await getCurrentUser(business.id);
+  const user = await getCurrentUser();
   return <Sidebar businessName={business.name} userName={user.name} userRole={ROLE_LABEL[user.role]} />;
 }
 

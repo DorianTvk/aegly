@@ -8,6 +8,34 @@
       "when": 1794906936656,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794907672779,
+      "tag": "0001_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794907733403,
+      "tag": "0002_users_email_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794907809236,
+      "tag": "0003_service_options",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794908001206,
+      "tag": "0004_slots_holidays",
+      "breakpoints": true
     }
   ]
 }

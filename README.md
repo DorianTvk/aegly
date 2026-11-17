@@ -18,8 +18,11 @@ npm install
 npm run db:migrate            # loob tabelid
 npm run db:seed               # Studio Lumi näidisandmed
 npm run dev                   # http://localhost:3000
-npm test                      # loogika testid
+npm test                      # loogika testid (vitest)
+npm run test:smoke            # brauseritest töötava rakenduse vastu (BASE_URL, CHROME_PATH)
 ```
+
+Näidiskonto: **triin@studiolumi.ee** / **aegly-demo**
 
 ## Struktuur
 
@@ -35,8 +38,10 @@ npm test                      # loogika testid
 
 - [x] Andmemudel (12 objekti raportist + kinkekaardid, mitme salongi tugi)
 - [x] Halduspaneeli kest, 01 Töölaud, 02 Kalender (päevavaade)
-- [ ] Sisselogimine ja registreerumine
+- [x] Sisselogimine ja registreerumine (sessioonid andmebaasis, scrypt)
+- [x] 03–04 Teenused ja kategooriad, 06–07 Töötajad (profiil, teenused, tööaeg, puudumised), 08 Tööajad ja vabad ajad
+- [x] Vabade aegade mootor (testitud raporti näitega) ja Eesti riigipühad
+- [ ] Hinna mootor (hinnareeglid, kampaaniad, koodid)
 - [ ] Ülejäänud halduspaneeli vaated
-- [ ] Vabade aegade ja hinna mootor
 - [ ] Broneerimisvidin (W0–W9), Stripe
 - [ ] Teavitused, iseteenindus, ootenimekiri

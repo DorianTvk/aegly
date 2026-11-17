@@ -4,13 +4,15 @@
  * Käivita: npm run db:seed
  */
 import { db, schema as s } from "./index";
+import { hashPassword } from "../lib/password";
+import { eq } from "drizzle-orm";
 import { addDaysIso, isoWeekday, todayIso, zonedDateTime } from "../lib/time";
 
 async function main() {
   const today = todayIso();
   console.log(`Seemendan Studio Lumi andmed, täna = ${today}`);
 
-  await db.delete(s.businesses); // kaskaad kustutab kõik seotud read
+  await db.delete(s.businesses).where(eq(s.businesses.slug, "studio-lumi")); // kaskaad kustutab seotud read
 
   const [biz] = await db
     .insert(s.businesses)
@@ -28,7 +30,7 @@ async function main() {
 
   const [owner] = await db
     .insert(s.users)
-    .values({ businessId: biz.id, email: "triin@studiolumi.ee", name: "Triin Ilves", role: "OWNER" })
+    .values({ businessId: biz.id, email: "triin@studiolumi.ee", name: "Triin Ilves", role: "OWNER", passwordHash: await hashPassword("aegly-demo") })
     .returning();
   void owner;
 
@@ -67,7 +69,7 @@ async function main() {
     { key: "varv", cat: "Juuksur", name: "Värvimine", dur: 90, buf: 0, price: 8500, dep: 20, desc: "Juuste värvimine ühes toonis." },
     { key: "foon", cat: "Juuksur", name: "Föönisoeng", dur: 45, buf: 0, price: 3000, dep: 0, desc: "Pidulik föönisoeng." },
     { key: "mani", cat: "Küüned", name: "Maniküür geellakiga", dur: 75, buf: 0, price: 3500, dep: 0, desc: "Küünte hooldus ja geellakk." },
-    { key: "pedi", cat: "Küüned", name: "Pediküür", dur: 75, buf: 0, price: 4500, dep: 0, desc: "Jalgade ja küünte hooldus." },
+    { key: "pedi", cat: "Küüned", name: "Pediküür", dur: 75, buf: 0, price: 4000, dep: 0, desc: "Jalgade ja küünte hooldus." },
   ] as const;
 
   const svcRows = await db
@@ -82,6 +84,8 @@ async function main() {
         bufferMinutes: d.buf,
         priceCents: d.price,
         depositPercent: d.dep,
+        priceType: d.key === "naistel" || d.key === "varv" ? ("FROM" as const) : ("FIXED" as const),
+        bookableOnline: d.key !== "varv",
         sortOrder: i,
       })),
     )

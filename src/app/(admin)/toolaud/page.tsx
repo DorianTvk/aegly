@@ -42,7 +42,7 @@ function Kpi({ label, value, delta, icon: Icon }: { label: string; value: string
 
 async function Dashboard() {
   const business = await getCurrentBusiness();
-  const user = await getCurrentUser(business.id);
+  const user = await getCurrentUser();
   const tz = business.timezone;
   const today = todayIso(tz);
   const lastWeekSameDay = addDaysIso(today, -7);

@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, eq, gte, inArray, lt, ne } from "drizzle-orm";
 import { db, schema as s } from "@/db";
 import { addDaysIso, isoWeekday, localDate, localMinutes, toMinutes, zonedDateTime } from "@/lib/time";
+import { estonianHolidays } from "@/lib/holidays-ee";
 import { staffDay, totalMinutes, subtract, type Interval, type StaffDay } from "@/lib/schedule";
 
 export type DayBooking = {
@@ -19,6 +20,8 @@ export type DayBooking = {
   categoryName: string;
   staffId: string;
   finalPriceCents: number;
+  bufferBefore: number;
+  bufferAfter: number;
 };
 
 export type StaffColumn = {
@@ -57,6 +60,7 @@ export async function loadDay(businessId: string, isoDate: string, tz: string) {
         clientName: s.clients.name,
         serviceName: s.services.name,
         durationMinutes: s.services.durationMinutes,
+        bufferBefore: s.services.bufferBeforeMinutes,
         categoryColor: s.serviceCategories.color,
         categoryName: s.serviceCategories.name,
       })
@@ -68,10 +72,20 @@ export async function loadDay(businessId: string, isoDate: string, tz: string) {
       .orderBy(asc(s.bookings.startsAt)),
   ]);
 
+  const business = await db.query.businesses.findFirst({ where: eq(s.businesses.id, businessId), columns: { useNationalHolidays: true } });
+  const national = business?.useNationalHolidays ? estonianHolidays(Number(isoDate.slice(0, 4))).find((h) => h.date === isoDate) : undefined;
+
   let openInterval: Interval | null | undefined = undefined;
-  if (holiday?.closed || opening?.closed) openInterval = null;
-  else if (holiday?.startTime && holiday.endTime) openInterval = { start: toMinutes(holiday.startTime), end: toMinutes(holiday.endTime) };
-  else if (opening?.startTime && opening.endTime) openInterval = { start: toMinutes(opening.startTime), end: toMinutes(opening.endTime) };
+  if (holiday) {
+    // ettevõtte enda erand on ülimuslik
+    openInterval = holiday.closed || !holiday.startTime || !holiday.endTime ? null : { start: toMinutes(holiday.startTime), end: toMinutes(holiday.endTime) };
+  } else if (opening?.closed || national?.kind === "closed") {
+    openInterval = null;
+  } else if (opening?.startTime && opening.endTime) {
+    openInterval = { start: toMinutes(opening.startTime), end: toMinutes(opening.endTime) };
+    // lühendatud tööpäev: 3 tundi varem kinni
+    if (national?.kind === "short") openInterval = { start: openInterval.start, end: Math.max(openInterval.start, openInterval.end - 180) };
+  }
 
   const bookings: DayBooking[] = bookingRows.map(({ b, ...rest }) => ({
     id: b.id,
@@ -83,6 +97,8 @@ export async function loadDay(businessId: string, isoDate: string, tz: string) {
     source: b.source,
     staffId: b.staffId,
     finalPriceCents: b.finalPriceCents,
+    bufferBefore: rest.bufferBefore,
+    bufferAfter: b.bufferMinutes,
     clientName: rest.clientName,
     serviceName: rest.serviceName,
     durationMinutes: rest.durationMinutes,
@@ -121,7 +137,7 @@ export async function loadDay(businessId: string, isoDate: string, tz: string) {
     };
   });
 
-  return { isoDate, opening: openInterval, columns, bookings };
+  return { isoDate, opening: openInterval, columns, bookings, holidayName: holiday?.name ?? national?.name };
 }
 
 /** Ühe perioodi broneeringute koondnäitajad */

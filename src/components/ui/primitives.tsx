@@ -5,7 +5,7 @@ import type { ComponentProps, ReactNode } from "react";
 type BtnVariant = "primary" | "secondary" | "ghost";
 
 const btnBase =
-  "inline-flex h-10 items-center justify-center gap-2 rounded-[10px] border px-3.5 text-sm font-semibold transition-colors disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime";
+  "inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-[10px] border px-3.5 text-sm font-semibold transition-colors disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime";
 const btnVariants: Record<BtnVariant, string> = {
   primary: "border-lime bg-lime text-ink hover:bg-[#93d82a]",
   secondary: "border-line bg-white text-ink hover:bg-[#f9fafb]",

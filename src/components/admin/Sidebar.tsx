@@ -6,6 +6,7 @@ import { CalendarCheck, ChevronDown, LogOut } from "lucide-react";
 import { clsx } from "clsx";
 import { NAV, SETTINGS_ITEM, type NavItem } from "./nav";
 import { Avatar } from "@/components/ui/Avatar";
+import { logout } from "@/app/(auth)/actions";
 
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   const Icon = item.icon;
@@ -62,9 +63,11 @@ export function Sidebar({ businessName, userName, userRole }: { businessName: st
             <p className="truncate text-[13px] font-semibold text-white">{userName}</p>
             <p className="text-xs text-subtle">{userRole}</p>
           </div>
-          <button type="button" aria-label="Logi välja" className="text-subtle hover:text-white">
-            <LogOut size={16} />
-          </button>
+          <form action={logout}>
+            <button type="submit" aria-label="Logi välja" title="Logi välja" className="grid size-8 place-items-center rounded-lg text-subtle hover:bg-ink-2 hover:text-white">
+              <LogOut size={16} />
+            </button>
+          </form>
         </div>
       </div>
     </aside>
