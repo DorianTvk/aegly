@@ -2,6 +2,10 @@
 
 import { useFormAction } from "@/components/ui/use-form-action";
 import Link from "next/link";
+import { useState } from "react";
+import { clsx } from "clsx";
+import { PLAN_IDS, PLANS, staffLimitText, type BillingPeriod, type PlanId } from "@/lib/plans";
+import { formatEuro } from "@/lib/time";
 
 import { Field, FormMessage, Input } from "@/components/ui/form";
 import { Button } from "@/components/ui/primitives";
@@ -33,12 +37,39 @@ export function LoginForm({ next }: { next?: string }) {
   );
 }
 
-export function RegisterForm() {
+export function RegisterForm({ defaultPlan = "SALONG", defaultPeriod = "MONTH" }: { defaultPlan?: PlanId; defaultPeriod?: BillingPeriod }) {
   const [state, action, pending] = useFormAction(register);
+  const [plan, setPlan] = useState<PlanId>(defaultPlan);
+  const [period, setPeriod] = useState<BillingPeriod>(defaultPeriod);
   const e = state?.errors ?? {};
   return (
     <form onSubmit={action} className="space-y-4" noValidate>
       <FormMessage state={state} />
+      <fieldset>
+        <legend className="mb-1.5 text-sm font-medium">Pakett</legend>
+        <input type="hidden" name="plan" value={plan} />
+        <input type="hidden" name="period" value={period} />
+        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Pakett">
+          {PLAN_IDS.map((id) => (
+            <button
+              key={id}
+              type="button"
+              role="radio"
+              aria-checked={plan === id}
+              onClick={() => setPlan(id)}
+              className={clsx("rounded-[10px] border px-3 py-2.5 text-left", plan === id ? "border-ink ring-1 ring-ink" : "border-line hover:bg-line-soft")}
+            >
+              <span className="block text-sm font-semibold">{PLANS[id].name}</span>
+              <span className="block text-xs text-muted">{formatEuro(period === "YEAR" ? PLANS[id].yearlyCents : PLANS[id].monthlyCents)} / {period === "YEAR" ? "a" : "kuu"}</span>
+              <span className="block text-[11px] text-muted">{staffLimitText(id)}</span>
+            </button>
+          ))}
+        </div>
+        <label className="mt-2 flex items-center gap-2 text-[13px] text-muted">
+          <input type="checkbox" checked={period === "YEAR"} onChange={(ev) => setPeriod(ev.target.checked ? "YEAR" : "MONTH")} className="size-4 accent-[#a3e635]" />
+          Maksan aasta korraga (2 kuud tasuta). Hindadele lisandub km.
+        </label>
+      </fieldset>
       <Field label="Ettevõtte nimi" htmlFor="businessName" error={e.businessName}>
         <Input id="businessName" name="businessName" placeholder="nt Studio Lumi" autoComplete="organization" aria-invalid={!!e.businessName} />
       </Field>

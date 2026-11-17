@@ -1,6 +1,7 @@
 import "server-only";
 import { eq, like } from "drizzle-orm";
 import { db, schema as s } from "@/db";
+import type { BillingPeriod, PlanId } from "@/lib/plans";
 
 export function slugify(name: string): string {
   return (
@@ -22,11 +23,11 @@ async function uniqueSlug(name: string): Promise<string> {
 }
 
 /** Uus ettevõte vaikimisi lahtiolekuaegadega (E–R 09–18, L 10–15, P suletud) */
-export async function createBusinessWithOwner(input: { businessName: string; ownerName: string; email: string; passwordHash: string }) {
+export async function createBusinessWithOwner(input: { businessName: string; ownerName: string; email: string; passwordHash: string; plan?: PlanId; billingPeriod?: BillingPeriod }) {
   return db.transaction(async (tx) => {
     const [business] = await tx
       .insert(s.businesses)
-      .values({ name: input.businessName, slug: await uniqueSlug(input.businessName), email: input.email })
+      .values({ name: input.businessName, slug: await uniqueSlug(input.businessName), email: input.email, plan: input.plan ?? "SALONG", billingPeriod: input.billingPeriod ?? "MONTH" })
       .returning();
     await tx.insert(s.openingHours).values(
       [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({

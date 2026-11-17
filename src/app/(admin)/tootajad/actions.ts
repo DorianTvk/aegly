@@ -9,6 +9,8 @@ import { requireSession } from "@/lib/session";
 import { parseEuroToCents } from "@/lib/money";
 import { addDaysIso, toMinutes, zonedDateTime } from "@/lib/time";
 import type { FormState } from "@/components/ui/form";
+import { canAddStaff, staffLimitMessage } from "@/lib/plans";
+import { activeStaffCount } from "@/server/plans";
 
 async function ownStaff(businessId: string, staffId: string) {
   const m = await db.query.staffMembers.findFirst({ where: and(eq(s.staffMembers.id, staffId), eq(s.staffMembers.businessId, businessId)) });
@@ -34,10 +36,18 @@ export async function saveProfile(staffId: string | null, _prev: FormState, form
   const values = { ...parsed.data, bookableOnline: parsed.data.bookableOnline === "on", active: staffId ? parsed.data.active === "on" : true };
 
   if (staffId) {
-    await ownStaff(business.id, staffId);
+    const current = await ownStaff(business.id, staffId);
+    // uuesti aktiveerimine loeb paketi töötajate piiri sisse
+    if (values.active && !current.active && !canAddStaff(business.plan, await activeStaffCount(business.id))) {
+      return { message: staffLimitMessage(business.plan) };
+    }
     await db.update(s.staffMembers).set(values).where(eq(s.staffMembers.id, staffId));
     revalidatePath("/tootajad");
     return { ok: true, message: "Salvestatud." };
+  }
+
+  if (!canAddStaff(business.plan, await activeStaffCount(business.id))) {
+    return { message: staffLimitMessage(business.plan) };
   }
 
   // uus töötaja saab ettevõtte lahtiolekuajad vaikegraafikuks

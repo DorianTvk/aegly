@@ -6,6 +6,7 @@ import { hashPassword, verifyPassword } from "@/lib/password";
 import { createSession, destroySession } from "@/lib/session";
 import { createBusinessWithOwner, findUserByEmail } from "@/server/business";
 import type { FormState } from "@/components/ui/form";
+import { parsePeriod, parsePlan } from "@/lib/plans";
 
 const loginSchema = z.object({
   email: z.email("Sisesta kehtiv e-posti aadress").transform((v) => v.toLowerCase().trim()),
@@ -49,6 +50,8 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
     ownerName: parsed.data.ownerName,
     email: parsed.data.email,
     passwordHash: await hashPassword(parsed.data.password),
+    plan: parsePlan(formData.get("plan")),
+    billingPeriod: parsePeriod(formData.get("period")),
   });
   await createSession(user.id);
   redirect("/toolaud");

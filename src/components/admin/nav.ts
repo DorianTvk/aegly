@@ -66,7 +66,11 @@ export const NAV: { section: string; items: NavItem[] }[] = [
 
 export const SETTINGS_ITEM: NavItem = { href: "/seaded", label: "Seaded", icon: SlidersHorizontal, section: "Seaded" };
 
+export const PLATFORM_ITEM: NavItem = { href: "/platvorm", label: "Platvorm", icon: Building2, section: "Aegly" };
+
 const EXTRA: NavItem[] = [
+  { href: "/seaded/pakett", label: "Pakett ja arveldus", icon: SlidersHorizontal, section: "Seaded" },
+  PLATFORM_ITEM,
   { href: "/broneeringud/uus", label: "Uus broneering", icon: CalendarDays, section: "Kalender" },
   { href: "/broneeringud", label: "Broneering", icon: CalendarDays, section: "Kalender" },
 ];

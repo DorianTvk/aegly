@@ -11,6 +11,7 @@ import { totalMinutes } from "@/lib/schedule";
 import { ROLE_LABEL } from "@/lib/tenant";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge, Card, LinkButton, PageHeader } from "@/components/ui/primitives";
+import { PLANS } from "@/lib/plans";
 
 export const metadata: Metadata = { title: "Töötajad" };
 
@@ -41,8 +42,21 @@ async function StaffList() {
   const working = day.columns.filter((c) => totalMinutes(c.day.working) > 0);
   const avgUtil = working.length ? Math.round((working.reduce((a, c) => a + c.utilization, 0) / working.length) * 100) : 0;
 
+  const plan = PLANS[business.plan];
+  const activeCount = staff.filter((m) => m.status !== "INACTIVE").length;
+  const full = plan.staffLimit !== null && activeCount >= plan.staffLimit;
+
   return (
     <div className="space-y-5">
+      <p className={clsx("flex flex-wrap items-center gap-x-3 gap-y-1 rounded-[12px] border px-4 py-3 text-sm", full ? "border-[#fedf89] bg-[#fffaeb]" : "border-line bg-white")}>
+        <span>
+          Pakett <b>{plan.name}</b>: {plan.staffLimit === null ? `${activeCount} aktiivset töötajat, piirang puudub` : `${activeCount} / ${plan.staffLimit} aktiivset töötajat`}
+        </span>
+        {full && <span className="text-muted">Piir on täis.</span>}
+        <Link href="/seaded/pakett" className="font-semibold underline-offset-4 hover:underline">
+          {full ? "Vaheta paketti" : "Vaata paketti"}
+        </Link>
+      </p>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Stat label="Aktiivsed töötajad" value={String(staff.filter((m) => m.status === "ACTIVE").length)} icon={TrendingUp} />
         <Stat label="Puhkusel täna" value={String(staff.filter((m) => m.status === "LEAVE").length)} icon={CalendarDays} />

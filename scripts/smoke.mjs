@@ -14,7 +14,8 @@ const check = (name, ok) => console.log(ok ? "OK  " : "FAIL", name);
 const until = (re) => page.waitForFunction((src) => new RegExp(src).test(location.pathname + location.search), { timeout: 10000 }, re.source);
 
 // 1. Registreerumine uue salongiga
-await page.goto(B + "/registreeru", { waitUntil: "networkidle0" });
+await page.goto(B + "/registreeru?pakett=solo", { waitUntil: "networkidle0" });
+check("müügilehelt valitud pakett: Solo", (await page.$eval("input[name=plan]", (e) => e.value)) === "SOLO");
 await page.click("main button[type=submit], form button[type=submit]:not([aria-label])"); await wait(800);
 check("registreerumise valideerimine", (await text()).includes("Ettevõtte nimi on liiga lühike"));
 const email = `test${Date.now()}@example.com`;
@@ -34,6 +35,14 @@ await page.type("#title", "Massöör");
 await page.click("main button[type=submit], form button[type=submit]:not([aria-label])"); await until(/tab=tooaeg/); await wait(800);
 check("töötaja lisatud → tööaeg", page.url().includes("tab=tooaeg") && (await text()).includes("Iganädalane tööaeg"));
 await page.screenshot({ path: (process.env.SHOTS_DIR ?? "/tmp") + "/tootaja_tooaeg_uus.png", fullPage: true });
+// 2b. Solo paketis teist töötajat lisada ei saa → vaheta pakett Salong vastu
+await page.goto(B + "/tootajad/uus", { waitUntil: "networkidle0" });
+check("Solo: töötajate piir täis", (await text()).includes("Töötajate piir on täis"));
+await page.goto(B + "/seaded/pakett", { waitUntil: "networkidle0" });
+await page.click("main button ::-p-text(Vali see pakett)"); await wait(1200);
+check("pakett vahetatud: Salong", (await text()).includes("Pakett vahetatud: Salong"));
+await page.goto(B + "/tootajad/uus", { waitUntil: "networkidle0" });
+check("Salong: töötaja lisamise vorm avaneb", !!(await page.$("#name")));
 
 // 3. Uus teenus selle töötajaga
 await page.goto(B + "/teenused/uus", { waitUntil: "networkidle0" });
@@ -161,7 +170,7 @@ await page.click("dialog button ::-p-text(Loo kinkekaart)"); await wait(1500);
 check("kinkekaart loodud", /Kinkekaart GC-\w{4}-\w{3} loodud/.test(await text()));
 
 // 15. Kõik halduspaneeli lehed laadivad ilma vigadeta
-for (const r of ["/toolaud", "/kalender", "/kliendid", "/aruanded?p=week", "/aruanded?p=year", "/teenused", "/paketid", "/hinnakiri", "/tootajad", "/tooajad", "/sooduskoodid", "/kampaaniad", "/kinkekaardid", "/vidin", "/profiil", "/teavitused", "/seaded"]) {
+for (const r of ["/toolaud", "/kalender", "/kliendid", "/aruanded?p=week", "/aruanded?p=year", "/teenused", "/paketid", "/hinnakiri", "/tootajad", "/tooajad", "/sooduskoodid", "/kampaaniad", "/kinkekaardid", "/vidin", "/profiil", "/teavitused", "/seaded", "/seaded/pakett", "/platvorm"]) {
   const res = await page.goto(B + r, { waitUntil: "networkidle0" });
   check(`leht ${r} (${res.status()})`, res.status() === 200 && !(await text()).includes("This page couldn"));
 }

@@ -21,7 +21,7 @@ export function SettingsView({
 }: {
   me: { name: string; email: string; role: User["role"] };
   users: User[];
-  business: { name: string; noShowProtection: boolean; noShowThreshold: number; stripeAccountId: string | null; locale: string; currency: string; timezone: string };
+  business: { planName: string; planPrice: string; name: string; noShowProtection: boolean; noShowThreshold: number; stripeAccountId: string | null; locale: string; currency: string; timezone: string };
 }) {
   const [name, setName] = useState(me.name);
   const [accState, setAccState] = useState<FormState>(null);
@@ -44,6 +44,18 @@ export function SettingsView({
   return (
     <div className="max-w-[920px] space-y-5">
       <PageHeader title="Seaded" subtitle="Konto, kasutajad, maksed ja andmed." />
+
+      <Card className="flex flex-wrap items-center justify-between gap-4 p-5">
+        <div>
+          <h2 className="text-[15px] font-semibold">Pakett ja arveldus</h2>
+          <p className="mt-0.5 text-[13px] text-muted">
+            Praegune pakett: <b className="text-ink">{business.planName}</b> · {business.planPrice}
+          </p>
+        </div>
+        <Link href="/seaded/pakett" className="inline-flex h-9 items-center rounded-[10px] border border-line px-3 text-sm font-semibold hover:bg-line-soft">
+          Halda paketti
+        </Link>
+      </Card>
 
       <Card>
         <CardHeader title="Minu konto" />

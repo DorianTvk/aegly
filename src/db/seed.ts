@@ -18,6 +18,7 @@ async function main() {
     .insert(s.businesses)
     .values({
       slug: "studio-lumi",
+      plan: "SALONG",
       name: "Studio Lumi",
       registryCode: "14567890",
       vatNumber: "EE102345678",

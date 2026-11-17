@@ -44,7 +44,8 @@ Näidiskonto: **triin@studiolumi.ee** / **aegly-demo**
 - [x] Hinna mootor (raporti 3 näidet testides) ja vaated 05 Paketid, 09 Hinnakiri, 10 Sooduskoodid, 11 Kampaaniad
 - [x] 14–15 Kliendid ja kliendikaart (mitteilmumise kaitse, märkmed, GDPR eksport/kustutus), 16 Uus broneering, broneeringu vaade, 17 Kinkekaardid
 - [x] 12 Broneerimisvidina seaded, 13 Ettevõtte profiil (logo/bänner), 18 Aruanded, 19 Teavitused (mallid), Seaded (kasutajad, kaitse, konto)
+- [x] Aegly paketid (Solo 9 €, Salong 19 €, Suur salong 29 € kuus + km): valik registreerumisel (`/registreeru?pakett=solo&periood=year`), töötajate piirang, Seaded → Pakett ja arveldus, superadmin-vaade `/platvorm` (`SUPERADMIN_EMAILS`)
 - [ ] Broneerimisvidin (W0–W9), mobiilivaated, kliendi iseteenindus
 - [ ] Teavituste saatmine (e-posti ja SMS-i teenusepakkuja)
-- [ ] Stripe Connect maksed
+- [ ] Stripe Connect maksed ja Stripe Billing (paketi kuumaks)
 - [ ] Teavitused, iseteenindus, ootenimekiri

@@ -5,6 +5,8 @@ import { db, schema as s } from "@/db";
 import { requireSession } from "@/lib/session";
 import { Card } from "@/components/ui/primitives";
 import { SettingsView } from "./SettingsView";
+import { PLANS } from "@/lib/plans";
+import { formatEuro } from "@/lib/time";
 
 export const metadata: Metadata = { title: "Seaded" };
 
@@ -15,7 +17,7 @@ async function Settings() {
     <SettingsView
       me={{ name: user.name, email: user.email, role: user.role }}
       users={users.map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, isMe: u.id === user.id }))}
-      business={{ name: b.name, noShowProtection: b.noShowProtection, noShowThreshold: b.noShowThreshold, stripeAccountId: b.stripeAccountId, locale: b.locale, currency: b.currency, timezone: b.timezone }}
+      business={{ planName: PLANS[b.plan].name, planPrice: b.billingPeriod === "YEAR" ? `${formatEuro(PLANS[b.plan].yearlyCents)} / aasta + km` : `${formatEuro(PLANS[b.plan].monthlyCents)} / kuu + km`, name: b.name, noShowProtection: b.noShowProtection, noShowThreshold: b.noShowThreshold, stripeAccountId: b.stripeAccountId, locale: b.locale, currency: b.currency, timezone: b.timezone }}
     />
   );
 }

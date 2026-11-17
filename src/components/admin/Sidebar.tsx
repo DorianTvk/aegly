@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarCheck, ChevronDown, LogOut } from "lucide-react";
 import { clsx } from "clsx";
-import { NAV, SETTINGS_ITEM, type NavItem } from "./nav";
+import { NAV, PLATFORM_ITEM, SETTINGS_ITEM, type NavItem } from "./nav";
 import { Avatar } from "@/components/ui/Avatar";
 import { logout } from "@/app/(auth)/actions";
 
@@ -25,7 +25,7 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   );
 }
 
-export function Sidebar({ businessName, userName, userRole }: { businessName: string; userName: string; userRole: string }) {
+export function Sidebar({ businessName, userName, userRole, superadmin = false }: { businessName: string; userName: string; userRole: string; superadmin?: boolean }) {
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
@@ -56,6 +56,7 @@ export function Sidebar({ businessName, userName, userRole }: { businessName: st
       </nav>
 
       <div className="px-3.5 pb-5">
+        {superadmin && <NavLink item={PLATFORM_ITEM} active={isActive(PLATFORM_ITEM.href)} />}
         <NavLink item={SETTINGS_ITEM} active={isActive(SETTINGS_ITEM.href)} />
         <div className="mt-3 flex items-center gap-2.5 border-t border-ink-2 px-2 pt-3.5">
           <Avatar name={userName} color="#7a5af8" size={34} dark />
