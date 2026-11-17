@@ -1,0 +1,14 @@
+# Kohalik andmebaas arenduseks: docker compose up -d
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: aegly
+      POSTGRES_PASSWORD: aegly
+      POSTGRES_DB: aegly
+    ports:
+      - "5432:5432"
+    volumes:
+      - aegly-db:/var/lib/postgresql/data
+volumes:
+  aegly-db:
