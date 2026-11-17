@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Aegly
 
-## Getting Started
+Broneerimistarkvara ilu- ja heaolusalongidele: halduspaneel ettevõttele ja broneerimisvidin salongi kodulehele.
+Disain: Figma „AEGLY“ (vahelehed OVERVIEW, ADMIN PANEL, WEB WIDGET).
 
-First, run the development server:
+## Tehnoloogia
+
+- **Next.js 16** (App Router, Cache Components), TypeScript, Tailwind CSS 4
+- **PostgreSQL** + **Drizzle ORM** (`src/db/schema.ts`)
+- **Stripe Connect** maksete jaoks (tulekul)
+- Ikoonid: `lucide-react`, fondid: Inter ja JetBrains Mono
+
+## Käivitamine
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env          # DATABASE_URL
+npm install
+npm run db:migrate            # loob tabelid
+npm run db:seed               # Studio Lumi näidisandmed
+npm run dev                   # http://localhost:3000
+npm test                      # loogika testid
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Struktuur
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Kaust | Sisu |
+| --- | --- |
+| `src/app/(admin)` | Halduspaneeli vaated (00–19 Figmas) |
+| `src/components` | Kest (küljeriba, päis) ja UI põhikomponendid |
+| `src/db` | Andmemudel, ühendus, näidisandmed |
+| `src/lib` | Puhas loogika: ajad, graafikud (testitud) |
+| `src/server` | Andmebaasipäringud vaadetele |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Seis
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [x] Andmemudel (12 objekti raportist + kinkekaardid, mitme salongi tugi)
+- [x] Halduspaneeli kest, 01 Töölaud, 02 Kalender (päevavaade)
+- [ ] Sisselogimine ja registreerumine
+- [ ] Ülejäänud halduspaneeli vaated
+- [ ] Vabade aegade ja hinna mootor
+- [ ] Broneerimisvidin (W0–W9), Stripe
+- [ ] Teavitused, iseteenindus, ootenimekiri

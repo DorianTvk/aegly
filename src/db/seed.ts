@@ -121,7 +121,7 @@ async function main() {
     mari: { days: [1, 2, 3, 4, 5], start: "09:00", end: "18:00", lunch: ["12:30", "13:30"] },
     liis: { days: [1, 2, 3, 4, 5, 6], start: "09:00", end: "18:00", lunch: ["12:30", "13:30"] },
     karl: { days: [2, 3, 4, 5, 6], start: "10:00", end: "19:00", lunch: ["14:00", "14:30"] },
-    anni: { days: [1, 2, 3, 4, 5], start: "10:00", end: "18:00", lunch: ["13:00", "13:30"] },
+    anni: { days: [1, 2, 3, 4, 5], start: "10:00", end: "18:00", lunch: ["13:30", "14:00"] },
   };
   await db.insert(s.workSchedules).values(
     Object.entries(sched).flatMap(([key, v]) =>

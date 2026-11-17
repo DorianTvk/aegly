@@ -76,13 +76,11 @@ export function formatShortDate(isoDate: string): string {
   return `${d}.${m}.${y}`;
 }
 
-/** 4280_00 senti → "4 280 €", 5550 → "55,50 €" */
+/** 428000 senti → "4 280 €", 5550 → "55,50 €", −550 → "−5,50 €" */
 export function formatEuro(cents: number, opts: { decimals?: boolean } = {}): string {
   const decimals = opts.decimals ?? cents % 100 !== 0;
-  const value = cents / 100;
-  const s = value.toLocaleString("et-EE", {
-    minimumFractionDigits: decimals ? 2 : 0,
-    maximumFractionDigits: decimals ? 2 : 0,
-  });
-  return `${s.replace(/ /g, " ")} €`;
+  const abs = Math.abs(cents);
+  const group = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  const body = decimals ? `${group(Math.floor(abs / 100))},${String(abs % 100).padStart(2, "0")}` : group(Math.round(abs / 100));
+  return `${cents < 0 ? "−" : ""}${body} €`;
 }
