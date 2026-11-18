@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { and, eq, gte, inArray, isNull, lt } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema as s } from "@/db";
-import { requireSession } from "@/lib/session";
+import { requireManager } from "@/lib/session";
 import { parseEuroToCents } from "@/lib/money";
 import { addDaysIso, toMinutes, zonedDateTime } from "@/lib/time";
 import type { FormState } from "@/components/ui/form";
@@ -30,7 +30,7 @@ const profileSchema = z.object({
 });
 
 export async function saveProfile(staffId: string | null, _prev: FormState, formData: FormData): Promise<FormState> {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   const parsed = profileSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { message: "Kontrolli välju.", errors: z.flattenError(parsed.error).fieldErrors };
   const values = { ...parsed.data, bookableOnline: parsed.data.bookableOnline === "on", active: staffId ? parsed.data.active === "on" : true };
@@ -98,7 +98,7 @@ function validateDay(intervals: { start: string; end: string }[]): string | null
  * Varasemad read lõpetatakse päev enne; sama või hilisema algusega read asendatakse.
  */
 export async function saveWeek(staffId: string, input: WeekInput): Promise<FormState> {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   await ownStaff(business.id, staffId);
   const parsed = weekSchema.safeParse(input);
   if (!parsed.success) return { message: "Kontrolli kellaaegu." };
@@ -147,7 +147,7 @@ const timeOffSchema = z
   .refine((d) => d.toDate >= d.fromDate, { path: ["toDate"], message: "Lõpp peab olema pärast algust" });
 
 export async function addTimeOff(staffId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   await ownStaff(business.id, staffId);
   const parsed = timeOffSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { errors: z.flattenError(parsed.error).fieldErrors };
@@ -165,7 +165,7 @@ export async function addTimeOff(staffId: string, _prev: FormState, formData: Fo
 }
 
 export async function deleteTimeOff(staffId: string, timeOffId: string) {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   await ownStaff(business.id, staffId);
   await db.delete(s.timeOff).where(and(eq(s.timeOff.id, timeOffId), eq(s.timeOff.staffId, staffId)));
   revalidatePath(`/tootajad/${staffId}`);
@@ -175,7 +175,7 @@ export async function deleteTimeOff(staffId: string, timeOffId: string) {
 // ---------- Teenused ----------
 
 export async function saveStaffServices(staffId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   await ownStaff(business.id, staffId);
   const ids = formData.getAll("service").map(String);
   const own = ids.length

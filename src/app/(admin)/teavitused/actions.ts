@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema as s } from "@/db";
-import { requireSession } from "@/lib/session";
+import { requireManager } from "@/lib/session";
 import type { FormState } from "@/components/ui/form";
 
 const itemSchema = z.object({
@@ -31,7 +31,7 @@ const schema = z.object({
 export type NotificationsInput = z.infer<typeof schema>;
 
 export async function saveNotifications(input: NotificationsInput): Promise<FormState> {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   const parsed = schema.safeParse(input);
   if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Kontrolli välju" };
   const d = parsed.data;

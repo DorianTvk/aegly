@@ -7,6 +7,7 @@ import { formatShortDate, localDate } from "@/lib/time";
 export async function GET() {
   const session = await readSession();
   if (!session) return new Response("Unauthorized", { status: 401 });
+  if (session.user.role === "STAFF") return new Response("Forbidden", { status: 403 });
   const tz = session.business.timezone;
   const rows = await listClients(session.business.id);
   const esc = (v: string) => (/[;"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);

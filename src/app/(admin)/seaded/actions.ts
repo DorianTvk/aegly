@@ -1,12 +1,15 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema as s } from "@/db";
-import { requireSession, destroySession } from "@/lib/session";
+import { requireManager, requireSession, destroySession } from "@/lib/session";
+import { after } from "next/server";
+import { appUrl } from "@/lib/app-url";
+import { manageableRoles } from "@/lib/permissions";
+import { createToken, sendAccountEmail } from "@/server/auth-tokens";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import type { FormState } from "@/components/ui/form";
 
@@ -30,42 +33,84 @@ export async function updateAccount(input: { name: string }): Promise<FormState>
   return { ok: true, message: "Salvestatud." };
 }
 
-const userSchema = z.object({
-  name: z.string().trim().min(2, "Sisesta nimi"),
-  email: z.email("Vigane e-post").transform((v) => v.toLowerCase()),
+const inviteSchema = z.object({
+  name: z.string().trim().min(2, "Sisesta nimi").max(80),
+  email: z.email("Vigane e-post").transform((v) => v.toLowerCase().trim()),
   role: z.enum(["ADMIN", "STAFF"]),
+  staffId: z.string().nullable(),
 });
 
-/** Uus kasutaja ajutise parooliga (kuvatakse üks kord). Kutse e-postiga lisandub koos teavitustega. */
-export async function addUser(input: z.input<typeof userSchema>): Promise<FormState & { tempPassword?: string }> {
-  const { business, user } = await requireSession();
-  if (user.role !== "OWNER") return { message: "Kasutajaid saab lisada ainult omanik" };
-  const parsed = userSchema.safeParse(input);
+/** Kutse e-postiga: kasutaja määrab ise parooli lingi kaudu (kehtib 7 päeva) */
+export async function inviteUser(input: z.input<typeof inviteSchema>): Promise<FormState> {
+  const { business, user } = await requireManager();
+  const parsed = inviteSchema.safeParse(input);
   if (!parsed.success) return { message: parsed.error.issues[0]?.message };
-  const exists = await db.query.users.findFirst({ where: eq(s.users.email, parsed.data.email) });
-  if (exists) return { message: "Selle e-postiga kasutaja on juba olemas" };
-  const temp = randomBytes(6).toString("base64url");
-  await db.insert(s.users).values({ ...parsed.data, businessId: business.id, passwordHash: await hashPassword(temp) });
+  const d = parsed.data;
+  if (!manageableRoles(user.role).includes(d.role)) return { message: "Sul pole õigust seda rolli anda." };
+  if (await db.query.users.findFirst({ where: eq(s.users.email, d.email) })) return { message: "Selle e-postiga Aegly kasutaja on juba olemas." };
+  if (d.staffId) {
+    const st = await db.query.staffMembers.findFirst({ where: and(eq(s.staffMembers.id, d.staffId), eq(s.staffMembers.businessId, business.id)) });
+    if (!st) return { message: "Töötajat ei leitud" };
+  }
+  // vana kutse samale e-postile tühistatakse
+  await db.update(s.authTokens).set({ usedAt: new Date() }).where(and(eq(s.authTokens.kind, "INVITE"), eq(s.authTokens.email, d.email), isNull(s.authTokens.usedAt)));
+  const token = await createToken("INVITE", {
+    email: d.email, businessId: business.id,
+    data: { businessId: business.id, email: d.email, name: d.name, role: d.role, staffId: d.role === "STAFF" ? d.staffId : null, invitedBy: user.name },
+  });
+  const base = await appUrl();
+  after(() =>
+    sendAccountEmail({
+      businessId: business.id, to: d.email, kind: "ACCOUNT_INVITE",
+      subject: `${user.name} kutsub sind Aeglysse – ${business.name}`,
+      text: `Tere ${d.name.split(" ")[0]}!\n\n${user.name} kutsub sind salongi ${business.name} Aegly kontole (${d.role === "ADMIN" ? "administraatorina" : "töötajana"}).\n\nLoo endale parool ja logi sisse:\n${base}/kutse?token=${token}\n\nKutse kehtib 7 päeva.\n\nAegly`,
+    }),
+  );
   revalidatePath("/seaded");
-  return { ok: true, message: "Kasutaja lisatud.", tempPassword: temp };
+  return { ok: true, message: `Kutse saadetud aadressile ${d.email}.` };
+}
+
+export async function cancelInvite(email: string) {
+  const { business } = await requireManager();
+  await db
+    .update(s.authTokens)
+    .set({ usedAt: new Date() })
+    .where(and(eq(s.authTokens.kind, "INVITE"), eq(s.authTokens.businessId, business.id), eq(s.authTokens.email, email), isNull(s.authTokens.usedAt)));
+  revalidatePath("/seaded");
+}
+
+async function targetUser(businessId: string, userId: string) {
+  return db.query.users.findFirst({ where: and(eq(s.users.id, userId), eq(s.users.businessId, businessId), ne(s.users.role, "OWNER")) });
 }
 
 export async function setUserRole(userId: string, role: "ADMIN" | "STAFF") {
   const { business, user } = await requireSession();
   if (user.role !== "OWNER" || userId === user.id) return;
-  await db.update(s.users).set({ role }).where(and(eq(s.users.id, userId), eq(s.users.businessId, business.id), ne(s.users.role, "OWNER")));
+  await db.update(s.users).set({ role, ...(role === "ADMIN" ? { staffId: null } : {}) }).where(and(eq(s.users.id, userId), eq(s.users.businessId, business.id), ne(s.users.role, "OWNER")));
+  revalidatePath("/seaded");
+}
+
+/** Seo töötaja-kasutaja töötaja profiiliga (määrab, kelle kalendrit ta näeb) */
+export async function linkStaff(userId: string, staffId: string | null) {
+  const { business, user } = await requireManager();
+  const target = await targetUser(business.id, userId);
+  if (!target || !manageableRoles(user.role).includes(target.role as "ADMIN" | "STAFF")) return;
+  if (staffId && !(await db.query.staffMembers.findFirst({ where: and(eq(s.staffMembers.id, staffId), eq(s.staffMembers.businessId, business.id)) }))) return;
+  await db.update(s.users).set({ staffId }).where(eq(s.users.id, userId));
   revalidatePath("/seaded");
 }
 
 export async function removeUser(userId: string) {
-  const { business, user } = await requireSession();
-  if (user.role !== "OWNER" || userId === user.id) return;
-  await db.delete(s.users).where(and(eq(s.users.id, userId), eq(s.users.businessId, business.id), ne(s.users.role, "OWNER")));
+  const { business, user } = await requireManager();
+  if (userId === user.id) return;
+  const target = await targetUser(business.id, userId);
+  if (!target || !manageableRoles(user.role).includes(target.role as "ADMIN" | "STAFF")) return;
+  await db.delete(s.users).where(eq(s.users.id, userId));
   revalidatePath("/seaded");
 }
 
 export async function saveProtection(input: { noShowProtection: boolean; noShowThreshold: number }): Promise<FormState> {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   if (![1, 2, 3, 5].includes(input.noShowThreshold)) return { message: "Vigane piir" };
   await db.update(s.businesses).set(input).where(eq(s.businesses.id, business.id));
   revalidatePath("/seaded");

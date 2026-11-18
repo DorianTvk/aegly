@@ -53,10 +53,11 @@ const manualSchema = z.object({
 export type ManualBookingInput = z.infer<typeof manualSchema>;
 
 export async function createManualBooking(input: ManualBookingInput): Promise<FormState & { bookingId?: string }> {
-  const { business } = await requireSession();
+  const { business, user } = await requireSession();
   const parsed = manualSchema.safeParse(input);
   if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Kontrolli välju" };
   const d = parsed.data;
+  if (user.role === "STAFF" && d.staffId !== user.staffId) return { message: "Töötajana saad broneerida ainult enda kalendrisse." };
   if (!d.clientId && !d.newClient) return { message: "Vali või lisa klient" };
   if (d.newClient && !d.newClient.email && !d.newClient.phone) return { message: "Sisesta kliendi e-post või telefon" };
 
@@ -94,9 +95,9 @@ const TRANSITIONS: Record<string, string[]> = {
 };
 
 export async function setBookingStatus(bookingId: string, status: "CONFIRMED" | "COMPLETED" | "NO_SHOW" | "CANCELLED", reason?: string): Promise<FormState> {
-  const { business } = await requireSession();
+  const { business, user } = await requireSession();
   const b = await db.query.bookings.findFirst({ where: and(eq(s.bookings.id, bookingId), eq(s.bookings.businessId, business.id)) });
-  if (!b) return { message: "Broneeringut ei leitud" };
+  if (!b || (user.role === "STAFF" && b.staffId !== user.staffId)) return { message: "Broneeringut ei leitud" };
   if (!TRANSITIONS[b.status]?.includes(status)) return { message: "Seda muudatust ei saa teha" };
   await db
     .update(s.bookings)
@@ -121,8 +122,9 @@ export async function setBookingStatus(bookingId: string, status: "CONFIRMED" | 
 }
 
 export async function saveBookingNote(bookingId: string, note: string): Promise<FormState> {
-  const { business } = await requireSession();
-  await db.update(s.bookings).set({ note: note.trim() || null }).where(and(eq(s.bookings.id, bookingId), eq(s.bookings.businessId, business.id)));
+  const { business, user } = await requireSession();
+  const own = user.role === "STAFF" ? eq(s.bookings.staffId, user.staffId ?? "-") : undefined;
+  await db.update(s.bookings).set({ note: note.trim() || null }).where(and(eq(s.bookings.id, bookingId), eq(s.bookings.businessId, business.id), own));
   revalidatePath(`/broneeringud/${bookingId}`);
   return { ok: true, message: "Märge salvestatud." };
 }

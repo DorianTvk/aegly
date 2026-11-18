@@ -54,4 +54,7 @@ Näidiskonto: **triin@studiolumi.ee** / **aegly-demo**
 - [ ] Stripe Connect maksed ja Stripe Billing (paketi kuumaks)
 - [x] Robotikaitse sisselogimisel ja registreerumisel: katsete piirang (5 viga / e-post / 15 min, 20 / IP), lõksuväli, Cloudflare Turnstile (`TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`)
 - [x] Superadmin `/platvorm/<id>`: salongi andmed, pakett ja staatus, kasutajate ajutine parool, salongi kontole sisenemine (2 h, riba „Lõpeta ja naase“), salongi kustutamine
+- [x] Parooli taastamine (`/parool/unustasin`, link kehtib 1 h) ja e-posti kinnitamine (`/kinnita`, riba halduspaneelis)
+- [x] Rollid: omanik / administraator / töötaja (`src/lib/permissions.ts`); töötaja näeb oma kalendrit ja broneeringuid; kutsed e-postiga (`/kutse`), töötaja sidumine profiiliga
+- [x] Õiguslikud mustandid: `/tingimused`, `/privaatsus`, `/andmetootlus` (ettevõtte andmed `LEGAL_*` muutujatest, vajab juristi ülevaatust)
 - [x] Teavitused: kinnitus, muudatus, tühistamine, meeldetuletus ja arvustus kliendile, teated salongile, ootenimekiri. E-post Resendiga (`RESEND_API_KEY`), SMS Messentega (`MESSENTE_API_*`); ilma võtmeteta ainult logi (Teavitused → Saadetud). Ajastatud töö `/api/cron/teavitused` iga 15 min (GitHub Actions `.github/workflows/teavitused.yml`, `CRON_SECRET`)

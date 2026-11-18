@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema as s } from "@/db";
-import { requireSession } from "@/lib/session";
+import { requireManager } from "@/lib/session";
 import { zonedDateTime } from "@/lib/time";
 import type { FormState } from "@/components/ui/form";
 
@@ -34,7 +34,7 @@ const campaignSchema = z.object({
 export type CampaignInput = z.infer<typeof campaignSchema>;
 
 export async function saveCampaign(id: string | null, input: CampaignInput): Promise<FormState & { id?: string }> {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   const parsed = campaignSchema.safeParse(input);
   if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Kontrolli välju" };
   const d = parsed.data;
@@ -61,13 +61,13 @@ export async function saveCampaign(id: string | null, input: CampaignInput): Pro
 
 /** Lõpetab kampaania kohe (lõpuaeg = praegu) */
 export async function endCampaign(id: string) {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   await db.update(s.campaigns).set({ endsAt: new Date() }).where(and(eq(s.campaigns.id, id), eq(s.campaigns.businessId, business.id)));
   revalidatePath("/kampaaniad");
 }
 
 export async function deleteCampaign(id: string) {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   await db.delete(s.campaigns).where(and(eq(s.campaigns.id, id), eq(s.campaigns.businessId, business.id)));
   revalidatePath("/kampaaniad");
 }

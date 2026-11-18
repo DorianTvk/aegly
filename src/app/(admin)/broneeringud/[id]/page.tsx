@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { CalendarDays, Clock, Mail, Phone, User } from "lucide-react";
 import { db, schema as s } from "@/db";
-import { getCurrentBusiness } from "@/lib/tenant";
+import { requireSession } from "@/lib/session";
 import { BOOKING_STATUS } from "@/lib/booking-status";
 import { formatEuro, formatLongDate, formatShortDate, localDate, localTime } from "@/lib/time";
 import { Avatar } from "@/components/ui/Avatar";
@@ -15,13 +15,14 @@ export const metadata: Metadata = { title: "Broneering" };
 
 async function Booking({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const business = await getCurrentBusiness();
+  const { business, user } = await requireSession();
   const tz = business.timezone;
   const b = await db.query.bookings.findFirst({
     where: and(eq(s.bookings.id, id), eq(s.bookings.businessId, business.id)),
     with: { client: true, service: true, staff: true, payments: true },
   });
-  if (!b) notFound();
+  // töötaja näeb ainult oma broneeringuid
+  if (!b || (user.role === "STAFF" && b.staffId !== user.staffId)) notFound();
   const st = BOOKING_STATUS[b.status];
   const d = localDate(b.startsAt, tz);
   const paid = b.payments.filter((p) => p.status === "SUCCEEDED").reduce((a, p) => a + p.amountCents, 0);

@@ -9,6 +9,7 @@ import { BOOKING_STATUS } from "@/lib/booking-status";
 export async function GET(req: Request) {
   const session = await readSession();
   if (!session) return new Response("Unauthorized", { status: 401 });
+  if (session.user.role === "STAFF") return new Response("Forbidden", { status: 403 });
   const url = new URL(req.url);
   const from = url.searchParams.get("from") ?? "";
   const to = url.searchParams.get("to") ?? "";

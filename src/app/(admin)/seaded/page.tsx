@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, gt, isNull } from "drizzle-orm";
 import { db, schema as s } from "@/db";
 import { requireSession } from "@/lib/session";
 import { Card } from "@/components/ui/primitives";
@@ -12,11 +12,17 @@ export const metadata: Metadata = { title: "Seaded" };
 
 async function Settings() {
   const { business: b, user } = await requireSession();
-  const users = await db.query.users.findMany({ where: eq(s.users.businessId, b.id), orderBy: [asc(s.users.createdAt)] });
+  const [users, staff, invites] = await Promise.all([
+    db.query.users.findMany({ where: eq(s.users.businessId, b.id), orderBy: [asc(s.users.createdAt)] }),
+    db.query.staffMembers.findMany({ where: and(eq(s.staffMembers.businessId, b.id), eq(s.staffMembers.active, true)), orderBy: [asc(s.staffMembers.sortOrder)] }),
+    db.query.authTokens.findMany({ where: and(eq(s.authTokens.businessId, b.id), eq(s.authTokens.kind, "INVITE"), isNull(s.authTokens.usedAt), gt(s.authTokens.expiresAt, new Date())) }),
+  ]);
   return (
     <SettingsView
       me={{ name: user.name, email: user.email, role: user.role }}
-      users={users.map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, isMe: u.id === user.id }))}
+      users={users.map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, isMe: u.id === user.id, staffId: u.staffId }))}
+      staff={staff.map((m) => ({ id: m.id, name: m.name }))}
+      invites={invites.map((i) => ({ email: i.email, name: i.data?.name ?? i.email, role: i.data?.role ?? "STAFF", expires: i.expiresAt.toLocaleDateString("et-EE", { timeZone: b.timezone }) }))}
       business={{ planName: PLANS[b.plan].name, planPrice: b.billingPeriod === "YEAR" ? `${formatEuro(PLANS[b.plan].yearlyCents)} / aasta + km` : `${formatEuro(PLANS[b.plan].monthlyCents)} / kuu + km`, name: b.name, noShowProtection: b.noShowProtection, noShowThreshold: b.noShowThreshold, stripeAccountId: b.stripeAccountId, locale: b.locale, currency: b.currency, timezone: b.timezone }}
     />
   );

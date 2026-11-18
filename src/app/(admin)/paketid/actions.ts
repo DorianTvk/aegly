@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema as s } from "@/db";
-import { requireSession } from "@/lib/session";
+import { requireManager } from "@/lib/session";
 import type { FormState } from "@/components/ui/form";
 
 const packageSchema = z.object({
@@ -21,7 +21,7 @@ const packageSchema = z.object({
 export type PackageInput = z.infer<typeof packageSchema>;
 
 export async function savePackage(id: string | null, input: PackageInput): Promise<FormState> {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   const parsed = packageSchema.safeParse(input);
   if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Kontrolli välju" };
   const d = parsed.data;
@@ -52,7 +52,7 @@ export async function savePackage(id: string | null, input: PackageInput): Promi
 
 /** Müüdud paketti ei kustutata (klientide saldod), vaid peidetakse */
 export async function deletePackage(id: string) {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   const sold = await db.$count(s.clientPackages, eq(s.clientPackages.packageId, id));
   if (sold > 0) await db.update(s.packages).set({ active: false, sellInWidget: false }).where(and(eq(s.packages.id, id), eq(s.packages.businessId, business.id)));
   else await db.delete(s.packages).where(and(eq(s.packages.id, id), eq(s.packages.businessId, business.id)));

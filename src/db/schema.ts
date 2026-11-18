@@ -138,6 +138,10 @@ export const users = pgTable(
     name: text("name").notNull(),
     passwordHash: text("password_hash"),
     role: roleEnum("role").notNull().default("OWNER"),
+    /** e-posti kinnitamise aeg; null = kinnitamata */
+    emailVerifiedAt: ts("email_verified_at"),
+    /** töötaja rolli puhul seotud töötaja profiil (näeb ainult oma kalendrit) */
+    staffId: text("staff_id"),
     /** millal kasutaja viimati kellukese teavitusi vaatas */
     notificationsSeenAt: ts("notifications_seen_at"),
     createdAt: createdAt(),
@@ -552,6 +556,28 @@ export const waitlistEntries = pgTable("waitlist_entries", {
   notifiedAt: ts("notified_at"),
   createdAt: createdAt(),
 });
+
+// ---------- Ühekordsed lingid: parooli taastamine, e-posti kinnitamine, kutse ----------
+
+export type InviteData = { businessId: string; email: string; name: string; role: "ADMIN" | "STAFF"; staffId: string | null; invitedBy: string };
+
+export const authTokens = pgTable(
+  "auth_tokens",
+  {
+    /** sha256(token); lingis on token ise */
+    id: text("id").primaryKey(),
+    /** RESET | VERIFY | INVITE */
+    kind: text("kind").notNull(),
+    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    businessId: text("business_id").references(() => businesses.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    data: jsonb("data").$type<InviteData>(),
+    expiresAt: ts("expires_at").notNull(),
+    usedAt: ts("used_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("auth_tokens_email_kind").on(t.email, t.kind), index("auth_tokens_business_kind").on(t.businessId, t.kind)],
+);
 
 // ---------- Tegevuste voog (kellukese teavitused halduspaneelis) ----------
 

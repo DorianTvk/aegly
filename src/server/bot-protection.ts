@@ -69,8 +69,18 @@ export async function isRegisterBlocked(ip: string): Promise<boolean> {
   return row.n >= LIMITS.registerPerIp;
 }
 
-export async function recordAttempt(kind: "LOGIN" | "REGISTER", ip: string, email: string | null, success: boolean) {
+export async function recordAttempt(kind: "LOGIN" | "REGISTER" | "RESET" | "VERIFY_SEND", ip: string, email: string | null, success: boolean) {
   await db.insert(s.authAttempts).values({ kind, ip, email, success });
   // vanad kirjed minema (1 % tõenäosusega, et tabel ei kasvaks)
   if (Math.random() < 0.01) await db.delete(s.authAttempts).where(lt(s.authAttempts.createdAt, new Date(Date.now() - 7 * 86_400_000)));
+}
+
+/** Viimase `minutes` jooksul tehtud katsed (nt parooli taastamise kirjad) e-posti või IP järgi */
+export async function recentAttempts(kind: string, by: { email?: string; ip?: string }, minutes: number): Promise<number> {
+  const since = new Date(Date.now() - minutes * 60_000);
+  const cond = [eq(s.authAttempts.kind, kind), gte(s.authAttempts.createdAt, since)];
+  if (by.email) cond.push(eq(s.authAttempts.email, by.email));
+  if (by.ip) cond.push(eq(s.authAttempts.ip, by.ip));
+  const [row] = await db.select({ n: count() }).from(s.authAttempts).where(and(...cond));
+  return row.n;
 }

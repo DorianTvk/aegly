@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema as s } from "@/db";
-import { requireSession } from "@/lib/session";
+import { requireManager } from "@/lib/session";
 import type { FormState } from "@/components/ui/form";
 
 const hex = z.string().regex(/^#[0-9a-f]{6}$/i, "Vigane värv");
@@ -35,7 +35,7 @@ const widgetSchema = z.object({
 export type WidgetSettings = z.input<typeof widgetSchema>;
 
 export async function saveWidgetSettings(input: WidgetSettings): Promise<FormState> {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   const parsed = widgetSchema.safeParse(input);
   if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Kontrolli välju" };
   await db

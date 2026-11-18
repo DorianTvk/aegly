@@ -34,7 +34,11 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
             ))}
           </ul>
         </div>
-        <p className="text-xs text-subtle">Aegly</p>
+        <nav aria-label="Õiguslik teave" className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-subtle">
+          <a href="/tingimused" className="hover:text-white">Kasutustingimused</a>
+          <a href="/privaatsus" className="hover:text-white">Privaatsuspoliitika</a>
+          <a href="/andmetootlus" className="hover:text-white">Andmetöötlusleping</a>
+        </nav>
       </aside>
     </div>
   );

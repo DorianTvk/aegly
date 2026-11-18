@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { CalendarPlus, Check, Download, Gift, ShieldAlert, ShieldCheck, X } from "lucide-react";
-import { getCurrentBusiness } from "@/lib/tenant";
+import { requireSession } from "@/lib/session";
 import { getClient, requiresFullPrepayment } from "@/server/clients";
 import { BOOKING_STATUS } from "@/lib/booking-status";
 import { formatEuro, formatShortDate, localDate, localTime } from "@/lib/time";
@@ -27,7 +27,8 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
 
 async function ClientCard({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const business = await getCurrentBusiness();
+  const { business, user } = await requireSession();
+  const manager = user.role !== "STAFF";
   const tz = business.timezone;
   const data = await getClient(business.id, id);
   if (!data) notFound();
@@ -173,7 +174,7 @@ async function ClientCard({ params }: { params: Promise<{ id: string }> }) {
                   <span className="block text-sm font-medium">Erand: ära nõua ettemaksu</span>
                   <span className="text-xs text-muted">Kehtib ainult sellele kliendile</span>
                 </span>
-                <NoShowExempt id={c.id} exempt={c.noShowExempt} />
+                {manager ? <NoShowExempt id={c.id} exempt={c.noShowExempt} /> : <span className="text-[13px] text-muted">{c.noShowExempt ? "Erand" : "—"}</span>}
               </div>
               <p className="text-xs text-muted">Reeglit muudad: Seaded → Maksed ja kaitse</p>
             </div>
@@ -246,7 +247,7 @@ async function ClientCard({ params }: { params: Promise<{ id: string }> }) {
               <a href={`/kliendid/${c.id}/export`} className="inline-flex h-[34px] items-center gap-1.5 rounded-[10px] border border-line px-2.5 text-[13px] font-semibold hover:bg-[#f9fafb]">
                 <Download size={15} /> Ekspordi andmed
               </a>
-              <DeleteClientButton id={c.id} name={c.name} />
+              {manager && <DeleteClientButton id={c.id} name={c.name} />}
             </div>
           </Card>
         </div>

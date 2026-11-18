@@ -10,7 +10,7 @@ export type SearchResult = { type: "client" | "booking"; id: string; title: stri
 
 /** Ülariba otsing: kliendid (nimi, e-post, telefon) ja broneeringud (number, kliendi nimi) */
 export async function searchAll(raw: string): Promise<SearchResult[]> {
-  const { business } = await requireSession();
+  const { business, user } = await requireSession();
   const q = raw.trim().slice(0, 60);
   if (q.length < 2) return [];
   const like = `%${q.replace(/[%_\\]/g, (c) => "\\" + c)}%`;
@@ -24,7 +24,7 @@ export async function searchAll(raw: string): Promise<SearchResult[]> {
       .from(s.bookings)
       .innerJoin(s.clients, eq(s.clients.id, s.bookings.clientId))
       .innerJoin(s.services, eq(s.services.id, s.bookings.serviceId))
-      .where(and(eq(s.bookings.businessId, business.id), or(ilike(s.bookings.number, like), ilike(s.clients.name, like))))
+      .where(and(eq(s.bookings.businessId, business.id), user.role === "STAFF" ? eq(s.bookings.staffId, user.staffId ?? "-") : undefined, or(ilike(s.bookings.number, like), ilike(s.clients.name, like))))
       .orderBy(desc(s.bookings.startsAt))
       .limit(6),
   ]);

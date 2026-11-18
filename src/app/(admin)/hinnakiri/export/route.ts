@@ -8,6 +8,7 @@ import { centsToInput } from "@/lib/money";
 export async function GET() {
   const session = await readSession();
   if (!session) return new Response("Unauthorized", { status: 401 });
+  if (session.user.role === "STAFF") return new Response("Forbidden", { status: 403 });
   const { services, staff } = await getTargets(session.business.id);
   const links = await db.select().from(s.staffServices).innerJoin(s.services, eq(s.services.id, s.staffServices.serviceId)).where(eq(s.services.businessId, session.business.id));
   const map = new Map(links.map((l) => [`${l.staff_services.serviceId}:${l.staff_services.staffId}`, l.staff_services.priceCents]));

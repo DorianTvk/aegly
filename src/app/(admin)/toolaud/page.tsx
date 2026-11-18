@@ -42,9 +42,55 @@ function Kpi({ label, value, delta, icon: Icon }: { label: string; value: string
   );
 }
 
+/** Töötaja töölaud: ainult oma tänased ja tulevased broneeringud, ilma käibe ja seadistuseta */
+async function StaffDashboard({ business, user }: { business: Awaited<ReturnType<typeof getCurrentBusiness>>; user: Awaited<ReturnType<typeof getCurrentUser>> }) {
+  const tz = business.timezone;
+  const today = todayIso(tz);
+  const days = await Promise.all([0, 1, 2, 3, 4, 5, 6].map((i) => loadDay(business.id, addDaysIso(today, i), tz)));
+  const mine = days.map((d, i) => ({ date: addDaysIso(today, i), bookings: d.bookings.filter((b) => b.staffId === user.staffId && isActiveStatus(b.status)) }));
+  return (
+    <div className="space-y-5">
+      <PageHeader title={`Tere, ${user.name.split(" ")[0]}`} subtitle={formatLongDate(today)} />
+      {!user.staffId ? (
+        <Card className="p-8 text-center text-sm text-muted">Sinu kasutaja pole veel töötaja profiiliga seotud. Palu salongi omanikul see Seadete all siduda.</Card>
+      ) : (
+        mine.map(({ date, bookings }, i) =>
+          i === 0 || bookings.length > 0 ? (
+            <Card key={date}>
+              <CardHeader title={i === 0 ? "Täna" : formatLongDate(date)} subtitle={`${bookings.length} broneeringut`} />
+              {bookings.length === 0 ? (
+                <p className="px-5 py-8 text-center text-sm text-muted">Täna broneeringuid pole.</p>
+              ) : (
+                <ul className="divide-y divide-line-soft">
+                  {bookings.map((b) => (
+                    <li key={b.id}>
+                      <Link href={`/broneeringud/${b.id}`} className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#f9fafb]">
+                        <span className="w-[92px] shrink-0 text-sm font-semibold">
+                          {fromMinutes(b.start)}–{fromMinutes(b.end)}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium">{b.serviceName}</span>
+                          <span className="block truncate text-xs text-muted">{b.clientName}</span>
+                        </span>
+                        <Badge tone={BOOKING_STATUS[b.status].tone}>{BOOKING_STATUS[b.status].label}</Badge>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          ) : null,
+        )
+      )}
+      <LinkButton href="/kalender">Ava kalender</LinkButton>
+    </div>
+  );
+}
+
 async function Dashboard() {
   const business = await getCurrentBusiness();
   const user = await getCurrentUser();
+  if (user.role === "STAFF") return <StaffDashboard business={business} user={user} />;
   const tz = business.timezone;
   const today = todayIso(tz);
   const lastWeekSameDay = addDaysIso(today, -7);

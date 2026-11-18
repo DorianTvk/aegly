@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema as s } from "@/db";
-import { requireSession } from "@/lib/session";
+import { requireManager, requireSession } from "@/lib/session";
 import type { FormState } from "@/components/ui/form";
 
 const clientSchema = z.object({
@@ -70,7 +70,7 @@ export async function deleteNote(clientId: string, index: number) {
 }
 
 export async function setNoShowExempt(clientId: string, exempt: boolean) {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   await own(business.id, clientId);
   await db.update(s.clients).set({ noShowExempt: exempt }).where(eq(s.clients.id, clientId));
   revalidatePath(`/kliendid/${clientId}`);
@@ -81,7 +81,7 @@ export async function setNoShowExempt(clientId: string, exempt: boolean) {
  * muidu kustutatakse kirje täielikult.
  */
 export async function deleteClient(clientId: string) {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   await own(business.id, clientId);
   const used = await db.$count(s.bookings, eq(s.bookings.clientId, clientId));
   if (used > 0) {

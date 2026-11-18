@@ -4,11 +4,12 @@ import { Topbar } from "@/components/admin/Topbar";
 import { getCurrentBusiness, getCurrentUser, ROLE_LABEL } from "@/lib/tenant";
 import { isSuperadmin } from "@/lib/plans";
 import { ImpersonationBanner } from "./platvorm/ImpersonationBanner";
+import { VerifyEmailBanner } from "@/components/admin/VerifyEmailBanner";
 
 async function SidebarWithData() {
   const business = await getCurrentBusiness();
   const user = await getCurrentUser();
-  return <Sidebar businessName={business.name} userName={user.name} userRole={ROLE_LABEL[user.role]} superadmin={isSuperadmin(user.email)} />;
+  return <Sidebar businessName={business.name} userName={user.name} userRole={ROLE_LABEL[user.role]} role={user.role} superadmin={isSuperadmin(user.email)} />;
 }
 
 function SidebarSkeleton() {
@@ -24,6 +25,9 @@ export default function AdminLayout({ children }: LayoutProps<"/">) {
       <div className="flex min-w-0 flex-1 flex-col">
         <Suspense fallback={null}>
           <ImpersonationBanner />
+        </Suspense>
+        <Suspense fallback={null}>
+          <VerifyEmailBanner />
         </Suspense>
         <Topbar />
         <main className="flex-1 px-8 pt-7 pb-10">{children}</main>

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Optimistlik kontroll: ilma sessiooniküpsiseta suuname sisselogimisele.
 // Päris kontroll (kehtivus, ettevõte) toimub serveris requireSession() kaudu.
-const PUBLIC = ["/logi-sisse", "/registreeru"];
+const PUBLIC = ["/logi-sisse", "/registreeru", "/parool", "/kinnita", "/kutse", "/tingimused", "/privaatsus", "/andmetootlus"];
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;

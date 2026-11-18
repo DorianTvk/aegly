@@ -63,3 +63,12 @@ export async function requireSession() {
   if (!session) redirect("/api/auth/valja");
   return session;
 }
+
+/** Nagu requireSession, aga lubab ainult antud rolle. Serveri toimingutes viskab vea, kui õigust pole. */
+export async function requireRole(roles: ("OWNER" | "ADMIN" | "STAFF")[]) {
+  const session = await requireSession();
+  if (!roles.includes(session.user.role)) throw new Error("Sul pole selleks õigust.");
+  return session;
+}
+
+export const requireManager = () => requireRole(["OWNER", "ADMIN"]);

@@ -5,6 +5,7 @@ import { getClient } from "@/server/clients";
 export async function GET(_req: Request, ctx: RouteContext<"/kliendid/[id]/export">) {
   const session = await readSession();
   if (!session) return new Response("Unauthorized", { status: 401 });
+  if (session.user.role === "STAFF") return new Response("Forbidden", { status: 403 });
   const { id } = await ctx.params;
   const data = await getClient(session.business.id, id);
   if (!data) return new Response("Not found", { status: 404 });

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema as s } from "@/db";
-import { requireSession } from "@/lib/session";
+import { requireManager } from "@/lib/session";
 import { storeImage } from "@/server/files";
 import type { FormState } from "@/components/ui/form";
 
@@ -30,7 +30,7 @@ const profileSchema = z.object({
 });
 
 export async function saveBusinessProfile(_prev: FormState, formData: FormData): Promise<FormState> {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   const parsed = profileSchema.safeParse(Object.fromEntries([...formData.entries()].filter(([, v]) => typeof v === "string")));
   if (!parsed.success) return { message: "Kontrolli välju.", errors: z.flattenError(parsed.error).fieldErrors };
   const { removeLogo, removeBanner, widgetShowBanner, logoInEmails, ...d } = parsed.data;

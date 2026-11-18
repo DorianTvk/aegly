@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema as s } from "@/db";
-import { requireSession } from "@/lib/session";
+import { requireManager } from "@/lib/session";
 import { getSlots } from "@/server/availability";
 import { fromMinutes, toMinutes } from "@/lib/time";
 import type { FormState } from "@/components/ui/form";
@@ -26,7 +26,7 @@ const settingsSchema = z.object({
 export type SettingsInput = z.infer<typeof settingsSchema>;
 
 export async function saveScheduleSettings(input: SettingsInput): Promise<FormState> {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   const parsed = settingsSchema.safeParse(input);
   if (!parsed.success) return { message: "Kontrolli välju." };
   const d = parsed.data;
@@ -75,7 +75,7 @@ const holidaySchema = z
   });
 
 export async function addHoliday(_prev: FormState, formData: FormData): Promise<FormState> {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   const parsed = holidaySchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { errors: z.flattenError(parsed.error).fieldErrors };
   const d = parsed.data;
@@ -94,7 +94,7 @@ export async function addHoliday(_prev: FormState, formData: FormData): Promise<
 }
 
 export async function deleteHoliday(id: string) {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   await db.delete(s.holidays).where(and(eq(s.holidays.id, id), eq(s.holidays.businessId, business.id)));
   revalidatePath("/tooajad");
   revalidatePath("/kalender");
@@ -102,7 +102,7 @@ export async function deleteHoliday(id: string) {
 
 /** Eelvaade: täpselt need ajad, mida vidin kliendile näitaks */
 export async function previewSlots(serviceId: string, staffId: string | null, isoDate: string) {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return { slots: [] as string[], reason: "past" as const };
   const res = await getSlots(business.id, serviceId, staffId, isoDate);
   return { slots: res.slots.map((sl) => fromMinutes(sl.start)), reason: res.reason };

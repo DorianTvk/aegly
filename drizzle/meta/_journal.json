@@ -99,6 +99,13 @@
       "when": 1795010023036,
       "tag": "0013_widget_customized",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795011887942,
+      "tag": "0014_auth_tokens_roles",
+      "breakpoints": true
     }
   ]
 }

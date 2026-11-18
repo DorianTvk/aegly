@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { and, asc, eq } from "drizzle-orm";
 import { CalendarDays, ChevronLeft, ChevronRight, Filter, Plus, X } from "lucide-react";
 import { db, schema as s } from "@/db";
-import { getCurrentBusiness } from "@/lib/tenant";
+import { requireSession } from "@/lib/session";
 import { loadDay, type DayBooking, type StaffColumn } from "@/server/day";
 import { addDaysIso, formatLongDate, formatShortDate, fromMinutes, localMinutes, todayIso } from "@/lib/time";
 import { subtract } from "@/lib/schedule";
@@ -114,16 +114,25 @@ function Column({ col, startMin, endMin, isoDate }: { col: StaffColumn; startMin
 }
 
 async function Calendar({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
-  const business = await getCurrentBusiness();
+  const { business, user } = await requireSession();
   const tz = business.timezone;
   const today = todayIso(tz);
   const { date } = await searchParams;
   const isoDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : today;
 
-  const [day, categories] = await Promise.all([
+  const [fullDay, categories] = await Promise.all([
     loadDay(business.id, isoDate, tz),
     db.query.serviceCategories.findMany({ where: and(eq(s.serviceCategories.businessId, business.id)), orderBy: [asc(s.serviceCategories.sortOrder)] }),
   ]);
+
+  // töötaja näeb ainult oma veergu ja broneeringuid
+  const day =
+    user.role === "STAFF"
+      ? { ...fullDay, columns: fullDay.columns.filter((c) => c.id === user.staffId), bookings: fullDay.bookings.filter((b) => b.staffId === user.staffId) }
+      : fullDay;
+  if (user.role === "STAFF" && !user.staffId) {
+    return <p className="rounded-[12px] border border-line bg-white p-8 text-center text-sm text-muted">Sinu kasutaja pole veel töötaja profiiliga seotud. Palu salongi omanikul see Seadete all siduda.</p>;
+  }
 
   // Nähtav ajavahemik: lahtiolekuaeg ∪ graafikud ∪ broneeringud, ümardatud täistundideks
   const starts = [day.opening?.start ?? 9 * 60, ...day.columns.flatMap((c) => (c.day.shift ? [c.day.shift.start] : [])), ...day.bookings.map((b) => b.start)];

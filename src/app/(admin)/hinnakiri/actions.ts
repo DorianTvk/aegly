@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema as s } from "@/db";
-import { requireSession } from "@/lib/session";
+import { requireManager } from "@/lib/session";
 import type { FormState } from "@/components/ui/form";
 
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable();
@@ -28,7 +28,7 @@ const ruleSchema = z.object({
 export type RuleInput = z.infer<typeof ruleSchema>;
 
 export async function savePriceRule(id: string | null, input: RuleInput): Promise<FormState> {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   const parsed = ruleSchema.safeParse(input);
   if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Kontrolli välju" };
   const d = parsed.data;
@@ -45,19 +45,19 @@ export async function savePriceRule(id: string | null, input: RuleInput): Promis
 }
 
 export async function togglePriceRule(id: string, active: boolean) {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   await db.update(s.priceRules).set({ active }).where(and(eq(s.priceRules.id, id), eq(s.priceRules.businessId, business.id)));
   revalidatePath("/hinnakiri");
 }
 
 export async function deletePriceRule(id: string) {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   await db.delete(s.priceRules).where(and(eq(s.priceRules.id, id), eq(s.priceRules.businessId, business.id)));
   revalidatePath("/hinnakiri");
 }
 
 export async function saveTaxSettings(input: { pricesIncludeVat: boolean; vatRate: string }): Promise<FormState> {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   const rate = Number(input.vatRate);
   if (![0, 9, 13, 22, 24].includes(rate)) return { message: "Vigane KM määr" };
   await db.update(s.businesses).set({ pricesIncludeVat: input.pricesIncludeVat, vatRate: String(rate) }).where(eq(s.businesses.id, business.id));

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema as s } from "@/db";
-import { requireSession } from "@/lib/session";
+import { requireManager } from "@/lib/session";
 import { parseEuroToCents } from "@/lib/money";
 import type { FormState } from "@/components/ui/form";
 
@@ -49,7 +49,7 @@ function readStaff(formData: FormData): StaffLink[] {
 }
 
 export async function saveService(serviceId: string | null, _prev: FormState, formData: FormData): Promise<FormState> {
-  const { business, user } = await requireSession();
+  const { business, user } = await requireManager();
   const parsed = serviceSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { message: "Kontrolli välju.", errors: z.flattenError(parsed.error).fieldErrors };
   const d = parsed.data;
@@ -129,7 +129,7 @@ export async function saveService(serviceId: string | null, _prev: FormState, fo
 }
 
 export async function toggleOnline(serviceId: string, online: boolean) {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   await db
     .update(s.services)
     .set({ bookableOnline: online })
@@ -139,7 +139,7 @@ export async function toggleOnline(serviceId: string, online: boolean) {
 
 /** Kui teenusel on broneeringuid, arhiveeritakse (ajalugu jääb alles); muidu kustutatakse. */
 export async function deleteService(serviceId: string) {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   const used = await db.$count(s.bookings, and(eq(s.bookings.serviceId, serviceId), eq(s.bookings.businessId, business.id)));
   if (used > 0) {
     await db
@@ -159,7 +159,7 @@ const categorySchema = z.object({
 });
 
 export async function saveCategory(categoryId: string | null, _prev: FormState, formData: FormData): Promise<FormState> {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   const parsed = categorySchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { errors: z.flattenError(parsed.error).fieldErrors };
   if (categoryId) {
@@ -176,7 +176,7 @@ export async function saveCategory(categoryId: string | null, _prev: FormState, 
 }
 
 export async function deleteCategory(categoryId: string) {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   await db.delete(s.serviceCategories).where(and(eq(s.serviceCategories.id, categoryId), eq(s.serviceCategories.businessId, business.id)));
   revalidatePath("/teenused");
 }

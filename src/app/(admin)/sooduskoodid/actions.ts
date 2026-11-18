@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema as s } from "@/db";
-import { requireSession } from "@/lib/session";
+import { requireManager } from "@/lib/session";
 import { zonedDateTime, addDaysIso } from "@/lib/time";
 import type { FormState } from "@/components/ui/form";
 
@@ -32,7 +32,7 @@ const codeSchema = z.object({
 export type CodeInput = z.infer<typeof codeSchema>;
 
 export async function saveCode(id: string | null, input: CodeInput): Promise<FormState> {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   const parsed = codeSchema.safeParse(input);
   if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Kontrolli välju" };
   const d = parsed.data;
@@ -71,13 +71,13 @@ export async function saveCode(id: string | null, input: CodeInput): Promise<For
 }
 
 export async function setCodeActive(id: string, active: boolean) {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   await db.update(s.discountCodes).set({ active }).where(and(eq(s.discountCodes.id, id), eq(s.discountCodes.businessId, business.id)));
   revalidatePath("/sooduskoodid");
 }
 
 export async function deleteCode(id: string) {
-  const { business } = await requireSession();
+  const { business } = await requireManager();
   await db.delete(s.discountCodes).where(and(eq(s.discountCodes.id, id), eq(s.discountCodes.businessId, business.id)));
   revalidatePath("/sooduskoodid");
 }
