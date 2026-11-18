@@ -16,6 +16,9 @@ const KIND: Record<string, string> = {
   SALON_NEW: "Salongile: uus broneering",
   SALON_CHANGED: "Salongile: aeg muutus",
   SALON_CANCELLED: "Salongile: tühistamine",
+  ACCOUNT_VERIFY: "Konto: e-posti kinnitamine",
+  ACCOUNT_RESET: "Konto: parooli taastamine",
+  ACCOUNT_INVITE: "Konto: kutse",
 };
 const STATUS = {
   SENT: { label: "Saadetud", tone: "ok" },
