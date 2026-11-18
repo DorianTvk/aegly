@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { Search, Trash2, X } from "lucide-react";
 import { BusinessRow, type PlatformRow } from "./BusinessRow";
+import { Flash } from "@/components/ui/Flash";
 import { deleteBusinesses } from "./manage-actions";
 
 const CONFIRM_WORD = "KUSTUTA";
@@ -34,9 +35,9 @@ export function PlatformTable({ rows }: { rows: PlatformRow[]; ownBusinessId: st
   return (
     <div className="space-y-3">
       {msg && (
-        <p role="status" className={msg.ok ? "rounded-[10px] border border-ok/30 bg-ok-bg px-4 py-3 text-sm text-ok" : "rounded-[10px] border border-bad/30 bg-bad-bg px-4 py-3 text-sm text-bad"}>
+        <Flash ok={msg.ok} token={msg}>
           {msg.text}
-        </p>
+        </Flash>
       )}
       <div className="flex flex-wrap items-center gap-3">
         <label className="flex h-10 min-w-[260px] flex-1 items-center gap-2 rounded-[10px] border border-line bg-white px-3 sm:max-w-[360px]">

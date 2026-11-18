@@ -1,4 +1,5 @@
 import { clsx } from "clsx";
+import { Flash } from "./Flash";
 import type { ComponentProps, ReactNode } from "react";
 
 const inputBase =
@@ -72,12 +73,13 @@ export function Toggle({ label, description, className, ...props }: ComponentPro
   );
 }
 
+/** Vormi tulemuse teade: õnnestumine kaob 5 s pärast, viga jääb (vt Flash) */
 export function FormMessage({ state }: { state?: { ok?: boolean; message?: string } | null }) {
   if (!state?.message) return null;
   return (
-    <p role={state.ok ? "status" : "alert"} className={clsx("rounded-[10px] px-3 py-2 text-sm", state.ok ? "bg-ok-bg text-ok" : "bg-bad-bg text-bad")}>
+    <Flash ok={!!state.ok} token={state}>
       {state.message}
-    </p>
+    </Flash>
   );
 }
 

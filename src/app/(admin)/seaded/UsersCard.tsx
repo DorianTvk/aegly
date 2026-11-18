@@ -5,6 +5,7 @@ import { Mail, Trash2, UserPlus, X } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge, Button, Card, CardHeader } from "@/components/ui/primitives";
 import { Dialog } from "@/components/ui/Dialog";
+import { Flash } from "@/components/ui/Flash";
 import { Field, FormMessage, Input, Select, type FormState } from "@/components/ui/form";
 import { manageableRoles, type Role } from "@/lib/permissions";
 import { cancelInvite, inviteUser, linkStaff, removeUser, setUserRole } from "./actions";
@@ -40,7 +41,11 @@ export function UsersCard({ me, users, invites, staff }: { me: { role: Role }; u
           )
         }
       />
-      {msg && <p className="mx-5 mt-4 rounded-[10px] border border-ok/30 bg-ok-bg px-4 py-2.5 text-sm text-ok">{msg}</p>}
+      {msg && (
+        <Flash ok token={msg} className="mx-5 mt-4">
+          {msg}
+        </Flash>
+      )}
       <ul className="divide-y divide-line-soft">
         {users.map((u) => {
           const manageable = !u.isMe && can.includes(u.role as "ADMIN" | "STAFF");
