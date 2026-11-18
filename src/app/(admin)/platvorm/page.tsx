@@ -7,13 +7,14 @@ import { requireSession } from "@/lib/session";
 import { isSuperadmin, PLAN_IDS, PLANS } from "@/lib/plans";
 import { formatEuro } from "@/lib/time";
 import { Card, PageHeader } from "@/components/ui/primitives";
-import { BusinessRow } from "./BusinessRow";
+import { PlatformTable } from "./PlatformTable";
 
 export const metadata: Metadata = { title: "Platvorm" };
 
 async function Platform() {
-  const { user } = await requireSession();
+  const { user, business: own } = await requireSession();
   if (!isSuperadmin(user.email)) notFound();
+  const ownBusinessId = own.id;
 
   const [businesses, staff, bookings, owners] = await Promise.all([
     db.select().from(s.businesses).orderBy(desc(s.businesses.createdAt)),
@@ -31,6 +32,7 @@ async function Platform() {
 
   return (
     <div className="space-y-5">
+      <PageHeader title="Platvorm" subtitle="Kõik Aegly salongid, nende paketid ja makseseis." />
       <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
         <Card className="p-5">
           <p className="text-[13px] text-muted">Salonge</p>
@@ -48,41 +50,22 @@ async function Platform() {
         ))}
       </div>
 
-      <div className="overflow-x-auto rounded-[14px] border border-line bg-white shadow-[var(--shadow-card)]">
-        <table className="w-full min-w-[900px] text-sm">
-          <thead className="bg-[#f9fafb] text-left text-xs font-semibold tracking-[0.3px] text-[#475467] uppercase">
-            <tr>
-              <th className="py-3 pl-5">Salong</th>
-              <th className="py-3">Pakett</th>
-              <th className="py-3">Arveldus</th>
-              <th className="py-3">Staatus</th>
-              <th className="py-3">Töötajad</th>
-              <th className="py-3">Broneeringud</th>
-              <th className="py-3">Loodud</th>
-              <th className="py-3 pr-5" />
-            </tr>
-          </thead>
-          <tbody>
-            {businesses.map((b) => (
-              <BusinessRow
-                key={b.id}
-                b={{
-                  id: b.id,
-                  name: b.name,
-                  slug: b.slug,
-                  plan: b.plan,
-                  period: b.billingPeriod,
-                  status: b.planStatus,
-                  staff: staffBy.get(b.id) ?? 0,
-                  bookings: bookingsBy.get(b.id) ?? 0,
-                  owner: ownerBy.get(b.id) ?? "—",
-                  created: b.createdAt.toLocaleDateString("et-EE", { timeZone: "Europe/Tallinn" }),
-                }}
-              />
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <PlatformTable
+        ownBusinessId={ownBusinessId}
+        rows={businesses.map((b) => ({
+          id: b.id,
+          name: b.name,
+          slug: b.slug,
+          plan: b.plan,
+          period: b.billingPeriod,
+          status: b.planStatus,
+          staff: staffBy.get(b.id) ?? 0,
+          bookings: bookingsBy.get(b.id) ?? 0,
+          owner: ownerBy.get(b.id) ?? "—",
+          created: b.createdAt.toLocaleDateString("et-EE", { timeZone: "Europe/Tallinn" }),
+          protected: b.id === ownBusinessId || isSuperadmin(ownerBy.get(b.id) ?? ""),
+        }))}
+      />
       <p className="text-xs text-muted">Siin muudetud pakett ei kontrolli töötajate piiri ega tee makseid. Platvormi haldurid määrab keskkonnamuutuja SUPERADMIN_EMAILS.</p>
     </div>
   );
@@ -91,7 +74,6 @@ async function Platform() {
 export default function PlatformPage() {
   return (
     <div className="space-y-5">
-      <PageHeader title="Platvorm" subtitle="Kõik Aegly salongid, nende paketid ja makseseis." />
       <Suspense fallback={<Card className="h-[480px] animate-pulse" />}>
         <Platform />
       </Suspense>

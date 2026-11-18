@@ -4,7 +4,7 @@ import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema as s } from "@/db";
 import { hashPassword } from "@/lib/password";
@@ -91,4 +91,20 @@ export async function deleteBusiness(businessId: string, confirmSlug: string): P
   await db.delete(s.businesses).where(eq(s.businesses.id, businessId));
   revalidatePath("/platvorm");
   redirect("/platvorm");
+}
+
+/** Mitme salongi kustutamine korraga. Oma salongi ja platvormi haldurite salonge ei kustutata. */
+export async function deleteBusinesses(ids: string[], confirmWord: string): Promise<{ ok: boolean; message: string }> {
+  const { business: own } = await requireSuperadmin();
+  if (confirmWord.trim() !== "KUSTUTA") return { ok: false, message: "Kinnitamiseks kirjuta KUSTUTA" };
+  const unique = [...new Set(ids)].filter((id) => typeof id === "string" && id !== own.id).slice(0, 500);
+  if (!unique.length) return { ok: false, message: "Ühtegi salongi pole valitud" };
+  const owners = await db.query.users.findMany({ where: inArray(s.users.businessId, unique) });
+  const protectedIds = new Set(owners.filter((u) => isSuperadmin(u.email)).map((u) => u.businessId));
+  const toDelete = unique.filter((id) => !protectedIds.has(id));
+  if (!toDelete.length) return { ok: false, message: "Valitud salonge ei saa kustutada (platvormi halduri salong)." };
+  const deleted = await db.delete(s.businesses).where(inArray(s.businesses.id, toDelete)).returning({ id: s.businesses.id });
+  revalidatePath("/platvorm");
+  const skipped = unique.length - deleted.length;
+  return { ok: true, message: `Kustutatud ${deleted.length} salongi.${skipped ? ` ${skipped} jäeti vahele (kaitstud).` : ""}` };
 }

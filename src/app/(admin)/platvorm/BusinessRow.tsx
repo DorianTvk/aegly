@@ -8,7 +8,9 @@ import { setBusinessPlan } from "./actions";
 
 const sel = "h-8 rounded-lg border border-line bg-white px-2 text-[13px]";
 
-export function BusinessRow({ b }: { b: { id: string; name: string; slug: string; plan: PlanId; period: BillingPeriod; status: PlanStatus; staff: number; bookings: number; owner: string; created: string } }) {
+export type PlatformRow = { id: string; name: string; slug: string; plan: PlanId; period: BillingPeriod; status: PlanStatus; staff: number; bookings: number; owner: string; created: string; protected: boolean };
+
+export function BusinessRow({ b, selected, onSelect }: { b: PlatformRow; selected: boolean; onSelect: (v: boolean) => void }) {
   const [v, setV] = useState({ plan: b.plan, period: b.period, status: b.status });
   const [msg, setMsg] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -16,8 +18,19 @@ export function BusinessRow({ b }: { b: { id: string; name: string; slug: string
   const over = PLANS[v.plan].staffLimit !== null && b.staff > PLANS[v.plan].staffLimit!;
 
   return (
-    <tr className="border-t border-line-soft align-middle">
+    <tr className={selected ? "border-t border-line-soft bg-bad-bg/40 align-middle" : "border-t border-line-soft align-middle"}>
       <td className="py-3 pl-5">
+        <input
+          type="checkbox"
+          checked={selected}
+          disabled={b.protected}
+          onChange={(e) => onSelect(e.target.checked)}
+          aria-label={b.protected ? `${b.name} (kaitstud)` : `Vali ${b.name}`}
+          title={b.protected ? "Sinu enda või platvormi halduri salongi ei saa kustutada" : undefined}
+          className="size-4 accent-[#d92d20] disabled:opacity-30"
+        />
+      </td>
+      <td className="py-3">
         <Link href={`/platvorm/${b.id}`} className="font-medium underline-offset-4 hover:underline">
           {b.name}
         </Link>
