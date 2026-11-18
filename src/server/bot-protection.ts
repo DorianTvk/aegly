@@ -21,7 +21,9 @@ export const LIMITS = {
 
 export async function clientIp(): Promise<string> {
   const h = await headers();
-  return (h.get("x-forwarded-for")?.split(",")[0] ?? h.get("x-real-ip") ?? "unknown").trim();
+  const ip = (h.get("x-forwarded-for")?.split(",")[0] ?? h.get("x-real-ip") ?? "unknown").trim();
+  // kohalik arendus (localhost) – IP-põhist piirangut ei rakendata
+  return ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(ip) ? "unknown" : ip;
 }
 
 export const turnstileEnabled = () => !!process.env.TURNSTILE_SECRET_KEY && !!process.env.TURNSTILE_SITE_KEY;
