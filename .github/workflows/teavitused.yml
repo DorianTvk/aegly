@@ -19,4 +19,9 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then echo "APP_URL või CRON_SECRET puudub – jätan vahele"; exit 0; fi
-          curl -fsS --max-time 60 -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/teavitused"
+          URL="${APP_URL%/}/api/cron/teavitused"
+          RES=$(curl -sS --max-time 60 -w "\n%{http_code}" -H "Authorization: Bearer $CRON_SECRET" "$URL")
+          CODE=$(echo "$RES" | tail -n1); BODY=$(echo "$RES" | sed '$d')
+          echo "HTTP $CODE: $BODY"
+          if [ "$CODE" = "401" ]; then echo "::error::CRON_SECRET ei klapi Verceli väärtusega"; exit 1; fi
+          if [ "$CODE" != "200" ]; then echo "::error::Ootamatu vastus – kontrolli APP_URL (nt https://aegly.vercel.app, ilma kaldkriipsuta lõpus)"; exit 1; fi
