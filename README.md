@@ -3,6 +3,8 @@
 Broneerimistarkvara ilu- ja heaolusalongidele: halduspaneel ettevõttele ja broneerimisvidin salongi kodulehele.
 Disain: Figma „AEGLY“ (vahelehed OVERVIEW, ADMIN PANEL, WEB WIDGET).
 
+**Juurutamine:** vaata [DEPLOY.md](DEPLOY.md) (Vercel + Neon, tasuta).
+
 ## Tehnoloogia
 
 - **Next.js 16** (App Router, Cache Components), TypeScript, Tailwind CSS 4
@@ -50,4 +52,4 @@ Näidiskonto: **triin@studiolumi.ee** / **aegly-demo**
 - [ ] Vidina makseosa (W7 makseviisid, W7b pangalink + aja hoidmine, W7c) ja kinkekaardi ost (W9) – koos Stripe'iga
 - [ ] Teavituste saatmine (e-posti ja SMS-i teenusepakkuja)
 - [ ] Stripe Connect maksed ja Stripe Billing (paketi kuumaks)
-- [x] Teavitused: kinnitus, muudatus, tühistamine, meeldetuletus ja arvustus kliendile, teated salongile, ootenimekiri. E-post Resendiga (`RESEND_API_KEY`), SMS Messentega (`MESSENTE_API_*`); ilma võtmeteta ainult logi (Teavitused → Saadetud). Ajastatud töö `/api/cron/teavitused` iga 15 min (`vercel.json`, `CRON_SECRET`)
+- [x] Teavitused: kinnitus, muudatus, tühistamine, meeldetuletus ja arvustus kliendile, teated salongile, ootenimekiri. E-post Resendiga (`RESEND_API_KEY`), SMS Messentega (`MESSENTE_API_*`); ilma võtmeteta ainult logi (Teavitused → Saadetud). Ajastatud töö `/api/cron/teavitused` iga 15 min (GitHub Actions `.github/workflows/teavitused.yml`, `CRON_SECRET`)
