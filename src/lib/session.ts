@@ -1,5 +1,6 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
@@ -43,8 +44,8 @@ export async function destroySession() {
   store.delete(SESSION_COOKIE);
 }
 
-/** Kehtiv sessioon koos kasutaja ja ettevõttega või null */
-export async function readSession() {
+/** Kehtiv sessioon koos kasutaja ja ettevõttega või null. Ühe päringu jooksul loetakse andmebaasist üks kord (cache). */
+export const readSession = cache(async function readSession() {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const row = await db.query.sessions.findFirst({
@@ -53,7 +54,7 @@ export async function readSession() {
   });
   if (!row || row.expiresAt < new Date()) return null;
   return { user: row.user, business: row.user.business };
-}
+});
 
 /** Kasuta igas halduspaneeli lehes ja serveri toimingus. Suunab sisselogimisele, kui sessiooni pole. */
 export async function requireSession() {

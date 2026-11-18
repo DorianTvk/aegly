@@ -7,7 +7,7 @@ const globalForDb = globalThis as unknown as { pool?: Pool };
 const pool = globalForDb.pool ?? new Pool({
     connectionString: process.env.DATABASE_URL,
     // serverless (Vercel): väike ühenduste arv; Neoni puhul kasuta "-pooler" aadressi
-    max: process.env.VERCEL ? 3 : 10,
+    max: process.env.VERCEL ? 5 : 10,
   });
 if (process.env.NODE_ENV !== "production") globalForDb.pool = pool;
 
