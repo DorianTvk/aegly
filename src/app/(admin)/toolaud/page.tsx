@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { and, eq, gte, lte } from "drizzle-orm";
-import { CalendarDays, Check, Code2, Download, Euro, Megaphone, Ticket, Timer, TrendingUp, Users } from "lucide-react";
+import { ArrowRight, CalendarDays, ChevronRight, Check, Download, Euro, Megaphone, Ticket, Timer, TrendingUp, Users } from "lucide-react";
+import Link from "next/link";
+import { clsx } from "clsx";
 import { db, schema as s } from "@/db";
 import { getCurrentBusiness, getCurrentUser } from "@/lib/tenant";
 import { countNewClients, isActiveStatus, loadDay, periodStats } from "@/server/day";
@@ -87,15 +89,17 @@ async function Dashboard() {
   const cancelled = day.bookings.filter((b) => b.status === "CANCELLED").length;
   const staffById = new Map(day.columns.map((c) => [c.id, c]));
 
+  // iga samm viib kohta, kus selle saab ära teha; kui kõik on tehtud, kaart kaob
   const setup = [
-    { label: "Ettevõtte andmed", done: Boolean(business.name && business.address) },
-    { label: "Töötajad lisatud", done: staffCount > 0 },
-    { label: "Teenused ja hinnad", done: serviceCount > 0 },
-    { label: "Tööajad määratud", done: scheduleCount > 0 },
-    { label: "Vidina välimus kohandatud", done: Boolean(business.logoUrl) },
-    { label: "Vidin kodulehele lisatud", done: Boolean(business.widgetInstalledAt) },
+    { label: "Ettevõtte andmed", hint: "Lisa aadress ja kontaktid", cta: "Täida ettevõtte andmed", href: "/profiil", done: Boolean(business.name && business.address && (business.phone || business.email)) },
+    { label: "Töötajad lisatud", hint: "Lisa vähemalt üks töötaja", cta: "Lisa töötaja", href: "/tootajad/uus", done: staffCount > 0 },
+    { label: "Teenused ja hinnad", hint: "Lisa teenus koos hinna ja kestusega", cta: "Lisa teenus", href: "/teenused/uus", done: serviceCount > 0 },
+    { label: "Tööajad määratud", hint: "Määra töötajate nädalagraafik", cta: "Määra tööajad", href: "/tooajad", done: scheduleCount > 0 },
+    { label: "Vidina välimus kohandatud", hint: "Vali värvid ja salvesta", cta: "Kohanda vidinat", href: "/vidin", done: Boolean(business.widgetCustomizedAt) },
+    { label: "Vidin kodulehele lisatud", hint: "Kopeeri paigalduskood kodulehele", cta: "Lisa vidin kodulehele", href: "/vidin#paigaldus", done: Boolean(business.widgetInstalledAt) },
   ];
   const doneCount = setup.filter((x) => x.done).length;
+  const nextStep = setup.find((x) => !x.done);
 
   return (
     <div className="space-y-6">
@@ -171,42 +175,52 @@ async function Dashboard() {
         </Card>
 
         <div className="space-y-4">
-          <Card>
-            <CardHeader
-              title="Seadistuse edenemine"
-              subtitle={setup[5].done ? "Kõik valmis" : "Vidin on veel kodulehel avaldamata"}
-            />
-            <div className="space-y-4 p-5">
-              <div className="flex items-center gap-2.5">
-                <div className="h-2 flex-1 rounded bg-line-soft">
-                  <div className="h-2 rounded bg-lime" style={{ width: `${(doneCount / setup.length) * 100}%` }} />
+          {nextStep && (
+            <Card>
+              <CardHeader title="Seadistuse edenemine" subtitle={`Järgmine samm: ${nextStep.label.toLowerCase()}`} />
+              <div className="space-y-4 p-5">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-2 flex-1 rounded bg-line-soft" role="progressbar" aria-valuemin={0} aria-valuemax={setup.length} aria-valuenow={doneCount} aria-label="Seadistuse edenemine">
+                    <div className="h-2 rounded bg-lime" style={{ width: `${(doneCount / setup.length) * 100}%` }} />
+                  </div>
+                  <span className="text-[13px] font-semibold">
+                    {doneCount} / {setup.length}
+                  </span>
                 </div>
-                <span className="text-[13px] font-semibold">
-                  {doneCount} / {setup.length}
-                </span>
-              </div>
-              <ul className="space-y-3.5">
-                {setup.map((step) => (
-                  <li key={step.label} className="flex items-center gap-3 text-sm">
-                    {step.done ? (
-                      <span className="grid size-[22px] place-items-center rounded-full bg-ok-dot text-white">
-                        <Check size={13} strokeWidth={3} />
-                      </span>
-                    ) : (
-                      <span className="size-[22px] rounded-full border-2 border-[#d1d5db]" />
-                    )}
-                    <span className={step.done ? "text-muted line-through" : "font-medium"}>{step.label}</span>
-                  </li>
-                ))}
-              </ul>
-              {doneCount < setup.length && (
-                <LinkButton href="/vidin" variant="primary" className="w-full">
-                  <Code2 size={16} />
-                  Seadista broneerimisvidin
+                <ul className="-mx-2 space-y-0.5">
+                  {setup.map((step) => (
+                    <li key={step.label}>
+                      <Link
+                        href={step.href}
+                        className={clsx(
+                          "group flex items-center gap-3 rounded-[10px] px-2 py-2 text-sm hover:bg-line-soft",
+                          step === nextStep && "bg-[#f7fee7] hover:bg-[#ecfccb]",
+                        )}
+                      >
+                        {step.done ? (
+                          <span className="grid size-[22px] shrink-0 place-items-center rounded-full bg-ok-dot text-white">
+                            <Check size={13} strokeWidth={3} aria-hidden />
+                          </span>
+                        ) : (
+                          <span className="size-[22px] shrink-0 rounded-full border-2 border-[#d1d5db] group-hover:border-ink" />
+                        )}
+                        <span className="min-w-0 flex-1">
+                          <span className={step.done ? "block text-muted line-through" : "block font-medium"}>{step.label}</span>
+                          {!step.done && <span className="block text-[12px] text-muted">{step.hint}</span>}
+                        </span>
+                        {!step.done && <ChevronRight size={16} className="shrink-0 text-subtle group-hover:text-ink" aria-hidden />}
+                        <span className="sr-only">{step.done ? "(tehtud)" : "(tegemata)"}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                <LinkButton href={nextStep.href} variant="primary" className="w-full">
+                  {nextStep.cta}
+                  <ArrowRight size={16} aria-hidden />
                 </LinkButton>
-              )}
-            </div>
-          </Card>
+              </div>
+            </Card>
+          )}
 
           <Card>
             <CardHeader title="Aktiivsed soodustused" />

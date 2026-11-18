@@ -200,6 +200,7 @@ export function WidgetSettingsView({
           </Card>
 
           <Card>
+            <span id="paigaldus" className="block scroll-mt-24" />
             <CardHeader title="Paigalduskood" action={installedAt ? <Badge tone="ok">Tuvastatud {installedAt}</Badge> : <Badge tone="warn">Pole veel kodulehel tuvastatud</Badge>} />
             <div className="space-y-3 p-5">
               <Segmented value={tab} onChange={setTab} options={[{ value: "popup", label: "Nupp (pop-up) – soovitatud" }, { value: "iframe", label: "iframe" }, { value: "wordpress", label: "WordPress" }]} />

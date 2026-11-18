@@ -86,6 +86,8 @@ export const businesses = pgTable("businesses", {
   widgetShowCampaignBanner: boolean("widget_show_campaign_banner").notNull().default(true),
   widgetLanguages: text("widget_languages").array().notNull().default(sql`'{et}'::text[]`),
   widgetEmbed: text("widget_embed").$type<"popup" | "iframe">().notNull().default("popup"),
+  /** millal vidina välimust esimest korda salvestati (seadistuse edenemine) */
+  widgetCustomizedAt: ts("widget_customized_at"),
   widgetInstalledAt: ts("widget_installed_at"),
   allowedDomains: text("allowed_domains").array().notNull().default(sql`'{}'::text[]`),
   // Broneerimisreeglid (08)

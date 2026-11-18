@@ -40,7 +40,7 @@ export async function saveWidgetSettings(input: WidgetSettings): Promise<FormSta
   if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Kontrolli välju" };
   await db
     .update(s.businesses)
-    .set({ ...parsed.data, allowedDomains: [...new Set(parsed.data.allowedDomains)] })
+    .set({ ...parsed.data, allowedDomains: [...new Set(parsed.data.allowedDomains)], widgetCustomizedAt: business.widgetCustomizedAt ?? new Date() })
     .where(eq(s.businesses.id, business.id));
   revalidatePath("/vidin");
   return { ok: true, message: "Muudatused avaldatud. Vidin uueneb kodulehel kohe." };
