@@ -26,7 +26,7 @@ export type CreateBookingInput = {
   note?: string | null;
 };
 
-export type CreateBookingResult = { ok: true; bookingId: string; number: string } | { ok: false; reason: string };
+export type CreateBookingResult = { ok: true; bookingId: string; number: string; status: "CONFIRMED" | "PENDING_PAYMENT" } | { ok: false; reason: string };
 
 async function nextNumber(): Promise<string> {
   const [row] = await db.select({ max: sql<number>`coalesce(max(substring(${s.bookings.number} from 4)::int), 20400)` }).from(s.bookings);
@@ -139,14 +139,14 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
           campaignId: price.campaign?.id ?? null,
           note: input.note ?? null,
         })
-        .returning({ id: s.bookings.id, number: s.bookings.number });
+        .returning({ id: s.bookings.id, number: s.bookings.number, status: s.bookings.status });
       if (price.code) await tx.update(s.discountCodes).set({ usedCount: sql`${s.discountCodes.usedCount} + 1` }).where(eq(s.discountCodes.id, price.code.id));
       if (input.paid && final > 0) {
         await tx.insert(s.payments).values({ businessId: input.businessId, bookingId: b.id, amountCents: final, status: "SUCCEEDED", method: "kohapeal" });
       }
       return b;
     });
-    return { ok: true, bookingId: result.id, number: result.number };
+    return { ok: true, bookingId: result.id, number: result.number, status: result.status === "CONFIRMED" ? "CONFIRMED" : "PENDING_PAYMENT" };
   } catch (e) {
     if (e instanceof Error && e.message === "CLASH") return { ok: false, reason: "See aeg broneeriti just ära. Vali teine aeg." };
     throw e;

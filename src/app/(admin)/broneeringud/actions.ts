@@ -1,5 +1,9 @@
 "use server";
 
+import { after } from "next/server";
+import { appUrl } from "@/lib/app-url";
+import { notifyBooking, notifyWaitlist } from "@/server/notify";
+
 import { revalidatePath } from "next/cache";
 import { and, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -70,6 +74,9 @@ export async function createManualBooking(input: ManualBookingInput): Promise<Fo
     note: d.note,
   });
   if (!res.ok) return { message: res.reason };
+  const base = await appUrl();
+  // kinnitus kliendile (kui tal on e-post/telefon); ootab makset → kinnitus hiljem
+  if (res.status === "CONFIRMED") after(() => notifyBooking(res.bookingId, "CONFIRMATION", base));
   revalidatePath("/kalender");
   revalidatePath("/toolaud");
   return { ok: true, message: `Broneering ${res.number} loodud.`, bookingId: res.bookingId };
@@ -99,6 +106,14 @@ export async function setBookingStatus(bookingId: string, status: "CONFIRMED" | 
       cancelReason: status === "CANCELLED" ? (reason?.trim() || "Tühistas salong") : null,
     })
     .where(eq(s.bookings.id, bookingId));
+  const base = await appUrl();
+  if (status === "CANCELLED" && b.startsAt > new Date()) {
+    after(async () => {
+      await notifyBooking(bookingId, "CANCELLED", base);
+      await notifyWaitlist(bookingId, base);
+    });
+  }
+  if (status === "CONFIRMED" && (b.status === "PENDING_PAYMENT" || b.status === "HELD")) after(() => notifyBooking(bookingId, "CONFIRMATION", base));
   revalidatePath(`/broneeringud/${bookingId}`);
   revalidatePath("/kalender");
   revalidatePath("/toolaud");

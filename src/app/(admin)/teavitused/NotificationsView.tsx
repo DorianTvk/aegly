@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { Check, Mail, MessageSquare } from "lucide-react";
 import { clsx } from "clsx";
+import Link from "next/link";
 import { Button, Card, CardHeader, PageHeader } from "@/components/ui/primitives";
 import { Field, FormMessage, Input, Select, Textarea, type FormState } from "@/components/ui/form";
 import { Segmented, Switch } from "@/components/ui/pickers";
@@ -11,7 +12,7 @@ import { saveNotifications, type NotificationsInput } from "./actions";
 
 type Item = NotificationsInput["items"][number];
 
-export function NotificationsView({ initial, sample }: { initial: NotificationsInput; sample: Record<string, string> }) {
+export function NotificationsView({ initial, sample, delivery }: { initial: NotificationsInput; sample: Record<string, string>; delivery: { email: boolean; sms: boolean } }) {
   const [v, setV] = useState(initial);
   const [selected, setSelected] = useState<Item["type"]>("REMINDER");
   const [channel, setChannel] = useState<"sms" | "email">("sms");
@@ -41,15 +42,23 @@ export function NotificationsView({ initial, sample }: { initial: NotificationsI
         title="Teavitused"
         subtitle="Automaatsed e-kirjad ja SMS-id klientidele. Mallid kasutavad broneeringu andmeid."
         actions={
+          <>
+          <Link href="/teavitused/saadetud" className="inline-flex h-10 items-center rounded-[10px] border border-line bg-white px-3.5 text-sm font-semibold hover:bg-[#f9fafb]">
+            Saadetud
+          </Link>
           <Button variant="primary" disabled={pending} onClick={() => start(async () => setState(await saveNotifications(v)))}>
             <Check size={16} strokeWidth={2.5} /> Salvesta
           </Button>
+          </>
         }
       />
       <FormMessage state={state} />
-      <p className="rounded-[10px] border border-warn/30 bg-warn-bg px-4 py-3 text-[13px] text-warn">
-        Seaded ja mallid salvestuvad. Kirjade ja SMS-ide tegelik saatmine lülitub sisse, kui e-posti ja SMS-i teenusepakkuja on ühendatud.
-      </p>
+      {(!delivery.email || !delivery.sms) && (
+        <p className="rounded-[10px] border border-warn/30 bg-warn-bg px-4 py-3 text-[13px] text-warn">
+          {!delivery.email && "E-post on arendusrežiimis: kirjad salvestatakse lehele „Saadetud“, aga klientidele neid veel ei saadeta. "}
+          {!delivery.sms && "SMS-teenus pole ühendatud: SMS-e ei saadeta ja vidinas SMS-meeldetuletuse valikut ei näidata."}
+        </p>
+      )}
 
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="space-y-5">

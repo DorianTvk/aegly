@@ -3,6 +3,7 @@ import { and, asc, eq, gte, lte } from "drizzle-orm";
 import { db, schema as s } from "@/db";
 import { addDaysIso, isoWeekday, localDate, todayIso } from "@/lib/time";
 import { getSlots } from "./availability";
+import { smsConfigured } from "./messaging";
 
 /** Avalik salong slug'i järgi; peatatud tellimusega salongi vidin ei tööta */
 export async function findPublicBusiness(slug: string) {
@@ -102,6 +103,7 @@ export async function loadWidget(slug: string) {
       bannerUrl: b.widgetShowBanner ? b.bannerUrl : null, description: b.description, timezone: tz,
       todayHours: todayHours && !todayHours.closed ? `${todayHours.startTime?.slice(0, 2)}–${todayHours.endTime?.slice(0, 2)}` : null,
       cancelUntilHours: b.cancelUntilHours, maxAdvanceDays: b.maxAdvanceDays, noShowProtection: b.noShowProtection,
+      smsAvailable: smsConfigured(),
     },
     theme: {
       primary: b.widgetPrimary, buttonText: b.widgetButtonColor, background: b.widgetBackground, text: b.widgetTextColor,

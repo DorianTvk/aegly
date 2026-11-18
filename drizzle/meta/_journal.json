@@ -71,6 +71,13 @@
       "when": 1794924509680,
       "tag": "0009_plans",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795004741757,
+      "tag": "0010_outbound_messages",
+      "breakpoints": true
     }
   ]
 }

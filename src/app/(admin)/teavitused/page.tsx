@@ -7,6 +7,7 @@ import { NOTIFICATIONS } from "@/lib/notifications";
 import { appUrl } from "@/lib/app-url";
 import { Card } from "@/components/ui/primitives";
 import { NotificationsView } from "./NotificationsView";
+import { emailConfigured, smsConfigured } from "@/server/messaging";
 
 export const metadata: Metadata = { title: "Teavitused" };
 
@@ -16,6 +17,7 @@ async function Notifications() {
   const byType = new Map(rows.map((r) => [r.type, r]));
   return (
     <NotificationsView
+      delivery={{ email: emailConfigured(), sms: smsConfigured() }}
       sample={{
         "{eesnimi}": "Kertu",
         "{teenus}": "Klassikaline massaaž",

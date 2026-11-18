@@ -1,5 +1,10 @@
 "use server";
 
+import { after } from "next/server";
+import { appUrl } from "@/lib/app-url";
+import { notifyBooking, notifySalon } from "@/server/notify";
+import { smsConfigured } from "@/server/messaging";
+
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema as s } from "@/db";
@@ -116,12 +121,14 @@ export async function book(input: z.input<typeof bookSchema>) {
     serviceId: c.service.id,
     staffId: q.staffId,
     startsAt: zonedDateTime(q.date, q.time, c.business.timezone),
-    client: { name: q.name, email: q.email, phone: q.phone, consentSms: q.smsReminder },
+    client: { name: q.name, email: q.email, phone: q.phone, consentSms: q.smsReminder && smsConfigured() },
     code: q.code || null,
     source: "WIDGET",
     deferPayment: true,
   });
   if (!res.ok) return res;
+  const base = await appUrl();
+  after(() => Promise.all([res.status === "CONFIRMED" ? notifyBooking(res.bookingId, "CONFIRMATION", base) : null, notifySalon(res.bookingId, "NEW", base)]));
   const b = await db.query.bookings.findFirst({ where: eq(s.bookings.id, res.bookingId) });
   return { ok: true as const, number: res.number, manageToken: b!.manageToken, finalCents: b!.finalPriceCents, depositCents: b!.depositCents };
 }

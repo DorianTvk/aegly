@@ -145,7 +145,7 @@ export function Widget({ data, embed }: { data: Data; embed: boolean }) {
               showStaffNames={staffId === null && service.staff.length > 1}
             />
           )}
-          {step === "details" && <Details form={form} setForm={setForm} q={q} onApply={(code) => loadQuote(code)} pending={pending} />}
+          {step === "details" && <Details form={form} setForm={setForm} q={q} onApply={(code) => loadQuote(code)} pending={pending} smsAvailable={biz.smsAvailable} />}
           {step === "confirm" && service && slot && q && (
             <Confirm service={service} date={date} slot={slot} duration={duration} staffName={staffName} q={q} cancelHours={biz.cancelUntilHours} />
           )}
@@ -725,8 +725,9 @@ function WInput({ id: idProp, label, value, onChange, type = "text", autoComplet
 }
 
 function Details({
-  form, setForm, q, onApply, pending,
+  form, setForm, q, onApply, pending, smsAvailable,
 }: {
+  smsAvailable: boolean;
   form: { name: string; email: string; phone: string; code: string; sms: boolean; terms: boolean };
   setForm: (f: typeof form) => void;
   q: Quote | null;
@@ -783,10 +784,10 @@ function Details({
         )}
         {q?.codeMessage && form.code && <p className="mt-1.5 text-[13px] text-[#b42318]">{q.codeMessage}</p>}
       </div>
-      <label className="flex items-start gap-2.5 text-[14px]">
+      {smsAvailable && <label className="flex items-start gap-2.5 text-[14px]">
         <input type="checkbox" checked={form.sms} onChange={(e) => setForm({ ...form, sms: e.target.checked })} className="mt-0.5 size-[18px] accent-[var(--w-primary)]" />
-        Saada mulle SMS-meeldetuletus 24 h enne aega
-      </label>
+        Saada mulle SMS-meeldetuletus enne aega
+      </label>}
       <label className="flex items-start gap-2.5 text-[14px]">
         <input type="checkbox" checked={form.terms} onChange={(e) => setForm({ ...form, terms: e.target.checked })} className="mt-0.5 size-[18px] accent-[var(--w-primary)]" />
         Nõustun broneerimistingimustega

@@ -70,6 +70,7 @@ export const PLATFORM_ITEM: NavItem = { href: "/platvorm", label: "Platvorm", ic
 
 const EXTRA: NavItem[] = [
   { href: "/seaded/pakett", label: "Pakett ja arveldus", icon: SlidersHorizontal, section: "Seaded" },
+  { href: "/teavitused/saadetud", label: "Saadetud teavitused", icon: Bell, section: "Kanal" },
   PLATFORM_ITEM,
   { href: "/broneeringud/uus", label: "Uus broneering", icon: CalendarDays, section: "Kalender" },
   { href: "/broneeringud", label: "Broneering", icon: CalendarDays, section: "Kalender" },

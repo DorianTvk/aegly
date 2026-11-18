@@ -549,6 +549,38 @@ export const waitlistEntries = pgTable("waitlist_entries", {
   createdAt: createdAt(),
 });
 
+// ---------- Saadetud teavitused (väljuvad kirjad ja SMS-id) ----------
+
+export const messageChannelEnum = pgEnum("message_channel", ["EMAIL", "SMS"]);
+export const messageStatusEnum = pgEnum("message_status", ["QUEUED", "SENT", "FAILED", "SKIPPED"]);
+
+export const outboundMessages = pgTable(
+  "outbound_messages",
+  {
+    id: id(),
+    businessId: businessId(),
+    bookingId: text("booking_id").references(() => bookings.id, { onDelete: "set null" }),
+    /** teavituse tüüp (CONFIRMATION, REMINDER, …) või SALON_* salongile saadetud teade */
+    kind: text("kind").notNull(),
+    channel: messageChannelEnum("channel").notNull(),
+    to: text("to").notNull(),
+    subject: text("subject"),
+    body: text("body").notNull(),
+    status: messageStatusEnum("status").notNull().default("QUEUED"),
+    /** resend | messente | dev-log */
+    provider: text("provider"),
+    providerId: text("provider_id"),
+    error: text("error"),
+    /** SMS-i osade arv (arveldamiseks) */
+    segments: integer("segments"),
+    /** topelt saatmise vältimiseks, nt "REMINDER:<bookingId>:EMAIL" */
+    dedupeKey: text("dedupe_key"),
+    sentAt: ts("sent_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("outbound_messages_dedupe").on(t.dedupeKey), index("outbound_messages_business_created").on(t.businessId, t.createdAt)],
+);
+
 // ---------- Seosed ----------
 
 export const businessesRelations = relations(businesses, ({ many }) => ({
