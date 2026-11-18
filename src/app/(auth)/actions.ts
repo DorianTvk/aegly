@@ -7,6 +7,9 @@ import { createSession, destroySession } from "@/lib/session";
 import { createBusinessWithOwner, findUserByEmail } from "@/server/business";
 import type { FormState } from "@/components/ui/form";
 import { parsePeriod, parsePlan } from "@/lib/plans";
+import { clientIp, isHoneypotFilled, isLoginBlocked, isRegisterBlocked, recordAttempt, verifyTurnstile } from "@/server/bot-protection";
+
+const BOT_MESSAGE = "Turvakontroll ebaõnnestus. Värskenda lehte ja proovi uuesti.";
 
 const loginSchema = z.object({
   email: z.email("Sisesta kehtiv e-posti aadress").transform((v) => v.toLowerCase().trim()),
@@ -28,9 +31,16 @@ const safeNext = (next?: string) => (next && next.startsWith("/") && !next.start
 export async function login(_prev: FormState, formData: FormData): Promise<FormState> {
   const parsed = loginSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { errors: z.flattenError(parsed.error).fieldErrors };
+  const ip = await clientIp();
+  if (isHoneypotFilled(formData)) return { message: "Vale e-post või parool." };
+  if (await isLoginBlocked(ip, parsed.data.email)) {
+    return { message: "Liiga palju ebaõnnestunud katseid. Proovi 15 minuti pärast uuesti." };
+  }
+  if (!(await verifyTurnstile(formData.get("cf-turnstile-response"), ip))) return { message: BOT_MESSAGE };
 
   const user = await findUserByEmail(parsed.data.email);
   const ok = await verifyPassword(parsed.data.password, user?.passwordHash);
+  await recordAttempt("LOGIN", ip, parsed.data.email, !!user && ok);
   if (!user || !ok) return { message: "Vale e-post või parool." };
 
   await createSession(user.id);
@@ -40,6 +50,10 @@ export async function login(_prev: FormState, formData: FormData): Promise<FormS
 export async function register(_prev: FormState, formData: FormData): Promise<FormState> {
   const parsed = registerSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { errors: z.flattenError(parsed.error).fieldErrors };
+  const ip = await clientIp();
+  if (isHoneypotFilled(formData)) return { message: BOT_MESSAGE };
+  if (await isRegisterBlocked(ip)) return { message: "Sellelt võrgult on loodud liiga palju kontosid. Proovi tunni aja pärast uuesti." };
+  if (!(await verifyTurnstile(formData.get("cf-turnstile-response"), ip))) return { message: BOT_MESSAGE };
 
   if (await findUserByEmail(parsed.data.email)) {
     return { errors: { email: ["Selle e-postiga konto on juba olemas. Logi sisse."] } };
@@ -53,6 +67,7 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
     plan: parsePlan(formData.get("plan")),
     billingPeriod: parsePeriod(formData.get("period")),
   });
+  await recordAttempt("REGISTER", ip, parsed.data.email, true);
   await createSession(user.id);
   redirect("/toolaud");
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/primitives";
 import { PLAN_IDS, PLAN_STATUS_LABEL, PLANS, type BillingPeriod, type PlanId, type PlanStatus } from "@/lib/plans";
 import { setBusinessPlan } from "./actions";
@@ -17,7 +18,9 @@ export function BusinessRow({ b }: { b: { id: string; name: string; slug: string
   return (
     <tr className="border-t border-line-soft align-middle">
       <td className="py-3 pl-5">
-        <p className="font-medium">{b.name}</p>
+        <Link href={`/platvorm/${b.id}`} className="font-medium underline-offset-4 hover:underline">
+          {b.name}
+        </Link>
         <p className="text-xs text-muted">
           {b.slug} · {b.owner}
         </p>

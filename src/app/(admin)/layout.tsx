@@ -3,6 +3,7 @@ import { Sidebar } from "@/components/admin/Sidebar";
 import { Topbar } from "@/components/admin/Topbar";
 import { getCurrentBusiness, getCurrentUser, ROLE_LABEL } from "@/lib/tenant";
 import { isSuperadmin } from "@/lib/plans";
+import { ImpersonationBanner } from "./platvorm/ImpersonationBanner";
 
 async function SidebarWithData() {
   const business = await getCurrentBusiness();
@@ -21,6 +22,9 @@ export default function AdminLayout({ children }: LayoutProps<"/">) {
         <SidebarWithData />
       </Suspense>
       <div className="flex min-w-0 flex-1 flex-col">
+        <Suspense fallback={null}>
+          <ImpersonationBanner />
+        </Suspense>
         <Topbar />
         <main className="flex-1 px-8 pt-7 pb-10">{children}</main>
       </div>

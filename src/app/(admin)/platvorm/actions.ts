@@ -19,5 +19,6 @@ export async function setBusinessPlan(input: { businessId: string; plan: string;
     .set({ plan: parsePlan(input.plan), billingPeriod: parsePeriod(input.period), planStatus: status, planChangedAt: new Date() })
     .where(eq(s.businesses.id, input.businessId));
   revalidatePath("/platvorm");
+  revalidatePath(`/platvorm/${input.businessId}`);
   return { ok: true, message: "Salvestatud." };
 }

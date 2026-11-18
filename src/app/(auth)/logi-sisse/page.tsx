@@ -10,7 +10,7 @@ async function Form({ searchParams }: { searchParams: Promise<{ next?: string }>
   // juba sisse logitud (kehtiv sessioon) → otse töölauale
   if (await readSession()) redirect("/toolaud");
   const { next } = await searchParams;
-  return <LoginForm next={next} />;
+  return <LoginForm next={next} siteKey={process.env.TURNSTILE_SITE_KEY || null} />;
 }
 
 export default function LoginPage(props: PageProps<"/logi-sisse">) {

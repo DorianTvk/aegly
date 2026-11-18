@@ -10,8 +10,9 @@ import { formatEuro } from "@/lib/time";
 import { Field, FormMessage, Input } from "@/components/ui/form";
 import { Button } from "@/components/ui/primitives";
 import { login, register } from "./actions";
+import { BotProtection } from "@/components/ui/BotProtection";
 
-export function LoginForm({ next }: { next?: string }) {
+export function LoginForm({ next, siteKey }: { next?: string; siteKey?: string | null }) {
   const [state, action, pending] = useFormAction(login);
   const e = state?.errors ?? {};
   return (
@@ -24,6 +25,7 @@ export function LoginForm({ next }: { next?: string }) {
       <Field label="Parool" htmlFor="password" error={e.password}>
         <Input id="password" name="password" type="password" autoComplete="current-password" required aria-invalid={!!e.password} />
       </Field>
+      <BotProtection siteKey={siteKey} resetKey={state} />
       <Button type="submit" variant="primary" className="w-full" disabled={pending}>
         {pending ? "Sisenen…" : "Logi sisse"}
       </Button>
@@ -37,7 +39,7 @@ export function LoginForm({ next }: { next?: string }) {
   );
 }
 
-export function RegisterForm({ defaultPlan = "SALONG", defaultPeriod = "MONTH" }: { defaultPlan?: PlanId; defaultPeriod?: BillingPeriod }) {
+export function RegisterForm({ defaultPlan = "SALONG", defaultPeriod = "MONTH", siteKey }: { defaultPlan?: PlanId; defaultPeriod?: BillingPeriod; siteKey?: string | null }) {
   const [state, action, pending] = useFormAction(register);
   const [plan, setPlan] = useState<PlanId>(defaultPlan);
   const [period, setPeriod] = useState<BillingPeriod>(defaultPeriod);
@@ -89,6 +91,7 @@ export function RegisterForm({ defaultPlan = "SALONG", defaultPeriod = "MONTH" }
           {e.terms && <span className="block text-xs text-bad">{e.terms[0]}</span>}
         </span>
       </label>
+      <BotProtection siteKey={siteKey} resetKey={state} />
       <Button type="submit" variant="primary" className="w-full" disabled={pending}>
         {pending ? "Loon kontot…" : "Loo konto"}
       </Button>

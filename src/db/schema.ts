@@ -549,6 +549,22 @@ export const waitlistEntries = pgTable("waitlist_entries", {
   createdAt: createdAt(),
 });
 
+// ---------- Sisselogimise kaitse (katsete piiramine) ----------
+
+export const authAttempts = pgTable(
+  "auth_attempts",
+  {
+    id: id(),
+    /** LOGIN | REGISTER */
+    kind: text("kind").notNull(),
+    ip: text("ip").notNull(),
+    email: text("email"),
+    success: boolean("success").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("auth_attempts_ip_created").on(t.ip, t.createdAt), index("auth_attempts_email_created").on(t.email, t.createdAt)],
+);
+
 // ---------- Saadetud teavitused (väljuvad kirjad ja SMS-id) ----------
 
 export const messageChannelEnum = pgEnum("message_channel", ["EMAIL", "SMS"]);

@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Loo konto" };
 /** Müügilehelt tullakse kujul /registreeru?pakett=solo&periood=year */
 async function Form({ searchParams }: { searchParams: Promise<{ pakett?: string; periood?: string }> }) {
   const { pakett, periood } = await searchParams;
-  return <RegisterForm defaultPlan={parsePlan(pakett)} defaultPeriod={parsePeriod(periood)} />;
+  return <RegisterForm defaultPlan={parsePlan(pakett)} defaultPeriod={parsePeriod(periood)} siteKey={process.env.TURNSTILE_SITE_KEY || null} />;
 }
 
 export default function RegisterPage(props: PageProps<"/registreeru">) {

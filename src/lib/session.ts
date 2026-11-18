@@ -10,9 +10,9 @@ const SESSION_DAYS = 30;
 
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 
-export async function createSession(userId: string) {
+export async function createSession(userId: string, opts: { hours?: number } = {}) {
   const token = randomBytes(32).toString("base64url");
-  const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000);
+  const expiresAt = new Date(Date.now() + (opts.hours ? opts.hours * 3_600_000 : SESSION_DAYS * 86_400_000));
   await db.insert(s.sessions).values({ id: hashToken(token), userId, expiresAt });
   (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true,
@@ -21,6 +21,19 @@ export async function createSession(userId: string) {
     path: "/",
     expires: expiresAt,
   });
+  return token;
+}
+
+/** Superadmini sessiooni tunnus salongi kontole sisenemise ajal (tagasipöördumiseks) */
+export const RETURN_COOKIE = "aegly_admin_return";
+
+export async function sessionUserByToken(token: string) {
+  const row = await db.query.sessions.findFirst({ where: eq(s.sessions.id, hashToken(token)), with: { user: true } });
+  return row && row.expiresAt > new Date() ? { ...row.user, sessionExpiresAt: row.expiresAt } : null;
+}
+
+export async function setSessionCookie(token: string, expires: Date) {
+  (await cookies()).set(SESSION_COOKIE, token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", expires });
 }
 
 export async function destroySession() {
