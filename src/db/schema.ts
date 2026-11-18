@@ -136,6 +136,8 @@ export const users = pgTable(
     name: text("name").notNull(),
     passwordHash: text("password_hash"),
     role: roleEnum("role").notNull().default("OWNER"),
+    /** millal kasutaja viimati kellukese teavitusi vaatas */
+    notificationsSeenAt: ts("notifications_seen_at"),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("users_email").on(t.email)],
@@ -548,6 +550,23 @@ export const waitlistEntries = pgTable("waitlist_entries", {
   notifiedAt: ts("notified_at"),
   createdAt: createdAt(),
 });
+
+// ---------- Tegevuste voog (kellukese teavitused halduspaneelis) ----------
+
+export const activityEvents = pgTable(
+  "activity_events",
+  {
+    id: id(),
+    businessId: businessId(),
+    /** BOOKING_NEW | BOOKING_CHANGED | BOOKING_CANCELLED | WAITLIST | WIDGET_INSTALLED */
+    kind: text("kind").notNull(),
+    bookingId: text("booking_id").references(() => bookings.id, { onDelete: "set null" }),
+    title: text("title").notNull(),
+    body: text("body"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("activity_business_created").on(t.businessId, t.createdAt)],
+);
 
 // ---------- Sisselogimise kaitse (katsete piiramine) ----------
 

@@ -3,6 +3,7 @@
 import { after } from "next/server";
 import { appUrl } from "@/lib/app-url";
 import { notifyBooking, notifySalon, notifyWaitlist } from "@/server/notify";
+import { recordActivity } from "@/server/activity";
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -15,7 +16,9 @@ export async function reschedule(token: string, date: string, time: string) {
   const r = await rescheduleManaged(token, d.data, t.data);
   if (r.ok) {
     const base = await appUrl();
-    after(() => Promise.all([notifyBooking(r.bookingId, "CHANGED", base), notifySalon(r.bookingId, "CHANGED", base)]));
+    after(() =>
+      Promise.all([notifyBooking(r.bookingId, "CHANGED", base), notifySalon(r.bookingId, "CHANGED", base), recordActivity(r.businessId, "BOOKING_CHANGED", { bookingId: r.bookingId })]),
+    );
     revalidatePath(`/b/${token}`);
   }
   return r;
@@ -26,7 +29,11 @@ export async function cancel(token: string, reason: string | null) {
   if (r.ok) {
     const base = await appUrl();
     after(async () => {
-      await Promise.all([notifyBooking(r.bookingId, "CANCELLED", base), notifySalon(r.bookingId, "CANCELLED", base)]);
+      await Promise.all([
+        notifyBooking(r.bookingId, "CANCELLED", base),
+        notifySalon(r.bookingId, "CANCELLED", base),
+        recordActivity(r.businessId, "BOOKING_CANCELLED", { bookingId: r.bookingId }),
+      ]);
       await notifyWaitlist(r.bookingId, base);
     });
     revalidatePath(`/b/${token}`);

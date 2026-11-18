@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db, schema as s } from "@/db";
 import { findPublicBusiness } from "@/server/widget";
+import { recordActivity } from "@/server/activity";
 
 const cors = { "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" };
 
@@ -21,6 +22,7 @@ export async function GET(req: Request, ctx: RouteContext<"/w/[slug]/config">) {
   }
   if (host && !own && !b.widgetInstalledAt) {
     await db.update(s.businesses).set({ widgetInstalledAt: new Date() }).where(eq(s.businesses.id, b.id));
+    await recordActivity(b.id, "WIDGET_INSTALLED", { body: `Esimene avamine lehelt ${host}` });
   }
   return Response.json({ name: b.name, primary: b.widgetPrimary, buttonColor: b.widgetButtonColor, buttonText: b.widgetButtonText }, { headers: cors });
 }

@@ -3,6 +3,7 @@
 import { after } from "next/server";
 import { appUrl } from "@/lib/app-url";
 import { notifyBooking, notifySalon } from "@/server/notify";
+import { recordActivity } from "@/server/activity";
 import { smsConfigured } from "@/server/messaging";
 
 import { and, eq } from "drizzle-orm";
@@ -128,7 +129,13 @@ export async function book(input: z.input<typeof bookSchema>) {
   });
   if (!res.ok) return res;
   const base = await appUrl();
-  after(() => Promise.all([res.status === "CONFIRMED" ? notifyBooking(res.bookingId, "CONFIRMATION", base) : null, notifySalon(res.bookingId, "NEW", base)]));
+  after(() =>
+    Promise.all([
+      res.status === "CONFIRMED" ? notifyBooking(res.bookingId, "CONFIRMATION", base) : null,
+      notifySalon(res.bookingId, "NEW", base),
+      recordActivity(c.business.id, "BOOKING_NEW", { bookingId: res.bookingId }),
+    ]),
+  );
   const b = await db.query.bookings.findFirst({ where: eq(s.bookings.id, res.bookingId) });
   return { ok: true as const, number: res.number, manageToken: b!.manageToken, finalCents: b!.finalPriceCents, depositCents: b!.depositCents };
 }
@@ -146,5 +153,7 @@ export async function joinWaitlist(input: z.input<typeof waitSchema>) {
   let client = await db.query.clients.findFirst({ where: and(eq(s.clients.businessId, c.business.id), eq(s.clients.email, email)) });
   if (!client) [client] = await db.insert(s.clients).values({ businessId: c.business.id, name: q.name, email }).returning();
   await db.insert(s.waitlistEntries).values({ businessId: c.business.id, clientId: client.id, serviceId: c.service.id, staffId: q.staffId, date: q.date });
+  const [y, m, d] = q.date.split("-");
+  after(() => recordActivity(c.business.id, "WAITLIST", { body: `${q.name} · ${c.service.name} · ${d}.${m}.${y}` }));
   return { ok: true as const };
 }
