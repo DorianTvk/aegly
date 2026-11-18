@@ -1,5 +1,7 @@
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import { Sidebar } from "@/components/admin/Sidebar";
+import { SIDEBAR_COOKIE } from "@/components/admin/sidebar-cookie";
 import { Topbar } from "@/components/admin/Topbar";
 import { getCurrentBusiness, getCurrentUser, ROLE_LABEL } from "@/lib/tenant";
 import { isSuperadmin } from "@/lib/plans";
@@ -9,7 +11,8 @@ import { VerifyEmailBanner } from "@/components/admin/VerifyEmailBanner";
 async function SidebarWithData() {
   const business = await getCurrentBusiness();
   const user = await getCurrentUser();
-  return <Sidebar businessName={business.name} userName={user.name} userRole={ROLE_LABEL[user.role]} role={user.role} superadmin={isSuperadmin(user.email)} />;
+  const collapsed = (await cookies()).get(SIDEBAR_COOKIE)?.value === "collapsed";
+  return <Sidebar initialCollapsed={collapsed} businessName={business.name} userName={user.name} userRole={ROLE_LABEL[user.role]} role={user.role} superadmin={isSuperadmin(user.email)} />;
 }
 
 function SidebarSkeleton() {
