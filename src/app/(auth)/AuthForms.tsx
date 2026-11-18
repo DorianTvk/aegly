@@ -3,6 +3,7 @@
 import { useFormAction } from "@/components/ui/use-form-action";
 import Link from "next/link";
 import { useState } from "react";
+import { ArrowRight, Check, Eye, EyeOff } from "lucide-react";
 import { clsx } from "clsx";
 import { PLAN_IDS, PLANS, staffLimitText, type BillingPeriod, type PlanId } from "@/lib/plans";
 import { formatEuro } from "@/lib/time";
@@ -48,75 +49,144 @@ export function RegisterForm({ defaultPlan = "SALONG", defaultPeriod = "MONTH", 
   const [state, action, pending] = useFormAction(register);
   const [plan, setPlan] = useState<PlanId>(defaultPlan);
   const [period, setPeriod] = useState<BillingPeriod>(defaultPeriod);
+  const [showPw, setShowPw] = useState(false);
   const e = state?.errors ?? {};
+  const yearly = period === "YEAR";
+  const chosen = PLANS[plan];
+
   return (
-    <form onSubmit={action} className="space-y-4" noValidate>
+    <form onSubmit={action} className="space-y-7" noValidate>
       <FormMessage state={state} />
-      <fieldset>
-        <legend className="mb-1.5 text-sm font-medium">Pakett</legend>
-        <input type="hidden" name="plan" value={plan} />
-        <input type="hidden" name="period" value={period} />
-        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Pakett">
-          {PLAN_IDS.map((id) => (
-            <button
-              key={id}
-              type="button"
-              role="radio"
-              aria-checked={plan === id}
-              onClick={() => setPlan(id)}
-              className={clsx("rounded-[10px] border px-3 py-2.5 text-left", plan === id ? "border-ink ring-1 ring-ink" : "border-line hover:bg-line-soft")}
-            >
-              <span className="block text-sm font-semibold">{PLANS[id].name}</span>
-              <span className="block text-xs text-muted">{formatEuro(period === "YEAR" ? PLANS[id].yearlyCents : PLANS[id].monthlyCents)} / {period === "YEAR" ? "a" : "kuu"}</span>
-              <span className="block text-[11px] text-muted">{staffLimitText(id)}</span>
-            </button>
-          ))}
+
+      <fieldset className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <legend className="flex items-center gap-2 text-[15px] font-semibold">
+            <span className="grid size-6 place-items-center rounded-full bg-ink text-xs text-white">1</span>
+            Vali pakett
+          </legend>
+          <div role="radiogroup" aria-label="Arveldusperiood" className="inline-flex rounded-full bg-line-soft p-0.5 text-[13px]">
+            {(["MONTH", "YEAR"] as const).map((p) => (
+              <label key={p} className={clsx("relative flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-lime", period === p ? "bg-white font-semibold shadow-sm" : "text-muted")}>
+                <input type="radio" name="period" value={p} checked={period === p} onChange={() => setPeriod(p)} className="sr-only" />
+                {p === "MONTH" ? "Kuu kaupa" : "Aasta kaupa"}
+                {p === "YEAR" && <span className="rounded-full bg-lime px-1.5 py-px text-[10px] font-bold text-ink">2 kuud tasuta</span>}
+              </label>
+            ))}
+          </div>
         </div>
-        <label className="mt-2 flex items-center gap-2 text-[13px] text-muted">
-          <input type="checkbox" checked={period === "YEAR"} onChange={(ev) => setPeriod(ev.target.checked ? "YEAR" : "MONTH")} className="size-4 accent-[#a3e635]" />
-          Maksan aasta korraga (2 kuud tasuta). Hindadele lisandub km.
-        </label>
+
+        <div role="radiogroup" aria-label="Pakett" className="space-y-2">
+          {PLAN_IDS.map((id) => {
+            const p = PLANS[id];
+            const active = plan === id;
+            const price = yearly ? p.yearlyCents : p.monthlyCents;
+            return (
+              <label
+                key={id}
+                className={clsx(
+                  "relative flex cursor-pointer items-center gap-3.5 rounded-[14px] border px-4 py-3.5 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-lime",
+                  active ? "border-ink bg-[#f7fee7]" : "border-line hover:border-[#c4c9d2]",
+                )}
+              >
+                <input type="radio" name="plan" value={id} checked={active} onChange={() => setPlan(id)} className="sr-only" />
+                <span className={clsx("grid size-5 shrink-0 place-items-center rounded-full border-2", active ? "border-ink bg-ink" : "border-[#c4c9d2]")} aria-hidden>
+                  {active && <span className="size-2 rounded-full bg-lime" />}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2 text-[15px] font-semibold">
+                    {p.name}
+                    {id === "SALONG" && <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-semibold text-white">Populaarseim</span>}
+                  </span>
+                  <span className="block text-[13px] text-muted">{staffLimitText(id)}</span>
+                </span>
+                <span className="text-right">
+                  <span className="block text-[17px] font-bold tracking-[-0.2px]">{formatEuro(price)}</span>
+                  <span className="block text-[12px] text-muted">{yearly ? `aastas · ${formatEuro(Math.round(p.yearlyCents / 12), { decimals: true })} kuus` : "kuus"}</span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+
+        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-muted">
+          {["Kõik funktsioonid igas paketis", "0 % vahendustasu", "Paketti saab hiljem vahetada"].map((t) => (
+            <li key={t} className="flex items-center gap-1.5">
+              <Check size={13} className="text-[#4d7c0f]" strokeWidth={2.75} aria-hidden />
+              {t}
+            </li>
+          ))}
+        </ul>
       </fieldset>
-      <Field label="Ettevõtte nimi" htmlFor="businessName" error={e.businessName}>
-        <Input id="businessName" name="businessName" placeholder="nt Studio Lumi" autoComplete="organization" aria-invalid={!!e.businessName} />
-      </Field>
-      <Field label="Sinu nimi" htmlFor="ownerName" error={e.ownerName}>
-        <Input id="ownerName" name="ownerName" autoComplete="name" aria-invalid={!!e.ownerName} />
-      </Field>
-      <Field label="E-post" htmlFor="email" error={e.email}>
-        <Input id="email" name="email" type="email" autoComplete="email" aria-invalid={!!e.email} />
-      </Field>
-      <Field label="Parool" htmlFor="password" hint="Vähemalt 8 märki" error={e.password}>
-        <Input id="password" name="password" type="password" autoComplete="new-password" aria-invalid={!!e.password} />
-      </Field>
-      <label className="flex items-start gap-2.5 text-sm text-muted">
-        <input type="checkbox" name="terms" className="mt-0.5 size-4 accent-[#a3e635]" />
-        <span>
-          Nõustun Aegly{" "}
-          <Link href="/tingimused" target="_blank" className="font-medium text-ink underline underline-offset-2">
-            kasutustingimuste
+
+      <fieldset className="space-y-4">
+        <legend className="mb-3 flex items-center gap-2 text-[15px] font-semibold">
+          <span className="grid size-6 place-items-center rounded-full bg-ink text-xs text-white">2</span>
+          Sinu andmed
+        </legend>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Salongi nimi" htmlFor="businessName" error={e.businessName}>
+            <Input id="businessName" name="businessName" placeholder="nt Studio Lumi" autoComplete="organization" aria-invalid={!!e.businessName} />
+          </Field>
+          <Field label="Sinu nimi" htmlFor="ownerName" error={e.ownerName}>
+            <Input id="ownerName" name="ownerName" placeholder="Ees- ja perekonnanimi" autoComplete="name" aria-invalid={!!e.ownerName} />
+          </Field>
+        </div>
+        <Field label="E-post" htmlFor="email" error={e.email} hint={e.email ? undefined : "Saadame sinna kinnituslingi"}>
+          <Input id="email" name="email" type="email" placeholder="nimi@salong.ee" autoComplete="email" aria-invalid={!!e.email} />
+        </Field>
+        <Field label="Parool" htmlFor="password" hint={e.password ? undefined : "Vähemalt 8 märki"} error={e.password}>
+          <div className="relative">
+            <Input id="password" name="password" type={showPw ? "text" : "password"} autoComplete="new-password" aria-invalid={!!e.password} className="pr-11" />
+            <button
+              type="button"
+              onClick={() => setShowPw((v) => !v)}
+              aria-label={showPw ? "Peida parool" : "Näita parooli"}
+              aria-pressed={showPw}
+              className="absolute top-1/2 right-2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-muted hover:bg-line-soft hover:text-ink"
+            >
+              {showPw ? <EyeOff size={17} /> : <Eye size={17} />}
+            </button>
+          </div>
+        </Field>
+      </fieldset>
+
+      <div className="space-y-4">
+        <label className="flex cursor-pointer items-start gap-2.5 text-[13px] leading-relaxed text-muted">
+          <input type="checkbox" name="terms" className="mt-0.5 size-4 shrink-0 accent-[#1f2937]" aria-invalid={!!e.terms} />
+          <span>
+            Nõustun Aegly{" "}
+            <Link href="/tingimused" target="_blank" className="font-medium text-ink underline underline-offset-2">
+              kasutustingimuste
+            </Link>
+            ,{" "}
+            <Link href="/andmetootlus" target="_blank" className="font-medium text-ink underline underline-offset-2">
+              andmetöötluslepingu
+            </Link>{" "}
+            ja{" "}
+            <Link href="/privaatsus" target="_blank" className="font-medium text-ink underline underline-offset-2">
+              privaatsuspoliitikaga
+            </Link>
+            {e.terms && <span className="block text-xs text-bad">{e.terms[0]}</span>}
+          </span>
+        </label>
+        <BotProtection siteKey={siteKey} resetKey={state} />
+        <Button type="submit" variant="primary" className="h-12 w-full text-[15px]" disabled={pending}>
+          {pending ? "Loon kontot…" : (
+            <>
+              Loo konto <ArrowRight size={17} aria-hidden />
+            </>
+          )}
+        </Button>
+        <p className="text-center text-[13px] text-muted">
+          {chosen.name} · {yearly ? `${formatEuro(chosen.yearlyCents)} aastas` : `${formatEuro(chosen.monthlyCents)} kuus`} + km
+        </p>
+        <p className="border-t border-line-soft pt-4 text-center text-sm text-muted">
+          Konto juba olemas?{" "}
+          <Link href="/logi-sisse" className="font-semibold text-ink underline-offset-4 hover:underline">
+            Logi sisse
           </Link>
-          ,{" "}
-          <Link href="/andmetootlus" target="_blank" className="font-medium text-ink underline underline-offset-2">
-            andmetöötluslepingu
-          </Link>{" "}
-          ja{" "}
-          <Link href="/privaatsus" target="_blank" className="font-medium text-ink underline underline-offset-2">
-            privaatsuspoliitikaga
-          </Link>
-          {e.terms && <span className="block text-xs text-bad">{e.terms[0]}</span>}
-        </span>
-      </label>
-      <BotProtection siteKey={siteKey} resetKey={state} />
-      <Button type="submit" variant="primary" className="w-full" disabled={pending}>
-        {pending ? "Loon kontot…" : "Loo konto"}
-      </Button>
-      <p className="text-center text-sm text-muted">
-        Konto juba olemas?{" "}
-        <Link href="/logi-sisse" className="font-semibold text-ink underline-offset-4 hover:underline">
-          Logi sisse
-        </Link>
-      </p>
+        </p>
+      </div>
     </form>
   );
 }

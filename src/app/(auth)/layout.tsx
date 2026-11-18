@@ -10,7 +10,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
           </span>
           <span className="text-[17px] font-bold">Aegly</span>
         </div>
-        <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col justify-center py-10">{children}</div>
+        <div className="mx-auto flex w-full max-w-[460px] flex-1 flex-col justify-center py-10">{children}</div>
       </div>
       <aside className="hidden flex-col justify-between bg-ink p-12 text-white lg:flex">
         <div />

@@ -23,7 +23,7 @@ const loginSchema = z.object({
 });
 
 const registerSchema = z.object({
-  businessName: z.string().trim().min(2, "Ettevõtte nimi on liiga lühike").max(80),
+  businessName: z.string().trim().min(2, "Salongi nimi on liiga lühike").max(80),
   ownerName: z.string().trim().min(2, "Sisesta oma nimi").max(80),
   email: z.email("Sisesta kehtiv e-posti aadress").transform((v) => v.toLowerCase().trim()),
   password: z.string().min(8, "Parool peab olema vähemalt 8 märki"),

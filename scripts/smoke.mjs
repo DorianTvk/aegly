@@ -15,9 +15,9 @@ const until = (re) => page.waitForFunction((src) => new RegExp(src).test(locatio
 
 // 1. Registreerumine uue salongiga
 await page.goto(B + "/registreeru?pakett=solo", { waitUntil: "networkidle0" });
-check("müügilehelt valitud pakett: Solo", (await page.$eval("input[name=plan]", (e) => e.value)) === "SOLO");
+check("müügilehelt valitud pakett: Solo", (await page.$eval("input[name=plan]:checked", (e) => e.value)) === "SOLO");
 await page.click("main button[type=submit], form button[type=submit]:not([aria-label])"); await wait(800);
-check("registreerumise valideerimine", (await text()).includes("Ettevõtte nimi on liiga lühike"));
+check("registreerumise valideerimine", (await text()).includes("Salongi nimi on liiga lühike"));
 const email = `test${Date.now()}@example.com`;
 await page.type("#businessName", "Testsalong Õie");
 await page.type("#ownerName", "Test Kasutaja");
