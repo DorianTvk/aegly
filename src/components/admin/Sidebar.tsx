@@ -92,8 +92,13 @@ export function Sidebar({
     };
   }, []);
   const collapsed = desktopCollapsed && !mobileOpen;
-  const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(href + "/");
+  const matches = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  // aktiivne on kõige täpsem sobiv punkt (nt /platvorm/kliendid, mitte /platvorm)
+  const isActive = (href: string) => {
+    if (!matches(href)) return false;
+    const all = [...(mode === "platform" ? PLATFORM_NAV : NAV).flatMap((g) => g.items.map((i) => i.href)), SETTINGS_ITEM.href];
+    return !all.some((h) => h !== href && h.length > href.length && h.startsWith(href) && matches(h));
+  };
 
   const toggle = () => {
     const next = !desktopCollapsed;
