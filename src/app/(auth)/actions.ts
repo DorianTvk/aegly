@@ -1,5 +1,7 @@
 "use server";
 
+import { billingEnabled } from "@/server/billing";
+
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { eq } from "drizzle-orm";
@@ -71,12 +73,14 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
     passwordHash: await hashPassword(parsed.data.password),
     plan: parsePlan(formData.get("plan")),
     billingPeriod: parsePeriod(formData.get("period")),
+    // tasuta perioodi pole: pakett aktiveerub pärast esimest makset
+    planStatus: billingEnabled() ? "PENDING" : "ACTIVE",
   });
   await recordAttempt("REGISTER", ip, parsed.data.email, true);
   const base = await appUrl();
   after(() => sendVerifyEmail(user, base));
   await createSession(user.id);
-  redirect("/toolaud");
+  redirect(billingEnabled() ? "/seaded/pakett" : "/toolaud");
 }
 
 export async function logout() {

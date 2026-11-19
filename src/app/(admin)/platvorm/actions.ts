@@ -7,7 +7,7 @@ import { requireSession } from "@/lib/session";
 import { isSuperadmin, parsePeriod, parsePlan, type PlanStatus } from "@/lib/plans";
 import type { FormState } from "@/components/ui/form";
 
-const STATUSES: PlanStatus[] = ["ACTIVE", "PAST_DUE", "SUSPENDED"];
+const STATUSES: PlanStatus[] = ["ACTIVE", "PAST_DUE", "SUSPENDED", "PENDING"];
 
 /** Superadmin määrab salongi paketi käsitsi (nt testkliendid). Töötajate piiri siin ei kontrollita. */
 export async function setBusinessPlan(input: { businessId: string; plan: string; period: string; status: string }): Promise<FormState> {

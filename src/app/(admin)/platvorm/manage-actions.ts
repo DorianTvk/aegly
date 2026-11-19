@@ -1,5 +1,7 @@
 "use server";
 
+import { cancelSubscriptionNow } from "@/server/billing";
+
 import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -88,6 +90,7 @@ export async function deleteBusiness(businessId: string, confirmSlug: string): P
   if (!b) return { message: "Salongi ei leitud" };
   if (b.id === own.id) return { message: "Oma salongi siit kustutada ei saa." };
   if (confirmSlug.trim() !== b.slug) return { message: `Kinnitamiseks sisesta täpselt: ${b.slug}` };
+  await cancelSubscriptionNow(b.stripeSubscriptionId);
   await db.delete(s.businesses).where(eq(s.businesses.id, businessId));
   revalidatePath("/platvorm");
   redirect("/platvorm");
@@ -103,6 +106,8 @@ export async function deleteBusinesses(ids: string[], confirmWord: string): Prom
   const protectedIds = new Set(owners.filter((u) => isSuperadmin(u.email)).map((u) => u.businessId));
   const toDelete = unique.filter((id) => !protectedIds.has(id));
   if (!toDelete.length) return { ok: false, message: "Valitud salonge ei saa kustutada (platvormi halduri salong)." };
+  const subs = await db.select({ sub: s.businesses.stripeSubscriptionId }).from(s.businesses).where(inArray(s.businesses.id, toDelete));
+  await Promise.all(subs.map((x) => cancelSubscriptionNow(x.sub)));
   const deleted = await db.delete(s.businesses).where(inArray(s.businesses.id, toDelete)).returning({ id: s.businesses.id });
   revalidatePath("/platvorm");
   const skipped = unique.length - deleted.length;

@@ -7,6 +7,7 @@ import { getCurrentBusiness, getCurrentUser, ROLE_LABEL } from "@/lib/tenant";
 import { isSuperadmin } from "@/lib/plans";
 import { ImpersonationBanner } from "./platvorm/ImpersonationBanner";
 import { VerifyEmailBanner } from "@/components/admin/VerifyEmailBanner";
+import { PlanBanner } from "@/components/admin/PlanBanner";
 
 async function SidebarWithData() {
   const business = await getCurrentBusiness();
@@ -28,6 +29,9 @@ export default function AdminLayout({ children }: LayoutProps<"/">) {
       <div className="flex min-w-0 flex-1 flex-col">
         <Suspense fallback={null}>
           <ImpersonationBanner />
+        </Suspense>
+        <Suspense fallback={null}>
+          <PlanBanner />
         </Suspense>
         <Suspense fallback={null}>
           <VerifyEmailBanner />

@@ -9,7 +9,7 @@ import { smsConfigured } from "./messaging";
 /** Avalik salong slug'i järgi; peatatud tellimusega salongi vidin ei tööta */
 export async function findPublicBusiness(slug: string) {
   const b = await db.query.businesses.findFirst({ where: eq(s.businesses.slug, slug) });
-  if (!b || b.planStatus === "SUSPENDED") return null;
+  if (!b || b.planStatus === "SUSPENDED" || b.planStatus === "PENDING") return null;
   return b;
 }
 

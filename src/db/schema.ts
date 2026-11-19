@@ -45,7 +45,7 @@ export const bookingStatusEnum = pgEnum("booking_status", [
   "NO_SHOW",
 ]);
 export const planEnum = pgEnum("plan", ["SOLO", "SALONG", "SUUR"]);
-export const planStatusEnum = pgEnum("plan_status", ["ACTIVE", "PAST_DUE", "SUSPENDED"]);
+export const planStatusEnum = pgEnum("plan_status", ["ACTIVE", "PAST_DUE", "SUSPENDED", "PENDING"]);
 export const priceTypeEnum = pgEnum("price_type", ["FIXED", "FROM", "FREE", "HIDDEN"]);
 export const bookingSourceEnum = pgEnum("booking_source", ["WIDGET", "ADMIN"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["PENDING", "SUCCEEDED", "FAILED", "REFUNDED"]);
@@ -122,6 +122,8 @@ export const businesses = pgTable("businesses", {
   planStatus: planStatusEnum("plan_status").notNull().default("ACTIVE"),
   planRenewsAt: ts("plan_renews_at"),
   planChangedAt: ts("plan_changed_at"),
+  /** tellimus lõpeb sel kuupäeval (tühistatud perioodi lõpus) */
+  planCancelAt: ts("plan_cancel_at"),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   // Stripe Connect

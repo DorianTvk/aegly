@@ -2,7 +2,7 @@
 export const PLAN_IDS = ["SOLO", "SALONG", "SUUR"] as const;
 export type PlanId = (typeof PLAN_IDS)[number];
 export type BillingPeriod = "MONTH" | "YEAR";
-export type PlanStatus = "ACTIVE" | "PAST_DUE" | "SUSPENDED";
+export type PlanStatus = "ACTIVE" | "PAST_DUE" | "SUSPENDED" | "PENDING";
 
 export type Plan = {
   id: PlanId;
@@ -25,6 +25,7 @@ export const PLAN_STATUS_LABEL: Record<PlanStatus, string> = {
   ACTIVE: "Aktiivne",
   PAST_DUE: "Makse ootel",
   SUSPENDED: "Peatatud",
+  PENDING: "Ootab makset",
 };
 
 /** Müügilehe ?pakett= väärtus → paketi id (tundmatu → Salong) */

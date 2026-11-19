@@ -8,7 +8,7 @@ import { FormMessage, type FormState } from "@/components/ui/form";
 import { Segmented } from "@/components/ui/pickers";
 import { canSwitchTo, PLAN_IDS, PLAN_STATUS_LABEL, PLANS, staffLimitText, type BillingPeriod, type PlanId, type PlanStatus } from "@/lib/plans";
 import { formatEuro } from "@/lib/time";
-import { changePlan } from "./actions";
+import { changePlan, openBillingPortal } from "./actions";
 
 export function PlanPicker({
   current,
@@ -16,20 +16,51 @@ export function PlanPicker({
   status,
   activeStaff,
   isOwner,
+  billing,
+  hasSubscription,
+  hasCustomer,
+  renewsAt,
+  cancelAt,
+  notice,
 }: {
   current: PlanId;
   period: BillingPeriod;
   status: PlanStatus;
   activeStaff: number;
   isOwner: boolean;
+  billing: boolean;
+  hasSubscription: boolean;
+  hasCustomer: boolean;
+  renewsAt: string | null;
+  cancelAt: string | null;
+  notice: "ok" | "cancelled" | null;
 }) {
   const [period, setPeriod] = useState<BillingPeriod>(currentPeriod);
   const [state, setState] = useState<FormState>(null);
   const [pending, start] = useTransition();
   const plan = PLANS[current];
 
+  const needsStart = billing && !hasSubscription;
   return (
     <div className="space-y-5">
+      {notice === "ok" && <p role="status" className="rounded-[12px] bg-[#ecfdf3] px-4 py-3 text-sm text-[#067647]">Aitäh! Tellimus on aktiivne. Arve saadeti e-postile.</p>}
+      {notice === "cancelled" && <p role="status" className="rounded-[12px] bg-[#fffaeb] px-4 py-3 text-sm text-[#93370d]">Makse jäi pooleli – tellimust ei alustatud.</p>}
+      {needsStart && (
+        <div className="rounded-[14px] border border-[#fedf89] bg-[#fffaeb] p-4 text-sm text-[#93370d]">
+          <p className="font-semibold">{status === "SUSPENDED" ? "Tellimus on lõppenud" : "Aktiveeri pakett"}</p>
+          <p className="mt-1">
+            {status === "SUSPENDED"
+              ? "Broneerimisvidin ei võta praegu broneeringuid vastu. Vali allpool pakett, et jätkata."
+              : "Vali allpool pakett ja tasu esimene periood. Seni ei võta broneerimisvidin broneeringuid vastu."}
+          </p>
+        </div>
+      )}
+      {status === "PAST_DUE" && (
+        <div className="rounded-[14px] border border-[#fecdca] bg-[#fef3f2] p-4 text-sm text-[#b42318]">
+          <p className="font-semibold">Viimane makse ebaõnnestus</p>
+          <p className="mt-1">Uuenda makseviisi, et vidin töötaks katkestusteta.</p>
+        </div>
+      )}
       <Card>
         <CardHeader title="Praegune pakett" action={<Badge tone={status === "ACTIVE" ? "ok" : status === "PAST_DUE" ? "warn" : "bad"}>{PLAN_STATUS_LABEL[status]}</Badge>} />
         <dl className="grid grid-cols-1 gap-4 p-5 text-sm sm:grid-cols-3">
@@ -52,10 +83,22 @@ export function PlanPicker({
             </dd>
           </div>
         </dl>
+        {billing && (hasCustomer || renewsAt || cancelAt) && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft px-5 py-4 text-sm">
+            <p className="text-muted">
+              {cancelAt ? `Tellimus lõpeb ${cancelAt}. Kuni selle kuupäevani töötab kõik edasi.` : renewsAt && hasSubscription ? `Järgmine arve ${renewsAt}.` : "Arved ja makseviis on Stripe'is."}
+            </p>
+            {isOwner && hasCustomer && (
+              <Button size="sm" variant="secondary" disabled={pending} onClick={() => start(async () => setState(await openBillingPortal()))}>
+                {cancelAt ? "Jätka tellimust" : "Arved, makseviis ja lõpetamine"}
+              </Button>
+            )}
+          </div>
+        )}
       </Card>
 
       <Card>
-        <CardHeader title="Vaheta paketti" subtitle="Kõik funktsioonid on igas paketis. Erineb ainult töötajate arv." />
+        <CardHeader title={needsStart ? "Vali pakett" : "Vaheta paketti"} subtitle={needsStart ? "Kõik funktsioonid on igas paketis. Tasud kohe kaardiga, tellimust saad igal ajal lõpetada." : "Kõik funktsioonid on igas paketis. Hinnavahe arvestatakse proportsionaalselt."} />
         <div className="space-y-4 p-5">
           <div className="max-w-[420px]">
             <Segmented
@@ -71,7 +114,7 @@ export function PlanPicker({
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {PLAN_IDS.map((id) => {
               const p = PLANS[id];
-              const isCurrent = id === current && period === currentPeriod;
+              const isCurrent = !needsStart && id === current && period === currentPeriod;
               const fits = canSwitchTo(id, activeStaff);
               return (
                 <div key={id} className={clsx("flex flex-col rounded-[12px] border p-5", isCurrent ? "border-ink ring-1 ring-ink" : "border-line")}>
@@ -96,7 +139,7 @@ export function PlanPicker({
                     disabled={!isOwner || isCurrent || !fits || pending}
                     onClick={() => start(async () => setState(await changePlan({ plan: id, period })))}
                   >
-                    {isCurrent ? "Praegune pakett" : "Vali see pakett"}
+                    {isCurrent ? "Praegune pakett" : needsStart ? (pending ? "Avan makselehe…" : "Alusta kohe") : "Vali see pakett"}
                   </Button>
                 </div>
               );
