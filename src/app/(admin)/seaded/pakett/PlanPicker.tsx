@@ -6,7 +6,7 @@ import { clsx } from "clsx";
 import { Badge, Button, Card, CardHeader } from "@/components/ui/primitives";
 import { FormMessage, type FormState } from "@/components/ui/form";
 import { Segmented } from "@/components/ui/pickers";
-import { canSwitchTo, PLAN_IDS, PLAN_STATUS_LABEL, PLANS, staffLimitText, type BillingPeriod, type PlanId, type PlanStatus } from "@/lib/plans";
+import { ENTERPRISE_NOTE, canSwitchTo, PLAN_IDS, PLAN_STATUS_LABEL, PLANS, staffLimitText, type BillingPeriod, type PlanId, type PlanStatus } from "@/lib/plans";
 import { formatEuro } from "@/lib/time";
 import { changePlan, openBillingPortal } from "./actions";
 
@@ -146,7 +146,7 @@ export function PlanPicker({
             })}
           </div>
           {!isOwner && <p className="text-sm text-muted">Paketti saab muuta ainult konto omanik.</p>}
-          <p className="text-xs text-muted">Hindadele lisandub käibemaks. SMS 0,08 € tk, e-kirjad tasuta. Kaardimakse tasu vastavalt makseteenuse pakkujale.</p>
+          <p className="text-xs text-muted">Hindadele lisandub käibemaks. SMS 0,08 € tk, e-kirjad tasuta. Kaardimakse tasu vastavalt makseteenuse pakkujale. {ENTERPRISE_NOTE}</p>
         </div>
       </Card>
     </div>

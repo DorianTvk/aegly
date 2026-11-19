@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Check } from "lucide-react";
 import { clsx } from "clsx";
-import { PLAN_IDS, PLANS, staffLimitText, type BillingPeriod, type PlanId } from "@/lib/plans";
+import { ENTERPRISE_NOTE, PLAN_IDS, PLANS, staffLimitText, type BillingPeriod, type PlanId } from "@/lib/plans";
 import { formatEuro } from "@/lib/time";
 import { startSubscription } from "./actions";
 
@@ -70,6 +70,7 @@ export function ActivateForm({ plan: initialPlan, period: initialPeriod, isOwner
         <p className="rounded-[10px] bg-line-soft p-3 text-sm text-muted">Paketi saab aktiveerida salongi omanik.</p>
       )}
       <p className="text-center text-xs text-muted">Hind sisaldab 24% käibemaksu. Tellimust saad igal ajal lõpetada.</p>
+      <p className="text-center text-xs text-muted">{ENTERPRISE_NOTE}</p>
     </div>
   );
 }

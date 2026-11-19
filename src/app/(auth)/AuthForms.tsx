@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowRight, Check, Eye, EyeOff } from "lucide-react";
 import { clsx } from "clsx";
-import { PLAN_IDS, PLANS, staffLimitText, type BillingPeriod, type PlanId } from "@/lib/plans";
+import { ENTERPRISE_NOTE, PLAN_IDS, PLANS, staffLimitText, type BillingPeriod, type PlanId } from "@/lib/plans";
 import { formatEuro } from "@/lib/time";
 
 import { Field, FormMessage, Input } from "@/components/ui/form";
@@ -116,6 +116,7 @@ export function RegisterForm({ defaultPlan = "SALONG", defaultPeriod = "MONTH", 
             </li>
           ))}
         </ul>
+        <p className="text-[12px] text-muted">{ENTERPRISE_NOTE}</p>
       </fieldset>
 
       <fieldset className="space-y-4">

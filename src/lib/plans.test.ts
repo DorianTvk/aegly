@@ -5,14 +5,15 @@ describe("paketid", () => {
   it("töötajate piir", () => {
     expect(canAddStaff("SOLO", 0)).toBe(true);
     expect(canAddStaff("SOLO", 1)).toBe(false);
-    expect(canAddStaff("SALONG", 4)).toBe(true);
-    expect(canAddStaff("SALONG", 5)).toBe(false);
-    expect(canAddStaff("SUUR", 500)).toBe(true);
+    expect(canAddStaff("SALONG", 5)).toBe(true);
+    expect(canAddStaff("SALONG", 6)).toBe(false);
+    expect(canAddStaff("SUUR", 11)).toBe(true);
+    expect(canAddStaff("SUUR", 12)).toBe(false);
   });
   it("paketi langetamine ainult siis, kui töötajad mahuvad", () => {
     expect(canSwitchTo("SOLO", 2)).toBe(false);
-    expect(canSwitchTo("SALONG", 5)).toBe(true);
-    expect(canSwitchTo("SALONG", 6)).toBe(false);
+    expect(canSwitchTo("SALONG", 6)).toBe(true);
+    expect(canSwitchTo("SALONG", 7)).toBe(false);
     expect(smallestPlanFor(0)).toBe("SOLO");
     expect(smallestPlanFor(3)).toBe("SALONG");
     expect(smallestPlanFor(9)).toBe("SUUR");

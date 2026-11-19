@@ -17,8 +17,8 @@ export type Plan = {
 
 export const PLANS: Record<PlanId, Plan> = {
   SOLO: { id: "SOLO", name: "Solo", staffLimit: 1, monthlyCents: 900, yearlyCents: 9000, tagline: "Üksi töötavale spetsialistile" },
-  SALONG: { id: "SALONG", name: "Salong", staffLimit: 5, monthlyCents: 1900, yearlyCents: 19000, tagline: "Väikesele ja keskmisele salongile" },
-  SUUR: { id: "SUUR", name: "Suur salong", staffLimit: null, monthlyCents: 2900, yearlyCents: 29000, tagline: "Suuremale meeskonnale" },
+  SALONG: { id: "SALONG", name: "Salong", staffLimit: 6, monthlyCents: 1900, yearlyCents: 19000, tagline: "Väikesele ja keskmisele salongile" },
+  SUUR: { id: "SUUR", name: "Suur salong", staffLimit: 12, monthlyCents: 2900, yearlyCents: 29000, tagline: "Suuremale meeskonnale" },
 };
 
 export const PLAN_STATUS_LABEL: Record<PlanStatus, string> = {
@@ -59,6 +59,10 @@ export function smallestPlanFor(activeStaff: number): PlanId {
   return PLAN_IDS.find((p) => canSwitchTo(p, activeStaff)) ?? "SUUR";
 }
 
+/** Suurematele (üle Suure paketi piiri) kokkuleppehind */
+export const ENTERPRISE_EMAIL = process.env.NEXT_PUBLIC_SALES_EMAIL || "info@aegly.ee";
+export const ENTERPRISE_NOTE = `Rohkem kui ${PLANS.SUUR.staffLimit} töötajat või mitu asukohta? Kirjuta ${ENTERPRISE_EMAIL} – teeme pakkumise.`;
+
 export function staffLimitText(plan: PlanId): string {
   const l = PLANS[plan].staffLimit;
   return l === null ? "Piiramatult töötajaid" : l === 1 ? "1 töötaja" : `Kuni ${l} töötajat`;
@@ -68,7 +72,7 @@ export function staffLimitText(plan: PlanId): string {
 export function staffLimitMessage(plan: PlanId): string {
   const next = PLAN_IDS[PLAN_IDS.indexOf(plan) + 1];
   const limit = PLANS[plan].staffLimit;
-  if (!next) return "Töötajate piir on täis.";
+  if (!next) return `Paketis „${PLANS[plan].name}“ on kuni ${limit} töötajat. Suurema meeskonna jaoks kirjuta ${ENTERPRISE_EMAIL} – teeme sulle pakkumise.`;
   return `Sinu paketis „${PLANS[plan].name}“ on ${limit === 1 ? "1 töötaja" : `kuni ${limit} töötajat`}. Vaheta pakett „${PLANS[next].name}“ vastu (${PLANS[next].monthlyCents / 100} €/kuu), et lisada rohkem.`;
 }
 
