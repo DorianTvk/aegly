@@ -24,6 +24,7 @@ async function Editor({ params }: { params: Promise<{ id: string }> }) {
         name: sv.name,
         categoryId: sv.categoryId,
         description: sv.description,
+        imageUrl: sv.imageUrl,
         durationMinutes: sv.durationMinutes,
         bufferBeforeMinutes: sv.bufferBeforeMinutes,
         bufferMinutes: sv.bufferMinutes,

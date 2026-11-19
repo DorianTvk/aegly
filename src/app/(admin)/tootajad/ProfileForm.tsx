@@ -6,6 +6,7 @@ import { Check } from "lucide-react";
 import { Button, Card, CardHeader } from "@/components/ui/primitives";
 import { Field, FormMessage, Input, Textarea, Toggle } from "@/components/ui/form";
 import { saveProfile } from "./actions";
+import { ImageField } from "@/components/ui/ImageField";
 
 const COLORS = ["#f04438", "#7a5af8", "#0ba5ec", "#12b76a", "#f79009", "#ee46bc", "#6172f3", "#15b79e"];
 
@@ -15,6 +16,7 @@ export type ProfileValues = {
   email: string | null;
   phone: string | null;
   color: string;
+  avatarUrl: string | null;
   bio: string | null;
   bookableOnline: boolean;
   active: boolean;
@@ -30,6 +32,10 @@ export function ProfileForm({ staffId, values }: { staffId: string | null; value
         <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
           <FormMessage state={state} />
           <span className="hidden sm:block" />
+          <div className="sm:col-span-2">
+            <ImageField name="avatar" currentUrl={values.avatarUrl} width={256} height={256} round label="Profiilipilt" hint="Kuvatakse vidinas spetsialisti valikul · JPG, PNG või HEIC" />
+            {e.avatar && <p className="mt-1 text-xs text-bad">{e.avatar[0]}</p>}
+          </div>
           <Field label="Nimi" htmlFor="name" error={e.name}>
             <Input id="name" name="name" defaultValue={values.name} aria-invalid={!!e.name} />
           </Field>

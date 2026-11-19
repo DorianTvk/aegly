@@ -415,6 +415,11 @@ function Home({ data, cat, setCat, selected, onInfo, onChoose }: { data: Data; c
           return (
             <li key={sv.id}>
               <div className={clsx("flex items-start gap-3 rounded-[14px] border p-3.5", active ? "border-[var(--w-primary)] ring-1 ring-[var(--w-primary)]" : "border-black/10")}>
+                {sv.imageUrl && (
+                  <button type="button" onClick={() => onInfo(sv)} className="shrink-0" aria-hidden tabIndex={-1}>
+                    <img src={sv.imageUrl} alt="" loading="lazy" className="h-[60px] w-[80px] rounded-[10px] object-cover" />
+                  </button>
+                )}
                 <button type="button" onClick={() => onInfo(sv)} className="min-w-0 flex-1 text-left">
                   <span className="flex items-center gap-2 font-semibold">
                     {sv.name}
@@ -453,6 +458,7 @@ function ServiceSheet({ sv, onClose, onAdd }: { sv: WidgetService; onClose: () =
   return (
     <div className="absolute inset-0 z-10 flex items-end bg-black/40" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label={sv.name} className="w-full rounded-t-[20px] bg-[var(--w-bg)] p-5" onClick={(e) => e.stopPropagation()}>
+        {sv.imageUrl && <img src={sv.imageUrl} alt="" className="-mx-5 -mt-5 mb-4 aspect-[4/3] max-h-[220px] w-[calc(100%+2.5rem)] rounded-t-[20px] object-cover" />}
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-[19px] font-bold">{sv.name}</h2>
           <button type="button" onClick={onClose} aria-label="Sulge" className="grid size-8 place-items-center rounded-full hover:bg-black/5">

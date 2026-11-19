@@ -1,5 +1,7 @@
 "use server";
 
+import { applyImageField } from "@/server/images";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, eq, inArray } from "drizzle-orm";
@@ -73,8 +75,17 @@ export async function saveService(serviceId: string | null, _prev: FormState, fo
     if (own.length !== links.length) return { message: "Vigane töötaja." };
   }
 
+  const current = serviceId ? await db.query.services.findFirst({ where: and(eq(s.services.id, serviceId), eq(s.services.businessId, business.id)) }) : null;
+  let imageUrl: string | null | undefined;
+  try {
+    imageUrl = await applyImageField(business.id, formData.get("image"), current?.imageUrl ?? null);
+  } catch (err) {
+    return { message: "Kontrolli välju.", errors: { image: [(err as Error).message] } };
+  }
+
   const values = {
     name: d.name,
+    ...(imageUrl !== undefined ? { imageUrl } : {}),
     categoryId: d.categoryId,
     description: d.description,
     durationMinutes: d.durationMinutes,

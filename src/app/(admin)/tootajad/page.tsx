@@ -81,7 +81,7 @@ async function StaffList() {
               <tr key={m.id} className="border-t border-line-soft hover:bg-[#fcfcfd]">
                 <td className="py-3 pl-5">
                   <Link href={`/tootajad/${m.id}`} className="flex items-center gap-3">
-                    <Avatar name={m.name} color={m.color} size={34} />
+                    <Avatar name={m.name} color={m.color} size={34} src={m.avatarUrl} />
                     <span>
                       <span className="block font-medium hover:underline">{m.name}</span>
                       <span className="block text-xs text-muted">{m.email ?? "—"}</span>

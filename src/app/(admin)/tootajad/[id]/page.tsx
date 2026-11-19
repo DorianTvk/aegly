@@ -100,7 +100,7 @@ async function StaffDetail({ params, searchParams }: { params: Promise<{ id: str
   return (
     <div className="space-y-5">
       <Card className="flex flex-wrap items-center gap-4 p-5">
-        <Avatar name={m.name} color={m.color} size={56} />
+        <Avatar name={m.name} color={m.color} size={56} src={m.avatarUrl} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-[22px] font-bold tracking-[-0.3px]">{m.name}</h1>

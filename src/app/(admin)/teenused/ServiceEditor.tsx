@@ -1,5 +1,6 @@
 "use client";
 
+import { ImageField } from "@/components/ui/ImageField";
 import { useFormAction } from "@/components/ui/use-form-action";
 import Link from "next/link";
 import { useState } from "react";
@@ -18,6 +19,7 @@ export type EditorService = {
   name: string;
   categoryId: string | null;
   description: string | null;
+  imageUrl: string | null;
   durationMinutes: number;
   bufferBeforeMinutes: number;
   bufferMinutes: number;
@@ -109,14 +111,9 @@ export function ServiceEditor({ service, categories, staff, defaults, related }:
               <Field label="Kirjeldus (kuvatakse vidinas)" htmlFor="description" className="sm:col-span-2" error={e.description}>
                 <Textarea id="description" name="description" defaultValue={service.description ?? ""} rows={3} />
               </Field>
-              <div className="flex items-center gap-4 rounded-[10px] border border-dashed border-line p-3 sm:col-span-2">
-                <span className="grid size-14 place-items-center rounded-lg bg-line-soft text-subtle">
-                  <ImageIcon size={20} />
-                </span>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Teenuse pilt</p>
-                  <p className="text-xs text-muted">JPG või PNG, soovitatav 800×600 · üleslaadimine lisandub koos failihoidlaga</p>
-                </div>
+              <div className="sm:col-span-2">
+                <ImageField name="image" currentUrl={service.imageUrl} width={800} height={600} label="Teenuse pilt (valikuline)" hint="Kuvatakse vidinas teenuse juures · JPG, PNG või HEIC" />
+                {e.image && <p className="mt-1 text-xs text-bad">{e.image[0]}</p>}
               </div>
             </div>
           </Card>

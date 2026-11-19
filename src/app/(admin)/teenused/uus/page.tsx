@@ -13,7 +13,7 @@ async function Editor() {
     <ServiceEditor
       {...opts}
       service={{
-        id: null, name: "", categoryId: opts.categories[0]?.id ?? null, description: null,
+        id: null, name: "", categoryId: opts.categories[0]?.id ?? null, description: null, imageUrl: null,
         durationMinutes: 60, bufferBeforeMinutes: 0, bufferMinutes: 0,
         priceType: "FIXED", priceCents: 0, vatRate: null, depositPercent: 0,
         bookableOnline: true, showPrice: true, allowStaffChoice: true, maxParticipants: 1,

@@ -48,3 +48,99 @@ body {
 .legal table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .legal th, .legal td { border: 1px solid #e5e7eb; padding: 8px 10px; text-align: left; vertical-align: top; }
 .legal th { background: #f9fafb; font-weight: 600; }
+
+/* ---------- Rippmenüüd (select) ----------
+   Kõik brauserid: oma nool. Chrome 135+: täielikult kujundatud valikuaken (appearance: base-select). */
+@layer base {
+  select:not([multiple]) {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+    padding-right: 34px;
+    cursor: pointer;
+  }
+
+  @supports (appearance: base-select) {
+    select:not([multiple]),
+    select:not([multiple])::picker(select) {
+      appearance: base-select;
+    }
+    select:not([multiple]) {
+      display: flex;
+      align-items: center;
+      background-image: none;
+      padding-right: 10px;
+    }
+    select:not([multiple])::picker-icon {
+      content: "";
+      width: 16px;
+      height: 16px;
+      margin-left: auto;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 16px no-repeat;
+      transition: rotate 0.15s ease;
+    }
+    select:not([multiple]):open::picker-icon {
+      rotate: 180deg;
+    }
+    select:not([multiple])::picker(select) {
+      margin-block: 6px;
+      padding: 6px;
+      max-height: min(320px, 60dvh);
+      border: 1px solid var(--color-line);
+      border-radius: 12px;
+      background: #fff;
+      box-shadow:
+        0 12px 32px -8px rgb(16 24 40 / 0.16),
+        0 2px 6px rgb(16 24 40 / 0.06);
+      opacity: 0;
+      translate: 0 -4px;
+      transition:
+        opacity 0.12s ease,
+        translate 0.12s ease,
+        overlay 0.12s allow-discrete,
+        display 0.12s allow-discrete;
+    }
+    select:not([multiple]):open::picker(select) {
+      opacity: 1;
+      translate: 0 0;
+    }
+    @starting-style {
+      select:not([multiple]):open::picker(select) {
+        opacity: 0;
+        translate: 0 -4px;
+      }
+    }
+    select:not([multiple]) option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 36px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--color-ink);
+      cursor: pointer;
+    }
+    select:not([multiple]) option:hover,
+    select:not([multiple]) option:focus-visible {
+      background: var(--color-line-soft);
+      outline: none;
+    }
+    select:not([multiple]) option:checked {
+      font-weight: 600;
+      background: var(--color-lime-soft);
+    }
+    select:not([multiple]) option::checkmark {
+      order: 1;
+      margin-left: auto;
+      content: "✓";
+      color: #4d7c0f;
+    }
+    select:not([multiple]) option:disabled {
+      color: var(--color-subtle);
+      cursor: default;
+    }
+  }
+}

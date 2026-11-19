@@ -1,5 +1,7 @@
 "use server";
 
+import { applyImageField } from "@/server/images";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, eq, gte, inArray, isNull, lt } from "drizzle-orm";
@@ -33,10 +35,17 @@ export async function saveProfile(staffId: string | null, _prev: FormState, form
   const { business } = await requireManager();
   const parsed = profileSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { message: "Kontrolli välju.", errors: z.flattenError(parsed.error).fieldErrors };
-  const values = { ...parsed.data, bookableOnline: parsed.data.bookableOnline === "on", active: staffId ? parsed.data.active === "on" : true };
+  const base = { ...parsed.data, bookableOnline: parsed.data.bookableOnline === "on", active: staffId ? parsed.data.active === "on" : true };
+  const current = staffId ? await ownStaff(business.id, staffId) : null;
+  let avatarUrl: string | null | undefined;
+  try {
+    avatarUrl = await applyImageField(business.id, formData.get("avatar"), current?.avatarUrl ?? null);
+  } catch (err) {
+    return { message: "Kontrolli välju.", errors: { avatar: [(err as Error).message] } };
+  }
+  const values = { ...base, ...(avatarUrl !== undefined ? { avatarUrl } : {}) };
 
-  if (staffId) {
-    const current = await ownStaff(business.id, staffId);
+  if (staffId && current) {
     // uuesti aktiveerimine loeb paketi töötajate piiri sisse
     if (values.active && !current.active && !canAddStaff(business.plan, await activeStaffCount(business.id))) {
       return { message: staffLimitMessage(business.plan) };

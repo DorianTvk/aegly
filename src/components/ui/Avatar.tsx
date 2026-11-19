@@ -8,7 +8,8 @@ export function initials(name: string): string {
 }
 
 /** Initsiaalidega ring, taust = värv 12 % läbipaistvusega (Figma). */
-export function Avatar({ name, color, size = 24, dark = false }: { name: string; color: string; size?: number; dark?: boolean }) {
+export function Avatar({ name, color, size = 24, dark = false, src }: { name: string; color: string; size?: number; dark?: boolean; src?: string | null }) {
+  if (src) return <img src={src} alt="" aria-hidden className="inline-block shrink-0 rounded-full object-cover" style={{ width: size, height: size }} />;
   return (
     <span
       className="inline-grid shrink-0 place-items-center rounded-full font-semibold"

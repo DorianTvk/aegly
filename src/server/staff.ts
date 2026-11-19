@@ -55,6 +55,7 @@ export async function listStaff(businessId: string, tz: string) {
       title: m.title,
       email: m.email,
       color: m.color,
+      avatarUrl: m.avatarUrl,
       role: m.userId ? (userById.get(m.userId)?.role ?? "STAFF") : "STAFF",
       serviceCount: m.services.length,
       workdays: week.map(Boolean),

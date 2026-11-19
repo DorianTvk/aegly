@@ -18,6 +18,7 @@ export type WidgetService = {
   categoryId: string | null;
   name: string;
   description: string | null;
+  imageUrl: string | null;
   durationMinutes: number;
   priceCents: number;
   priceType: "FIXED" | "FROM" | "FREE" | "HIDDEN";
@@ -86,7 +87,7 @@ export async function loadWidget(slug: string) {
           camp.kind === "PERCENT" ? Math.round((sv.priceCents * (100 - camp.value)) / 100) : camp.kind === "FIXED" ? Math.max(0, sv.priceCents - camp.value) : camp.value;
       }
       return {
-        id: sv.id, categoryId: sv.categoryId, name: sv.name, description: sv.description, durationMinutes: sv.durationMinutes,
+        id: sv.id, categoryId: sv.categoryId, name: sv.name, description: sv.description, imageUrl: sv.imageUrl, durationMinutes: sv.durationMinutes,
         priceCents: sv.priceCents, priceType: sv.priceType, showPrice: sv.showPrice && b.widgetShowPrices && sv.priceType !== "HIDDEN",
         depositPercent: sv.depositPercent, allowStaffChoice: sv.allowStaffChoice && b.widgetShowStaff,
         campaignPriceCents, campaignLabel: camp ? (camp.kind === "PERCENT" ? `−${camp.value}%` : camp.name) : null,

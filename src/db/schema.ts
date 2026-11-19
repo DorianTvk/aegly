@@ -5,6 +5,7 @@
 import { relations, sql } from "drizzle-orm";
 import {
   boolean,
+  customType,
   date,
   index,
   integer,
@@ -721,3 +722,16 @@ export const clientsRelations = relations(clients, ({ many }) => ({
 export const paymentsRelations = relations(payments, ({ one }) => ({
   booking: one(bookings, { fields: [payments.bookingId], references: [bookings.id] }),
 }));
+
+// ---------- Pildid (töötajate profiilipildid) ----------
+// Väikesed (≤ 256 px webp) pildid andmebaasis; serveeritakse /api/pilt/[id] kaudu pika vahemäluga.
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => "bytea" });
+
+export const images = pgTable("images", {
+  id: id(),
+  businessId: businessId(),
+  contentType: text("content_type").notNull(),
+  data: bytea("data").notNull(),
+  createdAt: createdAt(),
+});
