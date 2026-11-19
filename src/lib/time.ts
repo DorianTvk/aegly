@@ -84,3 +84,12 @@ export function formatEuro(cents: number, opts: { decimals?: boolean } = {}): st
   const body = decimals ? `${group(Math.floor(abs / 100))},${String(abs % 100).padStart(2, "0")}` : group(Math.round(abs / 100));
   return `${cents < 0 ? "−" : ""}${body} €`;
 }
+
+/** "november 2026" */
+export function formatMonth(isoDate: string): string {
+  const [y, m] = isoDate.split("-").map(Number);
+  return `${MONTHS[m - 1]} ${y}`;
+}
+
+/** Nädalapäeva lühend: E T K N R L P */
+export const WEEKDAY_SHORT = ["E", "T", "K", "N", "R", "L", "P"];

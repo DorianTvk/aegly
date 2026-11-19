@@ -75,17 +75,7 @@ export async function loadDay(businessId: string, isoDate: string, tz: string) {
   const business = await db.query.businesses.findFirst({ where: eq(s.businesses.id, businessId), columns: { useNationalHolidays: true } });
   const national = business?.useNationalHolidays ? estonianHolidays(Number(isoDate.slice(0, 4))).find((h) => h.date === isoDate) : undefined;
 
-  let openInterval: Interval | null | undefined = undefined;
-  if (holiday) {
-    // ettevõtte enda erand on ülimuslik
-    openInterval = holiday.closed || !holiday.startTime || !holiday.endTime ? null : { start: toMinutes(holiday.startTime), end: toMinutes(holiday.endTime) };
-  } else if (opening?.closed || national?.kind === "closed") {
-    openInterval = null;
-  } else if (opening?.startTime && opening.endTime) {
-    openInterval = { start: toMinutes(opening.startTime), end: toMinutes(opening.endTime) };
-    // lühendatud tööpäev: 3 tundi varem kinni
-    if (national?.kind === "short") openInterval = { start: openInterval.start, end: Math.max(openInterval.start, openInterval.end - 180) };
-  }
+  const openInterval = openingFor(opening, holiday, national);
 
   const bookings: DayBooking[] = bookingRows.map(({ b, ...rest }) => ({
     id: b.id,
@@ -158,4 +148,22 @@ export async function countNewClients(businessId: string, clientIds: string[], b
     .from(s.bookings)
     .where(and(eq(s.bookings.businessId, businessId), inArray(s.bookings.clientId, clientIds), lt(s.bookings.startsAt, before)));
   return clientIds.length - earlier.length;
+}
+
+type OpeningRow = { closed: boolean; startTime: string | null; endTime: string | null } | undefined;
+type HolidayRow = { closed: boolean; startTime: string | null; endTime: string | null } | undefined;
+
+/** Päeva lahtiolekuaeg: undefined = pole määratud, null = suletud */
+export function openingFor(opening: OpeningRow, holiday: HolidayRow, national: { kind: string } | undefined): Interval | null | undefined {
+  if (holiday) {
+    // ettevõtte enda erand on ülimuslik
+    return holiday.closed || !holiday.startTime || !holiday.endTime ? null : { start: toMinutes(holiday.startTime), end: toMinutes(holiday.endTime) };
+  }
+  if (opening?.closed || national?.kind === "closed") return null;
+  if (opening?.startTime && opening.endTime) {
+    const iv = { start: toMinutes(opening.startTime), end: toMinutes(opening.endTime) };
+    // lühendatud tööpäev: 3 tundi varem kinni
+    return national?.kind === "short" ? { start: iv.start, end: Math.max(iv.start, iv.end - 180) } : iv;
+  }
+  return undefined;
 }
