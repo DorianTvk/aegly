@@ -1,5 +1,7 @@
 "use server";
 
+import { reportError } from "@/lib/report";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, eq, isNull, ne } from "drizzle-orm";
@@ -137,7 +139,7 @@ export async function connectStripe(): Promise<FormState> {
   try {
     url = await onboardingLink(business.id, await appUrl());
   } catch (e) {
-    console.error("[stripe] onboarding", e);
+    reportError("stripe onboarding", e);
     return { message: "Stripe'iga ühendamine ebaõnnestus. Proovi hiljem uuesti." };
   }
   redirect(url);

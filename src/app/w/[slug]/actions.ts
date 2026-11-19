@@ -1,5 +1,7 @@
 "use server";
 
+import { reportError } from "@/lib/report";
+
 import { recordAttempt, widgetGuard } from "@/server/bot-protection";
 import { canTakeDeposits, createDepositCheckout } from "@/server/stripe";
 import { after } from "next/server";
@@ -144,7 +146,7 @@ export async function book(input: z.input<typeof bookSchema>) {
       const checkoutUrl = await createDepositCheckout(b!.id, base);
       return { ok: true as const, number: res.number, manageToken: b!.manageToken, finalCents: b!.finalPriceCents, depositCents: b!.depositCents, checkoutUrl };
     } catch (e) {
-      console.error("[stripe] checkout", e);
+      reportError("stripe checkout", e);
       await db.update(s.bookings).set({ status: "CANCELLED", cancelledAt: new Date(), cancelReason: "Makse alustamine ebaõnnestus" }).where(eq(s.bookings.id, b!.id));
       return { ok: false as const, reason: "Makse alustamine ebaõnnestus. Proovi uuesti või helista salongi." };
     }

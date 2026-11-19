@@ -1,5 +1,7 @@
 "use server";
 
+import { reportError } from "@/lib/report";
+
 import { billingEnabled, subscriptionCheckout } from "@/server/billing";
 
 import { redirect } from "next/navigation";
@@ -86,7 +88,7 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
     try {
       url = await subscriptionCheckout(business.id, business.plan, business.billingPeriod, base, "/aktiveeri");
     } catch (e) {
-      console.error("[billing] register checkout", e);
+      reportError("billing register checkout", e);
     }
     redirect(url);
   }

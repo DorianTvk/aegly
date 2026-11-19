@@ -1,5 +1,7 @@
 "use server";
 
+import { reportError } from "@/lib/report";
+
 import { after } from "next/server";
 import { appUrl } from "@/lib/app-url";
 import { notifyBooking, notifySalon, notifyWaitlist } from "@/server/notify";
@@ -33,7 +35,7 @@ export async function cancel(token: string, reason: string | null) {
     const base = await appUrl();
     after(async () => {
       // ettemaks tagasi (tasuta tühistamise aja sees)
-      await refundBooking(r.bookingId, "Klient tühistas").catch((e) => console.error("[stripe] refund", e));
+      await refundBooking(r.bookingId, "Klient tühistas").catch((e) => reportError("stripe refund", e));
       await Promise.all([
         notifyBooking(r.bookingId, "CANCELLED", base),
         notifySalon(r.bookingId, "CANCELLED", base),
@@ -58,7 +60,7 @@ export async function payDeposit(token: string) {
   try {
     url = await createDepositCheckout(b.id, await appUrl());
   } catch (e) {
-    console.error("[stripe] checkout", e);
+    reportError("stripe checkout", e);
     return { ok: false as const, reason: "Makse alustamine ebaõnnestus. Proovi uuesti." };
   }
   redirect(url);

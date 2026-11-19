@@ -1,3 +1,4 @@
+import { reportError } from "@/lib/report";
 import type Stripe from "stripe";
 import { applyAccount, stripe, stripeConfigured, syncCheckout } from "@/server/stripe";
 import { applySubscription } from "@/server/billing";
@@ -64,7 +65,7 @@ export async function POST(req: Request) {
       }
     }
   } catch (e) {
-    console.error("[stripe] webhook", event.type, e);
+    reportError("stripe webhook", e, { event: event.type });
     return new Response("Töötlemine ebaõnnestus", { status: 500 }); // Stripe proovib uuesti
   }
   return Response.json({ received: true });

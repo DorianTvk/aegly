@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { cache } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
@@ -54,6 +55,11 @@ export const readSession = cache(async function readSession() {
     with: { user: { with: { business: true } } },
   });
   if (!row || row.expiresAt < new Date()) return null;
+  // vigade juures näeme, kelle kontol see juhtus (ainult id-d, mitte nimi/e-post)
+  if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+    Sentry.setUser({ id: row.user.id });
+    Sentry.setTag("business", row.user.business.slug);
+  }
   return { user: row.user, business: row.user.business };
 });
 

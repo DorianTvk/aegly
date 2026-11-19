@@ -1,5 +1,7 @@
 "use server";
 
+import { reportError } from "@/lib/report";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
@@ -34,7 +36,7 @@ export async function changePlan(input: { plan: string; period: string }): Promi
       try {
         await changeSubscription(business.stripeSubscriptionId!, plan, period);
       } catch (e) {
-        console.error("[billing] change", e);
+        reportError("billing change", e);
         return { message: "Paketi vahetus ebaõnnestus. Proovi uuesti." };
       }
       revalidatePath("/seaded/pakett");
@@ -45,7 +47,7 @@ export async function changePlan(input: { plan: string; period: string }): Promi
     try {
       url = await subscriptionCheckout(business.id, plan, period, await appUrl());
     } catch (e) {
-      console.error("[billing] checkout", e);
+      reportError("billing checkout", e);
       return { message: "Makselehe avamine ebaõnnestus. Proovi uuesti." };
     }
     redirect(url);
@@ -67,7 +69,7 @@ export async function openBillingPortal(): Promise<FormState> {
   try {
     url = await portalUrl(business.id, await appUrl());
   } catch (e) {
-    console.error("[billing] portal", e);
+    reportError("billing portal", e);
     return { message: "Arvelduse avamine ebaõnnestus. Proovi uuesti." };
   }
   redirect(url);

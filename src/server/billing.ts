@@ -1,4 +1,5 @@
 import "server-only";
+import { reportError } from "@/lib/report";
 import type Stripe from "stripe";
 import { eq } from "drizzle-orm";
 import { db, schema as s } from "@/db";
@@ -171,5 +172,5 @@ export async function cancelSubscriptionNow(subscriptionId: string | null) {
   if (!subscriptionId || !stripeConfigured()) return;
   await stripe()
     .subscriptions.cancel(subscriptionId)
-    .catch((e) => console.error("[billing] cancel", e));
+    .catch((e) => reportError("billing cancel", e));
 }

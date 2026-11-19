@@ -32,7 +32,19 @@ async function Platform() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Platvorm" subtitle="Kõik Aegly salongid, nende paketid ja makseseis." />
+      <PageHeader
+        title="Platvorm"
+        subtitle="Kõik Aegly salongid, nende paketid ja makseseis."
+        actions={
+          process.env.NEXT_PUBLIC_SENTRY_DSN ? (
+            <a href="/api/sentry-test" target="_blank" rel="noreferrer" className="inline-flex h-9 items-center rounded-[10px] border border-line bg-white px-3 text-[13px] font-semibold hover:bg-line-soft">
+              Saada Sentryle testviga
+            </a>
+          ) : (
+            <span className="text-xs text-muted">Sentry seadistamata</span>
+          )
+        }
+      />
       <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
         <Card className="p-5">
           <p className="text-[13px] text-muted">Salonge</p>

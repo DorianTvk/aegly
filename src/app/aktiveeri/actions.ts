@@ -1,5 +1,7 @@
 "use server";
 
+import { reportError } from "@/lib/report";
+
 import { redirect } from "next/navigation";
 import { readSession } from "@/lib/session";
 import { appUrl } from "@/lib/app-url";
@@ -19,7 +21,7 @@ export async function startSubscription(input: { plan: string; period: string })
   try {
     url = await subscriptionCheckout(session.business.id, plan, period, await appUrl(), "/aktiveeri");
   } catch (e) {
-    console.error("[billing] activate", e);
+    reportError("billing activate", e);
     return { message: "Makselehe avamine ebaõnnestus. Proovi uuesti." };
   }
   redirect(url);

@@ -1,5 +1,7 @@
 "use server";
 
+import { reportError } from "@/lib/report";
+
 import { refundBooking } from "@/server/stripe";
 import { formatEuro } from "@/lib/time";
 
@@ -113,7 +115,7 @@ export async function setBookingStatus(bookingId: string, status: "CONFIRMED" | 
   const base = await appUrl();
   // salong tühistas → veebis tasutud ettemaks tagasi
   let refunded = 0;
-  if (status === "CANCELLED") refunded = await refundBooking(bookingId, "Tühistas salong").catch((e) => { console.error("[stripe] refund", e); return -1; });
+  if (status === "CANCELLED") refunded = await refundBooking(bookingId, "Tühistas salong").catch((e) => { reportError("stripe refund", e); return -1; });
   if (status === "CANCELLED" && b.startsAt > new Date()) {
     after(async () => {
       await notifyBooking(bookingId, "CANCELLED", base);
