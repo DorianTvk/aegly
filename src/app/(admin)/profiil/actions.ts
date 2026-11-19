@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db, schema as s } from "@/db";
 import { requireManager } from "@/lib/session";
 import { storeImage } from "@/server/files";
+import { readTranslations } from "@/lib/translations";
 import type { FormState } from "@/components/ui/form";
 
 const opt = (max: number) => z.string().trim().max(max).transform((v) => v || null);
@@ -35,7 +36,7 @@ export async function saveBusinessProfile(_prev: FormState, formData: FormData):
   if (!parsed.success) return { message: "Kontrolli välju.", errors: z.flattenError(parsed.error).fieldErrors };
   const { removeLogo, removeBanner, widgetShowBanner, logoInEmails, ...d } = parsed.data;
 
-  const patch: Partial<typeof s.businesses.$inferInsert> = { ...d, widgetShowBanner: widgetShowBanner === "on", logoInEmails: logoInEmails === "on" };
+  const patch: Partial<typeof s.businesses.$inferInsert> = { ...d, widgetShowBanner: widgetShowBanner === "on", logoInEmails: logoInEmails === "on", translations: readTranslations(formData, ["description"]) };
   for (const [field, key] of [["logo", "logoUrl"], ["banner", "bannerUrl"]] as const) {
     const file = formData.get(field);
     if (file instanceof File && file.size > 0) {

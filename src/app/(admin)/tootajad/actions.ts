@@ -1,6 +1,7 @@
 "use server";
 
 import { applyImageField } from "@/server/images";
+import { readTranslations } from "@/lib/translations";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -43,7 +44,7 @@ export async function saveProfile(staffId: string | null, _prev: FormState, form
   } catch (err) {
     return { message: "Kontrolli välju.", errors: { avatar: [(err as Error).message] } };
   }
-  const values = { ...base, ...(avatarUrl !== undefined ? { avatarUrl } : {}) };
+  const values = { ...base, ...(avatarUrl !== undefined ? { avatarUrl } : {}), translations: readTranslations(formData, ["title"]) };
 
   if (staffId && current) {
     // uuesti aktiveerimine loeb paketi töötajate piiri sisse

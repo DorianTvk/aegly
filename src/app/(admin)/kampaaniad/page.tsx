@@ -77,11 +77,12 @@ async function Campaigns({ searchParams }: { searchParams: Promise<{ id?: string
         weekdays: selected.c.weekdays, fromTime: selected.c.fromTime, toTime: selected.c.toTime,
         serviceIds: selected.c.serviceIds, categoryIds: selected.c.categoryIds, staffIds: selected.c.staffIds, packageIds: selected.c.packageIds,
         combinable: selected.c.combinable, showBanner: selected.c.showBanner, bannerText: selected.c.bannerText, bannerColor: selected.c.bannerColor, active: selected.c.active,
+        translations: selected.c.translations,
       }
     : {
         name: "", kind: "PERCENT", value: 10, startDate: today, startTime: "00:00", endDate: addDaysIso(today, 30), endTime: "23:59",
         weekdays: [], fromTime: null, toTime: null, serviceIds: [], categoryIds: [], staffIds: [], packageIds: [],
-        combinable: false, showBanner: false, bannerText: null, bannerColor: "#fff4ed", active: true,
+        combinable: false, showBanner: false, bannerText: null, bannerColor: "#fff4ed", active: true, translations: {},
       };
 
   return (

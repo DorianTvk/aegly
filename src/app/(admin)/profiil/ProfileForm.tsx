@@ -1,5 +1,7 @@
 "use client";
 
+import { TranslationFields } from "@/components/ui/TranslationFields";
+import type { Translations } from "@/lib/translations";
 import { useState } from "react";
 import { Check, ImageIcon, MapPin, Upload } from "lucide-react";
 import { useFormAction } from "@/components/ui/use-form-action";
@@ -9,7 +11,7 @@ import { saveBusinessProfile } from "./actions";
 
 export type ProfileValues = {
   name: string; registryCode: string | null; vatNumber: string | null; industry: string | null; timezone: string;
-  description: string | null; address: string | null; phone: string | null; email: string | null; website: string | null;
+  description: string | null; translations: Translations; address: string | null; phone: string | null; email: string | null; website: string | null;
   instagram: string | null; facebook: string | null; logoUrl: string | null; bannerUrl: string | null;
   widgetShowBanner: boolean; logoInEmails: boolean; widgetPrimary: string; todayHours: string;
 };
@@ -112,6 +114,7 @@ export function ProfileForm({ v }: { v: ProfileValues }) {
               <Field label="Lühikirjeldus (kuvatakse vidinas)" htmlFor="description" className="sm:col-span-2">
                 <Textarea id="description" name="description" rows={3} defaultValue={v.description ?? ""} maxLength={400} />
               </Field>
+              <TranslationFields className="sm:col-span-2" value={v.translations} fields={[{ key: "description", label: "Lühikirjeldus", multiline: true, maxLength: 400 }]} />
             </div>
           </Card>
 

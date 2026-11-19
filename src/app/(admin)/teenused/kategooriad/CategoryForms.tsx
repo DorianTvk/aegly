@@ -6,10 +6,12 @@ import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/primitives";
 import { FormMessage, Input } from "@/components/ui/form";
 import { deleteCategory, saveCategory } from "../actions";
+import { TranslationFields } from "@/components/ui/TranslationFields";
+import type { Translations } from "@/lib/translations";
 
 const PALETTE = ["#7a5af8", "#ee46bc", "#0ba5ec", "#f79009", "#12b76a", "#f04438", "#6172f3", "#15b79e"];
 
-export function CategoryRow({ category, serviceCount }: { category?: { id: string; name: string; color: string }; serviceCount?: number }) {
+export function CategoryRow({ category, serviceCount }: { category?: { id: string; name: string; color: string; translations: Translations }; serviceCount?: number }) {
   const [state, action, pending] = useFormAction(saveCategory.bind(null, category?.id ?? null));
   return (
     <form onSubmit={action} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
@@ -45,6 +47,7 @@ export function CategoryRow({ category, serviceCount }: { category?: { id: strin
           </button>
         )}
       </div>
+      <TranslationFields className="w-full" value={category?.translations} fields={[{ key: "name", label: "Kategooria nimi", maxLength: 40 }]} />
     </form>
   );
 }

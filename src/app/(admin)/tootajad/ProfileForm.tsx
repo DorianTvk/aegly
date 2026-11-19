@@ -7,6 +7,8 @@ import { Button, Card, CardHeader } from "@/components/ui/primitives";
 import { Field, FormMessage, Input, Textarea, Toggle } from "@/components/ui/form";
 import { saveProfile } from "./actions";
 import { ImageField } from "@/components/ui/ImageField";
+import { TranslationFields } from "@/components/ui/TranslationFields";
+import type { Translations } from "@/lib/translations";
 
 const COLORS = ["#f04438", "#7a5af8", "#0ba5ec", "#12b76a", "#f79009", "#ee46bc", "#6172f3", "#15b79e"];
 
@@ -17,6 +19,7 @@ export type ProfileValues = {
   phone: string | null;
   color: string;
   avatarUrl: string | null;
+  translations: Translations;
   bio: string | null;
   bookableOnline: boolean;
   active: boolean;
@@ -42,6 +45,7 @@ export function ProfileForm({ staffId, values }: { staffId: string | null; value
           <Field label="Ametikoht" htmlFor="title" error={e.title}>
             <Input id="title" name="title" defaultValue={values.title ?? ""} placeholder="nt Massöör" />
           </Field>
+          <TranslationFields className="sm:col-span-2" value={values.translations} fields={[{ key: "title", label: "Ametikoht", maxLength: 60, placeholder: "nt Massage therapist / Массажист" }]} />
           <Field label="E-post" htmlFor="email" hint="Kasutatakse teavitusteks ja sisselogimise kutseks" error={e.email}>
             <Input id="email" name="email" type="email" defaultValue={values.email ?? ""} aria-invalid={!!e.email} />
           </Field>

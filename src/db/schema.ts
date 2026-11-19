@@ -19,6 +19,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createId } from "./id";
+import type { Translations } from "@/lib/translations";
 
 const id = () => text("id").primaryKey().$defaultFn(createId);
 const businessId = () =>
@@ -27,6 +28,8 @@ const businessId = () =>
     .references(() => businesses.id, { onDelete: "cascade" });
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 const ts = (name: string) => timestamp(name, { withTimezone: true });
+/** Salongi tekstide tõlked: { en: { name: "…" }, ru: { … } } */
+const translations = () => jsonb("translations").$type<Translations>().notNull().default({});
 
 // ---------- Enumid ----------
 
@@ -56,6 +59,7 @@ export const businesses = pgTable("businesses", {
   id: id(),
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
+  translations: translations(),
   registryCode: text("registry_code"),
   vatNumber: text("vat_number"),
   email: text("email"),
@@ -185,6 +189,7 @@ export const staffMembers = pgTable("staff_members", {
   businessId: businessId(),
   userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
   name: text("name").notNull(),
+  translations: translations(),
   title: text("title"),
   email: text("email"),
   phone: text("phone"),
@@ -255,6 +260,7 @@ export const serviceCategories = pgTable("service_categories", {
   id: id(),
   businessId: businessId(),
   name: text("name").notNull(),
+  translations: translations(),
   color: text("color").notNull().default("#7a5af8"),
   sortOrder: integer("sort_order").notNull().default(0),
 });
@@ -264,6 +270,7 @@ export const services = pgTable("services", {
   businessId: businessId(),
   categoryId: text("category_id").references(() => serviceCategories.id, { onDelete: "set null" }),
   name: text("name").notNull(),
+  translations: translations(),
   description: text("description"),
   imageUrl: text("image_url"),
   durationMinutes: integer("duration_minutes").notNull(),
@@ -360,6 +367,7 @@ export const campaigns = pgTable("campaigns", {
   id: id(),
   businessId: businessId(),
   name: text("name").notNull(),
+  translations: translations(),
   kind: adjustmentKindEnum("kind").notNull(),
   value: integer("value").notNull(),
   startsAt: ts("starts_at").notNull(),

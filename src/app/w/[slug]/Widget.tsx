@@ -7,6 +7,7 @@ import type { WidgetData, WidgetService } from "@/server/widget";
 import { formatEuro, addDaysIso } from "@/lib/time";
 import { addMinutes } from "@/lib/date-et";
 import { dates, DICT, LANGS, priceLabel, serverText, type Dict, type Lang } from "../i18n";
+import { loc } from "@/lib/translations";
 import { book, daySlots, joinWaitlist, quote, staffFirstFree, weekDays } from "./actions";
 
 type Data = NonNullable<WidgetData>;
@@ -21,15 +22,38 @@ type L = { lang: Lang; t: Dict; d: ReturnType<typeof dates>; srv: (s: string) =>
 const LangCtx = createContext<L>({ lang: "et", t: DICT.et, d: dates("et"), srv: (s) => s });
 const useL = () => useContext(LangCtx);
 
-export function Widget({ data, embed, lang: initialLang }: { data: Data; embed: boolean; lang: Lang }) {
-  const { business: biz, theme, today } = data;
+/** Salongi tekstid valitud keelde (tõlke puudumisel eesti keeles) */
+function localize(data: Data, lang: Lang): Data {
+  if (lang === "et") return data;
+  const svc = (sv: WidgetService): WidgetService => ({
+    ...sv,
+    name: loc(sv.name, sv.tr, lang, "name"),
+    description: loc(sv.description, sv.tr, lang, "description"),
+    campaignLabel: sv.campaignTr ? loc(sv.campaignLabel, sv.campaignTr, lang, "name") : sv.campaignLabel,
+    staff: sv.staff.map((m) => ({ ...m, title: loc(m.title, m.tr, lang, "title") })),
+  });
+  return {
+    ...data,
+    business: { ...data.business, description: loc(data.business.description, data.business.tr, lang, "description") },
+    banner: data.banner ? { ...data.banner, text: loc(data.banner.text, data.banner.tr, lang, "bannerText") } : null,
+    categories: data.categories.map((c) => ({ ...c, name: loc(c.name, c.tr, lang, "name") })),
+    services: data.services.map(svc),
+  };
+}
+
+export function Widget({ data: raw, embed, lang: initialLang }: { data: Data; embed: boolean; lang: Lang }) {
   const [lang, setLang] = useState<Lang>(initialLang);
+  const data = useMemo(() => localize(raw, lang), [raw, lang]);
+  const { business: biz, theme, today } = data;
   const L = useMemo<L>(() => ({ lang, t: DICT[lang], d: dates(lang), srv: (x: string) => serverText(lang, x) }), [lang]);
   const { t, d } = L;
   const [step, setStep] = useState<Step>("home");
   const [cat, setCat] = useState<string>(data.categories[0]?.id ?? "none");
-  const [info, setInfo] = useState<WidgetService | null>(null);
-  const [service, setService] = useState<WidgetService | null>(null);
+  const [infoPicked, setInfo] = useState<WidgetService | null>(null);
+  const [picked, setService] = useState<WidgetService | null>(null);
+  // keelevahetusel näita valitud teenust uues keeles
+  const service = picked ? (data.services.find((x) => x.id === picked.id) ?? picked) : null;
+  const info = infoPicked ? (data.services.find((x) => x.id === infoPicked.id) ?? infoPicked) : null;
   const [staffId, setStaffId] = useState<string | null>(null); // null = ükskõik kes
   const [date, setDate] = useState<string>(today);
   const [slot, setSlot] = useState<Slot | null>(null);

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db, schema as s } from "@/db";
 import { requireManager } from "@/lib/session";
 import { zonedDateTime } from "@/lib/time";
+import { cleanTranslations } from "@/lib/translations";
 import type { FormState } from "@/components/ui/form";
 
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable();
@@ -30,6 +31,7 @@ const campaignSchema = z.object({
   bannerText: z.string().trim().max(120).nullable(),
   bannerColor: z.string().regex(/^#[0-9a-f]{6}$/i),
   active: z.boolean(),
+  translations: z.unknown().optional(),
 });
 export type CampaignInput = z.infer<typeof campaignSchema>;
 
@@ -51,6 +53,7 @@ export async function saveCampaign(id: string | null, input: CampaignInput): Pro
     weekdays: d.weekdays, fromTime: d.fromTime, toTime: d.toTime,
     serviceIds: d.serviceIds, categoryIds: d.categoryIds, staffIds: d.staffIds, packageIds: d.packageIds,
     combinable: d.combinable, showBanner: d.showBanner, bannerText: d.bannerText, bannerColor: d.bannerColor, active: d.active,
+    translations: cleanTranslations(d.translations, ["name", "bannerText"]),
   };
   let savedId = id;
   if (id) await db.update(s.campaigns).set(values).where(and(eq(s.campaigns.id, id), eq(s.campaigns.businessId, business.id)));

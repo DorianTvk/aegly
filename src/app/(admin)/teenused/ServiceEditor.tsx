@@ -1,6 +1,8 @@
 "use client";
 
 import { ImageField } from "@/components/ui/ImageField";
+import { TranslationFields } from "@/components/ui/TranslationFields";
+import type { Translations } from "@/lib/translations";
 import { useFormAction } from "@/components/ui/use-form-action";
 import Link from "next/link";
 import { useState } from "react";
@@ -20,6 +22,7 @@ export type EditorService = {
   categoryId: string | null;
   description: string | null;
   imageUrl: string | null;
+  translations: Translations;
   durationMinutes: number;
   bufferBeforeMinutes: number;
   bufferMinutes: number;
@@ -111,6 +114,14 @@ export function ServiceEditor({ service, categories, staff, defaults, related }:
               <Field label="Kirjeldus (kuvatakse vidinas)" htmlFor="description" className="sm:col-span-2" error={e.description}>
                 <Textarea id="description" name="description" defaultValue={service.description ?? ""} rows={3} />
               </Field>
+              <TranslationFields
+                className="sm:col-span-2"
+                value={service.translations}
+                fields={[
+                  { key: "name", label: "Teenuse nimi", maxLength: 80 },
+                  { key: "description", label: "Kirjeldus", multiline: true },
+                ]}
+              />
               <div className="sm:col-span-2">
                 <ImageField name="image" currentUrl={service.imageUrl} width={800} height={600} label="Teenuse pilt (valikuline)" hint="Kuvatakse vidinas teenuse juures · JPG, PNG või HEIC" />
                 {e.image && <p className="mt-1 text-xs text-bad">{e.image[0]}</p>}

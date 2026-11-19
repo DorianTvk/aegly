@@ -1,6 +1,7 @@
 "use server";
 
 import { applyImageField } from "@/server/images";
+import { readTranslations } from "@/lib/translations";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -86,6 +87,7 @@ export async function saveService(serviceId: string | null, _prev: FormState, fo
   const values = {
     name: d.name,
     ...(imageUrl !== undefined ? { imageUrl } : {}),
+    translations: readTranslations(formData, ["name", "description"]),
     categoryId: d.categoryId,
     description: d.description,
     durationMinutes: d.durationMinutes,
@@ -171,8 +173,9 @@ const categorySchema = z.object({
 
 export async function saveCategory(categoryId: string | null, _prev: FormState, formData: FormData): Promise<FormState> {
   const { business } = await requireManager();
-  const parsed = categorySchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return { errors: z.flattenError(parsed.error).fieldErrors };
+  const parsed0 = categorySchema.safeParse(Object.fromEntries(formData));
+  if (!parsed0.success) return { errors: z.flattenError(parsed0.error).fieldErrors };
+  const parsed = { data: { ...parsed0.data, translations: readTranslations(formData, ["name"]) } };
   if (categoryId) {
     await db
       .update(s.serviceCategories)

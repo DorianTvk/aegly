@@ -1,5 +1,7 @@
 "use client";
 
+import { TranslationFields } from "@/components/ui/TranslationFields";
+import type { Translations } from "@/lib/translations";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Megaphone, Trash2 } from "lucide-react";
@@ -162,6 +164,14 @@ export function CampaignEditor({ id, initial, targets, isRunning }: { id: string
               </div>
             </>
           )}
+          <TranslationFields
+            value={(v.translations as Translations | undefined) ?? {}}
+            onChange={(tr) => set("translations", tr)}
+            fields={[
+              { key: "name", label: "Kampaania nimi (kuvatakse soodustuse juures)", maxLength: 60 },
+              ...(v.showBanner ? [{ key: "bannerText", label: "Bänneri tekst", maxLength: 120 }] : []),
+            ]}
+          />
         </div>
       </div>
     </Card>

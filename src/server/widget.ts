@@ -1,4 +1,5 @@
 import "server-only";
+import type { Translations } from "@/lib/translations";
 import { canTakeDeposits } from "./stripe";
 import { and, asc, eq, gte, lte } from "drizzle-orm";
 import { db, schema as s } from "@/db";
@@ -28,7 +29,10 @@ export type WidgetService = {
   /** kampaania hind (kui kampaania kehtib praegu teenusele ilma aja tingimuseta) */
   campaignPriceCents: number | null;
   campaignLabel: string | null;
-  staff: { id: string; name: string; title: string | null; color: string; avatarUrl: string | null; priceCents: number; durationMinutes: number; onLeaveUntil: string | null }[];
+  /** salongi tõlked (nimi, kirjeldus); kampaania nime tõlked */
+  tr: Translations;
+  campaignTr: Translations | null;
+  staff: { id: string; name: string; title: string | null; tr: Translations; color: string; avatarUrl: string | null; priceCents: number; durationMinutes: number; onLeaveUntil: string | null }[];
 };
 
 export type WidgetData = Awaited<ReturnType<typeof loadWidget>>;
@@ -70,7 +74,7 @@ export async function loadWidget(slug: string) {
         .map((l) => {
           const m = staffById.get(l.staff_services.staffId)!;
           return {
-            id: m.id, name: m.name, title: m.title, color: m.color, avatarUrl: m.avatarUrl,
+            id: m.id, name: m.name, title: m.title, tr: m.translations, color: m.color, avatarUrl: m.avatarUrl,
             priceCents: l.staff_services.priceCents ?? sv.priceCents,
             durationMinutes: l.staff_services.durationMinutes ?? sv.durationMinutes,
             onLeaveUntil: leaveUntil.get(m.id) ?? null,
@@ -91,6 +95,7 @@ export async function loadWidget(slug: string) {
         priceCents: sv.priceCents, priceType: sv.priceType, showPrice: sv.showPrice && b.widgetShowPrices && sv.priceType !== "HIDDEN",
         depositPercent: sv.depositPercent, allowStaffChoice: sv.allowStaffChoice && b.widgetShowStaff,
         campaignPriceCents, campaignLabel: camp ? (camp.kind === "PERCENT" ? `−${camp.value}%` : camp.name) : null,
+        tr: sv.translations, campaignTr: camp && camp.kind !== "PERCENT" ? camp.translations : null,
         staff: svStaff,
       };
     })
@@ -102,7 +107,7 @@ export async function loadWidget(slug: string) {
   return {
     business: {
       slug: b.slug, name: b.name, address: b.address, phone: b.phone, logoUrl: b.widgetShowLogo ? b.logoUrl : null,
-      bannerUrl: b.widgetShowBanner ? b.bannerUrl : null, description: b.description, timezone: tz,
+      bannerUrl: b.widgetShowBanner ? b.bannerUrl : null, description: b.description, tr: b.translations, timezone: tz,
       todayHours: todayHours && !todayHours.closed ? `${todayHours.startTime?.slice(0, 2)}–${todayHours.endTime?.slice(0, 2)}` : null,
       cancelUntilHours: b.cancelUntilHours, maxAdvanceDays: b.maxAdvanceDays, noShowProtection: b.noShowProtection,
       smsAvailable: smsConfigured(),
@@ -112,8 +117,8 @@ export async function loadWidget(slug: string) {
       primary: b.widgetPrimary, buttonText: b.widgetButtonColor, background: b.widgetBackground, text: b.widgetTextColor,
       font: b.widgetFont, dark: b.widgetTheme === "dark", launcherText: b.widgetButtonText,
     },
-    banner: b.widgetShowCampaignBanner && banner ? { text: banner.bannerText!, color: banner.bannerColor } : null,
-    categories: categories.filter((c) => out.some((sv) => sv.categoryId === c.id)).map((c) => ({ id: c.id, name: c.name })),
+    banner: b.widgetShowCampaignBanner && banner ? { text: banner.bannerText!, tr: banner.translations, color: banner.bannerColor } : null,
+    categories: categories.filter((c) => out.some((sv) => sv.categoryId === c.id)).map((c) => ({ id: c.id, name: c.name, tr: c.translations })),
     hasUncategorized: out.some((sv) => sv.categoryId === null),
     services: out,
     today,

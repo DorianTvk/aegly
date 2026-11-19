@@ -25,7 +25,7 @@ async function NewStaff() {
   return (
     <ProfileForm
       staffId={null}
-      values={{ name: "", title: null, email: null, phone: null, color: "#7a5af8", avatarUrl: null, bio: null, bookableOnline: true, active: true }}
+      values={{ name: "", title: null, email: null, phone: null, color: "#7a5af8", avatarUrl: null, translations: {}, bio: null, bookableOnline: true, active: true }}
     />
   );
 }
