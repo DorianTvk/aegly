@@ -69,7 +69,7 @@ export async function isRegisterBlocked(ip: string): Promise<boolean> {
   return row.n >= LIMITS.registerPerIp;
 }
 
-export async function recordAttempt(kind: "LOGIN" | "REGISTER" | "RESET" | "VERIFY_SEND" | "WIDGET_BOOK" | "WIDGET_WAIT", ip: string, email: string | null, success: boolean) {
+export async function recordAttempt(kind: "LOGIN" | "REGISTER" | "RESET" | "VERIFY_SEND" | "WIDGET_BOOK" | "WIDGET_WAIT" | "GATE", ip: string, email: string | null, success: boolean) {
   await db.insert(s.authAttempts).values({ kind, ip, email, success });
   // vanad kirjed minema (1 % tõenäosusega, et tabel ei kasvaks)
   if (Math.random() < 0.01) await db.delete(s.authAttempts).where(lt(s.authAttempts.createdAt, new Date(Date.now() - 7 * 86_400_000)));
