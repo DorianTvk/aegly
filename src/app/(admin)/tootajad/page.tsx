@@ -63,8 +63,8 @@ async function StaffList() {
         <Stat label="Keskmine täituvus täna" value={`${avgUtil}%`} icon={Timer} />
       </div>
 
-      <div className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[var(--shadow-card)]">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-[14px] border border-line bg-white shadow-[var(--shadow-card)]">
+        <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-[#f9fafb] text-left text-xs font-semibold tracking-[0.3px] text-[#475467] uppercase">
             <tr>
               <th className="py-3 pl-5 font-semibold">Töötaja</th>

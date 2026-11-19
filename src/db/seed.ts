@@ -31,7 +31,7 @@ async function main() {
 
   const [owner] = await db
     .insert(s.users)
-    .values({ businessId: biz.id, email: "triin@studiolumi.ee", name: "Triin Ilves", role: "OWNER", passwordHash: await hashPassword("aegly-demo") })
+    .values({ businessId: biz.id, email: "triin@studiolumi.ee", name: "Triin Ilves", role: "OWNER", passwordHash: await hashPassword("aegly-demo"), emailVerifiedAt: new Date() })
     .returning();
   void owner;
 

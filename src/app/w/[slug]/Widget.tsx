@@ -27,7 +27,7 @@ export function Widget({ data, embed }: { data: Data; embed: boolean }) {
   const [staffId, setStaffId] = useState<string | null>(null); // null = ükskõik kes
   const [date, setDate] = useState<string>(today);
   const [slot, setSlot] = useState<Slot | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", code: "", sms: true, terms: false });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", code: "", sms: true, terms: false, website: "" });
   const [q, setQ] = useState<Quote | null>(null);
   const [result, setResult] = useState<{ number: string; manageToken: string; finalCents: number; depositCents: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -244,7 +244,7 @@ export function Widget({ data, embed }: { data: Data; embed: boolean }) {
                     setError(null);
                     const r = await book({
                       slug: biz.slug, serviceId: service.id, staffId: slot.staffId, date, time: slot.time, code: q.code?.code,
-                      name: form.name, email: form.email, phone: `+372 ${form.phone}`.replace("+372 +", "+"), smsReminder: form.sms, terms: true,
+                      name: form.name, email: form.email, phone: `+372 ${form.phone}`.replace("+372 +", "+"), smsReminder: form.sms, terms: true, website: form.website,
                     });
                     if (r.ok) {
                       setResult(r);
@@ -557,7 +557,7 @@ function TimeStep({
   const day = dayRes?.key === dayKey ? dayRes.v : null;
   const wait = waitRes.key === dayKey ? waitRes.v : "closed";
   const setWait = (v: "closed" | "open" | "done") => setWait0({ key: dayKey, v });
-  const [wForm, setWForm] = useState({ name: "", email: "" });
+  const [wForm, setWForm] = useState({ name: "", email: "", website: "" });
   const [wErr, setWErr] = useState<string | null>(null);
   const lastDay = addDaysIso(today, maxDays);
 
@@ -680,6 +680,7 @@ function TimeStep({
           }}
         >
           <p className="font-semibold">Saa teavitus, kui {dayShort(date)} aeg vabaneb</p>
+          <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden className="absolute -left-[9999px] h-px w-px opacity-0" value={wForm.website} onChange={(e) => setWForm({ ...wForm, website: e.target.value })} />
           <WInput label="Nimi" value={wForm.name} onChange={(v) => setWForm({ ...wForm, name: v })} autoComplete="name" />
           <WInput label="E-post" type="email" value={wForm.email} onChange={(v) => setWForm({ ...wForm, email: v })} autoComplete="email" />
           {wErr && <p className="text-[13px] text-[#b42318]">{wErr}</p>}
@@ -728,7 +729,7 @@ function Details({
   form, setForm, q, onApply, pending, smsAvailable,
 }: {
   smsAvailable: boolean;
-  form: { name: string; email: string; phone: string; code: string; sms: boolean; terms: boolean };
+  form: { name: string; email: string; phone: string; code: string; sms: boolean; terms: boolean; website: string };
   setForm: (f: typeof form) => void;
   q: Quote | null;
   onApply: (code: string) => void;
@@ -737,6 +738,7 @@ function Details({
   const [codeInput, setCodeInput] = useState(form.code);
   return (
     <div className="space-y-3.5 px-4 py-4">
+      <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden className="absolute -left-[9999px] h-px w-px opacity-0" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
       <WInput id="w-name" label="Täisnimi" value={form.name} onChange={(v) => setForm({ ...form, name: v })} autoComplete="name" />
       <WInput id="w-email" label="E-post" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} autoComplete="email" inputMode="email" />
       <WInput id="w-phone" label="Telefon" type="tel" prefix="EE +372" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} autoComplete="tel-national" inputMode="tel" />

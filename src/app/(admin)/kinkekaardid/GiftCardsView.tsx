@@ -57,8 +57,8 @@ export function GiftCardsView({ cards, settings, businessName }: { cards: GiftRo
   return (
     <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
       <div className="space-y-4">
-        <div className="flex items-center justify-between border-b border-line">
-          <nav className="flex gap-1">
+        <div className="flex flex-wrap-reverse items-center justify-between gap-x-3 border-b border-line">
+          <nav className="-mb-px flex gap-1 overflow-x-auto">
             {([
               ["all", "Kõik"],
               ["active", "Aktiivsed"],

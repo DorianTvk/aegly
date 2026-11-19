@@ -74,8 +74,8 @@ export function CodesView({ codes, targets }: { codes: CodeRow[]; targets: Targe
 
   return (
     <>
-      <div className="flex items-center justify-between gap-3 border-b border-line">
-        <nav className="flex gap-1">
+      <div className="flex flex-wrap-reverse items-center justify-between gap-x-3 border-b border-line">
+        <nav className="-mb-px flex gap-1 overflow-x-auto">
           {tabs.map((t) => (
             <button
               key={t.key}

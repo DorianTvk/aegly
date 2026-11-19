@@ -1,5 +1,6 @@
 "use server";
 
+import { recordAttempt, widgetGuard } from "@/server/bot-protection";
 import { after } from "next/server";
 import { appUrl } from "@/lib/app-url";
 import { notifyBooking, notifySalon } from "@/server/notify";
@@ -108,6 +109,8 @@ const bookSchema = quoteSchema.extend({
   phone: z.string().trim().min(5, "Sisesta telefon").max(30),
   smsReminder: z.boolean(),
   terms: z.literal(true, { error: "Nõustu broneerimistingimustega" }),
+  /** honeypot – peab jääma tühjaks */
+  website: z.string().max(200).optional(),
 });
 
 /** W7 → W8: broneeringu loomine. Maksed lisanduvad hiljem – seni tasutakse ettemaks kohapeal. */
@@ -115,8 +118,11 @@ export async function book(input: z.input<typeof bookSchema>) {
   const parsed = bookSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, reason: parsed.error.issues[0]?.message ?? "Kontrolli andmeid" };
   const q = parsed.data;
+  const guard = await widgetGuard("WIDGET_BOOK", q.email, q.website);
+  if (guard.error) return { ok: false as const, reason: guard.error };
   const c = await ctx(q.slug, q.serviceId);
   if (!c) return { ok: false as const, reason: "Teenust ei leitud" };
+  await recordAttempt("WIDGET_BOOK", guard.ip, q.email.toLowerCase(), true);
   const res = await createBooking({
     businessId: c.business.id,
     serviceId: c.service.id,
@@ -140,16 +146,19 @@ export async function book(input: z.input<typeof bookSchema>) {
   return { ok: true as const, number: res.number, manageToken: b!.manageToken, finalCents: b!.finalPriceCents, depositCents: b!.depositCents };
 }
 
-const waitSchema = z.object({ slug: z.string().max(80), serviceId: idStr, staffId: idStr.nullable(), date: isoDate, name: z.string().trim().min(2, "Sisesta nimi").max(80), email: z.email("Sisesta kehtiv e-post") });
+const waitSchema = z.object({ slug: z.string().max(80), serviceId: idStr, staffId: idStr.nullable(), date: isoDate, name: z.string().trim().min(2, "Sisesta nimi").max(80), email: z.email("Sisesta kehtiv e-post"), website: z.string().max(200).optional() });
 
 /** W5b: ootenimekiri */
 export async function joinWaitlist(input: z.input<typeof waitSchema>) {
   const parsed = waitSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, reason: parsed.error.issues[0]?.message ?? "Kontrolli andmeid" };
   const q = parsed.data;
+  const guard = await widgetGuard("WIDGET_WAIT", q.email, q.website);
+  if (guard.error) return { ok: false as const, reason: guard.error };
   const c = await ctx(q.slug, q.serviceId);
   if (!c) return { ok: false as const, reason: "Teenust ei leitud" };
   const email = q.email.toLowerCase();
+  await recordAttempt("WIDGET_WAIT", guard.ip, email, true);
   let client = await db.query.clients.findFirst({ where: and(eq(s.clients.businessId, c.business.id), eq(s.clients.email, email)) });
   if (!client) [client] = await db.insert(s.clients).values({ businessId: c.business.id, name: q.name, email }).returning();
   await db.insert(s.waitlistEntries).values({ businessId: c.business.id, clientId: client.id, serviceId: c.service.id, staffId: q.staffId, date: q.date });

@@ -16,7 +16,7 @@ async function SidebarWithData() {
 }
 
 function SidebarSkeleton() {
-  return <aside className="sticky top-0 h-screen w-[248px] shrink-0 border-r border-ink-2 bg-ink" />;
+  return <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 border-r border-ink-2 bg-ink lg:block" />;
 }
 
 export default function AdminLayout({ children }: LayoutProps<"/">) {
@@ -33,7 +33,7 @@ export default function AdminLayout({ children }: LayoutProps<"/">) {
           <VerifyEmailBanner />
         </Suspense>
         <Topbar />
-        <main className="flex-1 px-8 pt-7 pb-10">{children}</main>
+        <main className="flex-1 px-4 pt-5 pb-10 sm:px-6 lg:px-8 lg:pt-7">{children}</main>
       </div>
     </div>
   );

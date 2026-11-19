@@ -67,7 +67,7 @@ export function WeekEditor({ staffId, initial, validFrom: initialFrom, today }: 
             </label>
 
             {d.enabled ? (
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+              <div className="flex flex-1 flex-wrap items-center gap-2">
                 {d.intervals.map((iv, k) => (
                   <div key={k} className="flex items-center gap-1.5">
                     <TimeSelect step={5} value={iv.start} aria-label={`${DAY_NAMES[i]} algus`}

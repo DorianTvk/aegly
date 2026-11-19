@@ -69,7 +69,7 @@ export async function isRegisterBlocked(ip: string): Promise<boolean> {
   return row.n >= LIMITS.registerPerIp;
 }
 
-export async function recordAttempt(kind: "LOGIN" | "REGISTER" | "RESET" | "VERIFY_SEND", ip: string, email: string | null, success: boolean) {
+export async function recordAttempt(kind: "LOGIN" | "REGISTER" | "RESET" | "VERIFY_SEND" | "WIDGET_BOOK" | "WIDGET_WAIT", ip: string, email: string | null, success: boolean) {
   await db.insert(s.authAttempts).values({ kind, ip, email, success });
   // vanad kirjed minema (1 % tõenäosusega, et tabel ei kasvaks)
   if (Math.random() < 0.01) await db.delete(s.authAttempts).where(lt(s.authAttempts.createdAt, new Date(Date.now() - 7 * 86_400_000)));
@@ -83,4 +83,22 @@ export async function recentAttempts(kind: string, by: { email?: string; ip?: st
   if (by.ip) cond.push(eq(s.authAttempts.ip, by.ip));
   const [row] = await db.select({ n: count() }).from(s.authAttempts).where(and(...cond));
   return row.n;
+}
+
+/** Vidina piirangud: võltsbroneeringute ja ootenimekirja spämmi vastu (1 h aken) */
+export const WIDGET_LIMITS = { bookPerIp: 10, bookPerEmail: 5, waitPerIp: 10, waitPerEmail: 5 };
+
+/** Tagastab veateate, kui vidina päring tuleb blokeerida; muidu null */
+export async function widgetGuard(kind: "WIDGET_BOOK" | "WIDGET_WAIT", email: string, honeypot: string | undefined): Promise<{ ip: string; error: string | null }> {
+  const ip = await clientIp();
+  // honeypot: päris inimene välja ei näe ega täida
+  if (honeypot) return { ip, error: "Broneerimine ebaõnnestus. Proovi uuesti." };
+  const perIp = kind === "WIDGET_BOOK" ? WIDGET_LIMITS.bookPerIp : WIDGET_LIMITS.waitPerIp;
+  const perEmail = kind === "WIDGET_BOOK" ? WIDGET_LIMITS.bookPerEmail : WIDGET_LIMITS.waitPerEmail;
+  const [byIp, byEmail] = await Promise.all([
+    ip === "unknown" ? 0 : recentAttempts(kind, { ip }, 60),
+    recentAttempts(kind, { email: email.toLowerCase() }, 60),
+  ]);
+  if (byIp >= perIp || byEmail >= perEmail) return { ip, error: "Liiga palju päringuid. Proovi tunni aja pärast uuesti või helista salongi." };
+  return { ip, error: null };
 }

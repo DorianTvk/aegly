@@ -81,8 +81,8 @@ export function ClientsView({ clients, monthName }: { clients: ClientListItem[];
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2">
-          <label className="relative w-[260px]">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          <label className="relative w-full sm:w-[260px]">
             <Search size={16} className="absolute top-1/2 left-3 -translate-y-1/2 text-subtle" />
             <input
               type="search"

@@ -69,7 +69,7 @@ export function CampaignEditor({ id, initial, targets, isRunning }: { id: string
             </Select>
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Algus">
             <div className="flex gap-2">
               <Input type="date" value={v.startDate} onChange={(e) => set("startDate", e.target.value)} aria-label="Alguse kuupäev" />

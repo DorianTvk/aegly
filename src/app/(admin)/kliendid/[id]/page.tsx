@@ -116,7 +116,7 @@ async function ClientCard({ params }: { params: Promise<{ id: string }> }) {
               subtitle={`${completed.length} külastust · ${noShows.length} mitteilmumist · ${cancelled.length} tühistust`}
             />
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[640px] text-sm">
                 <thead className="text-left text-xs font-semibold tracking-[0.3px] text-[#475467] uppercase">
                   <tr>
                     <th className="py-2.5 pl-5 font-semibold">Kuupäev</th>

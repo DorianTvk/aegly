@@ -149,7 +149,7 @@ export function WidgetSettingsView({
           <Card>
             <CardHeader title="Eelvaade" subtitle="Samm 3 · Aja valik" />
             <div className="grid place-items-center bg-[#f2f4f7] p-6">
-              <div className="w-[360px] overflow-hidden rounded-[18px] shadow-xl" style={{ background: bg, color: fg, fontFamily: v.widgetFont === "inherit" ? "Georgia, serif" : v.widgetFont === "Inter" ? "var(--font-sans)" : "system-ui" }}>
+              <div className="w-full max-w-[360px] overflow-hidden rounded-[18px] shadow-xl" style={{ background: bg, color: fg, fontFamily: v.widgetFont === "inherit" ? "Georgia, serif" : v.widgetFont === "Inter" ? "var(--font-sans)" : "system-ui" }}>
                 {v.widgetShowBanner && (
                   <div className="h-16" style={{ background: business.bannerUrl ? `center/cover url(${business.bannerUrl})` : `linear-gradient(135deg, ${v.widgetPrimary}, #0b3b38)` }} />
                 )}

@@ -159,7 +159,7 @@ async function Calendar({ searchParams }: { searchParams: Promise<{ date?: strin
         </LinkButton>
         <h1 className="ml-1 text-lg font-bold text-ink">{formatLongDate(isoDate)}</h1>
 
-        <div className="ml-auto flex items-center gap-2.5">
+        <div className="ml-auto flex flex-wrap items-center gap-2.5">
           <button type="button" className="inline-flex h-[34px] items-center gap-2 rounded-[10px] border border-line bg-white px-3 text-[13px] font-semibold">
             <Filter size={15} />
             Kõik töötajad ({day.columns.length})

@@ -51,7 +51,7 @@ export function ScheduleSettings({ initial, sideCards }: { initial: SettingsInpu
             <CardHeader title="Lahtiolekuajad" subtitle="Töötaja tööaeg ei saa ületada ettevõtte lahtiolekuaega" />
             <ul className="divide-y divide-line-soft px-5">
               {v.hours.map((h, i) => (
-                <li key={h.weekday} className="flex items-center gap-4 py-3">
+                <li key={h.weekday} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
                   <label className="flex w-[160px] cursor-pointer items-center gap-3">
                     <span className="relative inline-flex">
                       <input type="checkbox" className="peer sr-only" checked={h.open} onChange={(e) => setHour(i, { open: e.target.checked })} />

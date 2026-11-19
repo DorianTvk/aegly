@@ -6,7 +6,7 @@ export async function ImpersonationBanner() {
   const imp = await isImpersonating();
   if (!imp) return null;
   return (
-    <div role="status" className="flex flex-wrap items-center justify-between gap-3 bg-[#7a2e0e] px-8 py-2.5 text-sm text-white">
+    <div role="status" className="flex flex-wrap items-center justify-between gap-3 bg-[#7a2e0e] px-4 py-2.5 lg:px-8 text-sm text-white">
       <span className="flex items-center gap-2">
         <Eye size={16} aria-hidden /> Oled salongi <b>{imp.businessName}</b> kontol platvormi haldurina. Muudatused salvestuvad päriselt.
       </span>
