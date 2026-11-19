@@ -65,7 +65,7 @@ async function customerId(businessId: string): Promise<string> {
 }
 
 /** Alusta tellimust: tagastab Stripe'i makselehe aadressi */
-export async function subscriptionCheckout(businessId: string, plan: PlanId, period: BillingPeriod, base: string): Promise<string> {
+export async function subscriptionCheckout(businessId: string, plan: PlanId, period: BillingPeriod, base: string, returnPath = "/seaded/pakett"): Promise<string> {
   const [customer, price, vat] = await Promise.all([customerId(businessId), priceId(plan, period), vatRateId()]);
   const session = await stripe().checkout.sessions.create({
     mode: "subscription",
@@ -77,8 +77,8 @@ export async function subscriptionCheckout(businessId: string, plan: PlanId, per
     line_items: [{ price, quantity: 1, tax_rates: [vat] }],
     subscription_data: { metadata: { businessId, plan, period } },
     metadata: { businessId, kind: "aegly_subscription" },
-    success_url: `${base}/seaded/pakett?tellimus=ok&s={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${base}/seaded/pakett?tellimus=katkestatud`,
+    success_url: `${base}${returnPath}?tellimus=ok&s={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${base}${returnPath}?tellimus=katkestatud`,
   });
   return session.url!;
 }

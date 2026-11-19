@@ -1,6 +1,6 @@
 "use server";
 
-import { billingEnabled } from "@/server/billing";
+import { billingEnabled, subscriptionCheckout } from "@/server/billing";
 
 import { redirect } from "next/navigation";
 import { after } from "next/server";
@@ -66,7 +66,7 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
     return { errors: { email: ["Selle e-postiga konto on juba olemas. Logi sisse."] } };
   }
 
-  const { user } = await createBusinessWithOwner({
+  const { user, business } = await createBusinessWithOwner({
     businessName: parsed.data.businessName,
     ownerName: parsed.data.ownerName,
     email: parsed.data.email,
@@ -80,7 +80,17 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
   const base = await appUrl();
   after(() => sendVerifyEmail(user, base));
   await createSession(user.id);
-  redirect(billingEnabled() ? "/seaded/pakett" : "/toolaud");
+  if (billingEnabled()) {
+    // tasuta perioodi pole: kohe Stripe'i makselehele, pärast makset töölauale
+    let url = "/aktiveeri";
+    try {
+      url = await subscriptionCheckout(business.id, business.plan, business.billingPeriod, base, "/aktiveeri");
+    } catch (e) {
+      console.error("[billing] register checkout", e);
+    }
+    redirect(url);
+  }
+  redirect("/toolaud");
 }
 
 export async function logout() {

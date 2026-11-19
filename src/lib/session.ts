@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db, schema as s } from "@/db";
+import { isSuperadmin } from "@/lib/plans";
 
 export const SESSION_COOKIE = "aegly_session";
 const SESSION_DAYS = 30;
@@ -61,7 +62,16 @@ export async function requireSession() {
   const session = await readSession();
   // aegunud/kehtetu küpsis kustutatakse route handleris (lehe renderdamise ajal küpsiseid muuta ei saa)
   if (!session) redirect("/api/auth/valja");
+  // maksmata või lõppenud tellimusega halduspaneeli ei pääse (v.a platvormi haldur ja tema "logi sisse kui")
+  if (needsActivation(session) && !(await cookies()).has(RETURN_COOKIE)) redirect("/aktiveeri");
   return session;
+}
+
+/** Kas ettevõte peab enne halduspaneeli kasutamist paketi eest tasuma */
+export function needsActivation(session: { user: { email: string }; business: { planStatus: string } }) {
+  if (!process.env.STRIPE_SECRET_KEY) return false;
+  if (isSuperadmin(session.user.email)) return false;
+  return session.business.planStatus === "PENDING" || session.business.planStatus === "SUSPENDED";
 }
 
 /** Nagu requireSession, aga lubab ainult antud rolle. Serveri toimingutes viskab vea, kui õigust pole. */
