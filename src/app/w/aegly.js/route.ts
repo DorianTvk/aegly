@@ -3,6 +3,7 @@
  * <script src="https://app.aegly.ee/w/aegly.js" data-salon="studio-lumi" async></script>
  * Lisab nurka "Broneeri aeg" nupu (W0); klõps avab vidina paneelina (arvutis paremal, telefonis täisekraanil).
  * Iga element lehel atribuudiga data-aegly-open avab samuti vidina.
+ * Keel: data-lang="en" (või kodulehe <html lang>), toetatud et/en/ru.
  */
 const SCRIPT = String.raw`(function () {
   if (window.__aegly) return; window.__aegly = true;
@@ -10,6 +11,10 @@ const SCRIPT = String.raw`(function () {
   if (!me) return;
   var base = new URL(me.src).origin, salon = me.getAttribute('data-salon'), label = me.getAttribute('data-button');
   var hideButton = me.getAttribute('data-launcher') === 'false';
+  // keel: data-lang või kodulehe <html lang> (et/en/ru); muidu otsustab vidin brauseri keele järgi
+  var lang = String(me.getAttribute('data-lang') || document.documentElement.lang || '').slice(0, 2).toLowerCase();
+  if (['et', 'en', 'ru'].indexOf(lang) < 0) lang = '';
+  var T = { et: 'Broneeri aeg', en: 'Book now', ru: 'Записаться' };
   if (!salon) return console.warn('[Aegly] data-salon puudub');
   var root, frame, overlay, lastFocus;
   function css(el, s) { for (var k in s) el.style[k] = s[k]; }
@@ -21,8 +26,8 @@ const SCRIPT = String.raw`(function () {
       css(overlay, { position: 'fixed', inset: '0', background: 'rgba(16,24,40,.45)', zIndex: '2147483646', opacity: '0', transition: 'opacity .2s' });
       overlay.addEventListener('click', close);
       frame = document.createElement('iframe');
-      frame.src = base + '/w/' + encodeURIComponent(salon) + '?embed=1';
-      frame.title = 'Broneeri aeg';
+      frame.src = base + '/w/' + encodeURIComponent(salon) + '?embed=1' + (lang ? '&lang=' + lang : '');
+      frame.title = T[lang || 'et'];
       frame.setAttribute('allow', 'payment');
       document.body.appendChild(overlay); document.body.appendChild(frame);
     }
@@ -55,7 +60,8 @@ const SCRIPT = String.raw`(function () {
     if (!c) return;
     root = document.createElement('button');
     root.type = 'button';
-    root.textContent = label || c.buttonText || 'Broneeri aeg';
+    // vaiketekst tõlgitakse kodulehe keelde; salongi enda tekst jääb
+    root.textContent = label || (lang && lang !== 'et' && (!c.buttonText || c.buttonText === T.et) ? T[lang] : c.buttonText) || T.et;
     root.setAttribute('aria-haspopup', 'dialog');
     css(root, { position: 'fixed', right: '20px', bottom: '20px', zIndex: '2147483645', height: '52px', padding: '0 22px', border: '0', borderRadius: '999px',
       background: c.primary, color: c.buttonColor, font: '600 15px/1 system-ui,-apple-system,Segoe UI,sans-serif', cursor: 'pointer', boxShadow: '0 10px 30px rgba(16,24,40,.25)' });

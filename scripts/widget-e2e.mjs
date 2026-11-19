@@ -12,7 +12,7 @@ const check = (n, ok) => console.log(ok ? "OK  " : "FAIL", n);
 const shot = (n) => page.screenshot({ path: S + (mobile ? "m_" : "") + n + ".png" });
 const click = async (sel) => { await page.waitForSelector(sel, { timeout: 8000 }); await page.click(sel); };
 
-await page.goto(B + "/w/studio-lumi", { waitUntil: "networkidle0" });
+await page.goto(B + "/w/studio-lumi?lang=et", { waitUntil: "networkidle0" });
 check("W1 avavaade", (await text()).includes("Studio Lumi") && (await text()).includes("Klassikaline massaaž"));
 await shot("1_avavaade");
 await click("button[aria-label='Vali Klassikaline massaaž']"); await wait(300);

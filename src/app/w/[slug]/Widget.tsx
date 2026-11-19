@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState, useTransition, type CSSProperties, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useMemo, useState, useTransition, type CSSProperties, type ReactNode } from "react";
 import { ArrowLeft, Bell, CalendarPlus, Check, ChevronLeft, ChevronRight, Clock, CreditCard, Info, MapPin, ShieldCheck, Tag, X } from "lucide-react";
 import { clsx } from "clsx";
 import type { WidgetData, WidgetService } from "@/server/widget";
 import { formatEuro, addDaysIso } from "@/lib/time";
-import { addMinutes, dayLong, dayNum, dayShort, dayShortYear, monthYear, weekdayLetter } from "@/lib/date-et";
+import { addMinutes } from "@/lib/date-et";
+import { dates, DICT, LANGS, priceLabel, serverText, type Dict, type Lang } from "../i18n";
 import { book, daySlots, joinWaitlist, quote, staffFirstFree, weekDays } from "./actions";
 
 type Data = NonNullable<WidgetData>;
@@ -16,10 +17,15 @@ type Free = { date: string; time: string } | null;
 
 const eur = (c: number) => formatEuro(c, { decimals: true });
 const initials = (n: string) => n.split(/\s+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
-const relDay = (iso: string, today: string) => (iso === today ? "täna" : iso === addDaysIso(today, 1) ? "homme" : dayShort(iso));
+type L = { lang: Lang; t: Dict; d: ReturnType<typeof dates>; srv: (s: string) => string };
+const LangCtx = createContext<L>({ lang: "et", t: DICT.et, d: dates("et"), srv: (s) => s });
+const useL = () => useContext(LangCtx);
 
-export function Widget({ data, embed }: { data: Data; embed: boolean }) {
+export function Widget({ data, embed, lang: initialLang }: { data: Data; embed: boolean; lang: Lang }) {
   const { business: biz, theme, today } = data;
+  const [lang, setLang] = useState<Lang>(initialLang);
+  const L = useMemo<L>(() => ({ lang, t: DICT[lang], d: dates(lang), srv: (x: string) => serverText(lang, x) }), [lang]);
+  const { t, d } = L;
   const [step, setStep] = useState<Step>("home");
   const [cat, setCat] = useState<string>(data.categories[0]?.id ?? "none");
   const [info, setInfo] = useState<WidgetService | null>(null);
@@ -83,31 +89,32 @@ export function Widget({ data, embed }: { data: Data; embed: boolean }) {
           setQ(r);
           resolve(r);
         } else {
-          setError(r.reason);
+          setError(L.srv(r.reason));
           resolve(null);
         }
       }),
     );
 
   return (
-    <div style={style} className={clsx("flex min-h-dvh justify-center", embed ? "bg-[var(--w-bg)]" : "bg-[#f3f4f6] sm:py-8")}>
+    <LangCtx.Provider value={L}>
+    <div lang={lang} style={style} className={clsx("flex min-h-dvh justify-center", embed ? "bg-[var(--w-bg)]" : "bg-[#f3f4f6] sm:py-8")}>
       <div className={clsx("relative flex w-full flex-col bg-[var(--w-bg)] text-[var(--w-text)]", embed ? "h-dvh" : "h-dvh sm:h-[min(820px,calc(100dvh-64px))] sm:max-w-[440px] sm:overflow-hidden sm:rounded-[20px] sm:shadow-[0_24px_60px_rgba(16,24,40,0.16)]")}>
         {/* Päis */}
         {step === "home" || step === "done" ? (
-          <HomeHeader data={data} onClose={embed ? close : undefined} compact={step === "done"} />
+          <HomeHeader data={data} onClose={embed ? close : undefined} compact={step === "done"} lang={lang} setLang={setLang} />
         ) : (
           <header className="flex items-center gap-2 border-b border-black/5 px-4 py-3">
-            <button type="button" onClick={back} aria-label="Tagasi" className="grid size-9 place-items-center rounded-full hover:bg-black/5">
+            <button type="button" onClick={back} aria-label={t.back} className="grid size-9 place-items-center rounded-full hover:bg-black/5">
               <ArrowLeft size={18} />
             </button>
             <h1 className="flex-1 text-[17px] font-semibold">
-              {step === "staff" ? "Vali spetsialist" : step === "time" ? "Vali aeg" : step === "details" ? "Sinu andmed" : "Kinnita broneering"}
+              {step === "staff" ? t.stepStaff : step === "time" ? t.stepTime : step === "details" ? t.stepDetails : t.stepConfirm}
             </h1>
             <span className="text-[13px] opacity-60">
               {stepNo}/{steps.length}
             </span>
             {embed && (
-              <button type="button" onClick={close} aria-label="Sulge" className="grid size-9 place-items-center rounded-full hover:bg-black/5">
+              <button type="button" onClick={close} aria-label={t.close} className="grid size-9 place-items-center rounded-full hover:bg-black/5">
                 <X size={18} />
               </button>
             )}
@@ -161,11 +168,11 @@ export function Widget({ data, embed }: { data: Data; embed: boolean }) {
             <FooterRow
               left={
                 <>
-                  <p className="text-[13px] opacity-70">1 teenus · {service.durationMinutes} min</p>
+                  <p className="text-[13px] opacity-70">{t.oneService(service.durationMinutes)}</p>
                   {service.showPrice && <p className="font-semibold">{eur(service.campaignPriceCents ?? service.priceCents)}</p>}
                 </>
               }
-              button={<PrimaryButton onClick={() => setStep(staffStep ? "staff" : "time")}>Jätka</PrimaryButton>}
+              button={<PrimaryButton onClick={() => setStep(staffStep ? "staff" : "time")}>{t.continue}</PrimaryButton>}
             />
           )}
           {step === "staff" && service && (
@@ -173,10 +180,10 @@ export function Widget({ data, embed }: { data: Data; embed: boolean }) {
               left={
                 <>
                   <p className="text-[13px] opacity-70">{service.name}</p>
-                  <p className="font-semibold">{staffId ? service.staff.find((m) => m.id === staffId)?.name : "Ükskõik kes"}</p>
+                  <p className="font-semibold">{staffId ? service.staff.find((m) => m.id === staffId)?.name : t.anyone}</p>
                 </>
               }
-              button={<PrimaryButton onClick={() => setStep("time")}>Jätka</PrimaryButton>}
+              button={<PrimaryButton onClick={() => setStep("time")}>{t.continue}</PrimaryButton>}
             />
           )}
           {step === "time" && (
@@ -184,13 +191,11 @@ export function Widget({ data, embed }: { data: Data; embed: boolean }) {
               left={
                 slot ? (
                   <>
-                    <p className="text-[13px] opacity-70">{dayLong(date)}</p>
-                    <p className="font-semibold">
-                      kell {slot.time}–{slot.end}
-                    </p>
+                    <p className="text-[13px] opacity-70">{d.dayLong(date)}</p>
+                    <p className="font-semibold">{t.at(`${slot.time}–${slot.end}`)}</p>
                   </>
                 ) : (
-                  <p className="text-[13px] opacity-70">Vali sobiv kellaaeg</p>
+                  <p className="text-[13px] opacity-70">{t.pickTime}</p>
                 )
               }
               button={
@@ -201,7 +206,7 @@ export function Widget({ data, embed }: { data: Data; embed: boolean }) {
                     if (await loadQuote()) setStep("details");
                   }}
                 >
-                  Jätka
+                  {t.continue}
                 </PrimaryButton>
               }
             />
@@ -210,7 +215,7 @@ export function Widget({ data, embed }: { data: Data; embed: boolean }) {
             <FooterRow
               left={
                 <>
-                  <p className="text-[13px] opacity-70">Kokku{q.code ? ` (${q.lines.find((l) => l.kind === "code")?.label ?? "soodustus"})` : ""}</p>
+                  <p className="text-[13px] opacity-70">{t.total}{q.code ? ` (${priceLabel(t, q.lines.find((l) => l.kind === "code")?.label ?? t.discount)})` : ""}</p>
                   <p className="font-semibold">{eur(q.finalCents)}</p>
                 </>
               }
@@ -219,15 +224,15 @@ export function Widget({ data, embed }: { data: Data; embed: boolean }) {
                   disabled={pending}
                   onClick={async () => {
                     setError(null);
-                    if (form.name.trim().length < 2) return setError("Sisesta oma nimi.");
-                    if (!/^\S+@\S+\.\S+$/.test(form.email)) return setError("Sisesta kehtiv e-posti aadress.");
-                    if (form.phone.replace(/\D/g, "").length < 5) return setError("Sisesta telefoninumber.");
-                    if (!form.terms) return setError("Nõustu broneerimistingimustega.");
+                    if (form.name.trim().length < 2) return setError(t.errName);
+                    if (!/^\S+@\S+\.\S+$/.test(form.email)) return setError(t.errEmail);
+                    if (form.phone.replace(/\D/g, "").length < 5) return setError(t.errPhone);
+                    if (!form.terms) return setError(t.errTerms);
                     // kood võib sõltuda e-postist (uued kliendid) – arvuta uuesti
                     if (await loadQuote()) setStep("confirm");
                   }}
                 >
-                  Jätka
+                  {t.continue}
                 </PrimaryButton>
               }
             />
@@ -235,13 +240,13 @@ export function Widget({ data, embed }: { data: Data; embed: boolean }) {
           {step === "confirm" && service && slot && q && (
             <div className="space-y-2">
               <p className="flex items-center justify-center gap-1.5 text-[12px] opacity-60">
-                <ShieldCheck size={14} aria-hidden /> Tasuta tühistamine kuni {biz.cancelUntilHours} h enne algust
+                <ShieldCheck size={14} aria-hidden /> {t.freeCancel(biz.cancelUntilHours)}
               </p>
               {redirectUrl && (
                 <p className="text-center text-[13px]">
-                  Makseleht ei avanenud?{" "}
+                  {t.payNotOpened}{" "}
                   <a href={redirectUrl} target="_top" className="font-semibold underline">
-                    Ava makseleht
+                    {t.openPay}
                   </a>
                 </p>
               )}
@@ -264,7 +269,7 @@ export function Widget({ data, embed }: { data: Data; embed: boolean }) {
                       setResult(r);
                       setStep("done");
                     } else {
-                      setError(r.reason);
+                      setError(L.srv(r.reason));
                       if (/vaba|broneeriti/.test(r.reason)) {
                         setSlot(null);
                         setStep("time");
@@ -273,15 +278,15 @@ export function Widget({ data, embed }: { data: Data; embed: boolean }) {
                   })
                 }
               >
-                {pending || redirectUrl ? (q.depositCents > 0 && biz.onlineDeposits ? "Avan makselehe…" : "Broneerin…") : q.depositCents > 0 && biz.onlineDeposits ? `Maksa ettemaks ${eur(q.depositCents)}` : "Kinnita broneering"}
+                {pending || redirectUrl ? (q.depositCents > 0 && biz.onlineDeposits ? t.openingPay : t.booking) : q.depositCents > 0 && biz.onlineDeposits ? t.payDeposit(eur(q.depositCents)) : t.confirmBooking}
               </PrimaryButton>
             </div>
           )}
           {step === "done" && (
             <div className="space-y-2">
-              <p className="text-center text-[13px] opacity-70">Ootame sind{biz.name ? ` – ${biz.name}` : ""}!</p>
+              <p className="text-center text-[13px] opacity-70">{t.seeYou(biz.name)}</p>
               <PrimaryButton className="w-full" onClick={embed ? close : reset}>
-                Valmis
+                {t.done}
               </PrimaryButton>
             </div>
           )}
@@ -294,9 +299,10 @@ export function Widget({ data, embed }: { data: Data; embed: boolean }) {
             onAdd={() => choose(info)}
           />
         )}
-        <p className="pb-2 text-center text-[11px] opacity-40">Toetab Aegly</p>
+        <p className="pb-2 text-center text-[11px] opacity-40">{t.poweredBy}</p>
       </div>
     </div>
+    </LangCtx.Provider>
   );
 }
 
@@ -327,27 +333,37 @@ function FooterRow({ left, button }: { left: ReactNode; button: ReactNode }) {
 }
 
 function Price({ sv }: { sv: WidgetService }) {
-  if (!sv.showPrice) return <span>{sv.durationMinutes} min</span>;
-  if (sv.priceType === "FREE") return <span>Tasuta · {sv.durationMinutes} min</span>;
-  const from = sv.priceType === "FROM" ? "alates " : "";
+  const { t, lang } = useL();
+  const min = lang === "ru" ? "мин" : "min";
+  if (!sv.showPrice) return <span>{sv.durationMinutes} {min}</span>;
+  if (sv.priceType === "FREE") return <span>{t.free} · {sv.durationMinutes} {min}</span>;
+  const from = sv.priceType === "FROM" ? t.from : "";
   return (
     <span>
       {sv.campaignPriceCents !== null && <s className="mr-1 opacity-50">{eur(sv.priceCents)}</s>}
       {from}
-      {eur(sv.campaignPriceCents ?? sv.priceCents)} · {sv.durationMinutes} min
+      {eur(sv.campaignPriceCents ?? sv.priceCents)} · {sv.durationMinutes} {min}
     </span>
   );
 }
 
 // ---------- W1–W3 ----------
 
-function HomeHeader({ data, onClose, compact }: { data: Data; onClose?: () => void; compact?: boolean }) {
+function HomeHeader({ data, onClose, compact, lang, setLang }: { data: Data; onClose?: () => void; compact?: boolean; lang: Lang; setLang: (l: Lang) => void }) {
   const b = data.business;
+  const { t } = useL();
   return (
     <header className="relative">
       {!compact && <div className="h-[92px] bg-[var(--w-primary)] bg-cover bg-center" style={b.bannerUrl ? { backgroundImage: `url(${b.bannerUrl})` } : undefined} />}
+      <div role="radiogroup" aria-label={t.language} className={clsx("absolute top-3 flex rounded-full bg-white/90 p-0.5 text-[11px] font-semibold text-[#1f2937] shadow", onClose ? "right-14" : "right-3")}>
+        {LANGS.map((l) => (
+          <button key={l} type="button" role="radio" aria-checked={lang === l} onClick={() => setLang(l)} className={clsx("h-7 rounded-full px-2 uppercase", lang === l ? "bg-[#1f2937] text-white" : "opacity-70 hover:opacity-100")}>
+            {l}
+          </button>
+        ))}
+      </div>
       {onClose && (
-        <button type="button" onClick={onClose} aria-label="Sulge" className="absolute top-3 right-3 grid size-9 place-items-center rounded-full bg-white/90 text-[#1f2937] shadow">
+        <button type="button" onClick={onClose} aria-label={t.close} className="absolute top-3 right-3 grid size-9 place-items-center rounded-full bg-white/90 text-[#1f2937] shadow">
           <X size={18} />
         </button>
       )}
@@ -361,7 +377,7 @@ function HomeHeader({ data, onClose, compact }: { data: Data; onClose?: () => vo
         {!compact && (
           <p className="mt-0.5 flex items-center gap-1 text-[13px] opacity-70">
             <MapPin size={13} aria-hidden />
-            {[b.address, b.todayHours ? `Avatud täna ${b.todayHours}` : "Täna suletud"].filter(Boolean).join(" · ")}
+            {[b.address, b.todayHours ? t.openToday(b.todayHours) : t.closedToday].filter(Boolean).join(" · ")}
           </p>
         )}
       </div>
@@ -370,20 +386,21 @@ function HomeHeader({ data, onClose, compact }: { data: Data; onClose?: () => vo
 }
 
 function Home({ data, cat, setCat, selected, onInfo, onChoose }: { data: Data; cat: string; setCat: (c: string) => void; selected: WidgetService | null; onInfo: (s: WidgetService) => void; onChoose: (s: WidgetService) => void }) {
-  const tabs = [...data.categories, ...(data.hasUncategorized ? [{ id: "none", name: "Muud" }] : [])];
+  const { t } = useL();
+  const tabs = [...data.categories, ...(data.hasUncategorized ? [{ id: "none", name: t.other }] : [])];
   const list = data.services.filter((s) => (s.categoryId ?? "none") === cat);
   const anyDeposit = data.services.some((s) => s.depositPercent > 0);
   return (
     <div className="px-4 pb-4">
-      <p className="mt-2 text-[14px] opacity-80">{data.business.description || "Tere tulemast! Vali endale sobiv teenus ja aeg."}</p>
+      <p className="mt-2 text-[14px] opacity-80">{data.business.description || t.welcome}</p>
       <div className="mt-3 flex flex-wrap gap-2 text-[12px]">
         {anyDeposit && (
           <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2.5 py-1">
-            <CreditCard size={13} aria-hidden /> Ettemaks broneerimisel
+            <CreditCard size={13} aria-hidden /> {t.depositOnBooking}
           </span>
         )}
         <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2.5 py-1">
-          <Clock size={13} aria-hidden /> Tühistamine kuni {data.business.cancelUntilHours} h enne
+          <Clock size={13} aria-hidden /> {t.cancelUntil(data.business.cancelUntilHours)}
         </span>
       </div>
       {data.banner && (
@@ -393,7 +410,7 @@ function Home({ data, cat, setCat, selected, onInfo, onChoose }: { data: Data; c
       )}
 
       {tabs.length > 1 && (
-        <div role="tablist" aria-label="Kategooriad" className="-mx-4 mt-4 flex gap-1.5 overflow-x-auto px-4 pb-1">
+        <div role="tablist" aria-label={t.categories} className="-mx-4 mt-4 flex gap-1.5 overflow-x-auto px-4 pb-1">
           {tabs.map((t) => (
             <button
               key={t.id}
@@ -434,7 +451,7 @@ function Home({ data, cat, setCat, selected, onInfo, onChoose }: { data: Data; c
                   type="button"
                   onClick={() => onChoose(sv)}
                   aria-pressed={active}
-                  aria-label={active ? `${sv.name} valitud` : `Vali ${sv.name}`}
+                  aria-label={active ? t.selected(sv.name) : t.choose(sv.name)}
                   className={clsx("grid size-9 shrink-0 place-items-center rounded-full border", active ? "border-[var(--w-primary)] bg-[var(--w-primary)] text-[var(--w-on-primary)]" : "border-black/15")}
                 >
                   {active ? <Check size={17} /> : <span className="text-lg leading-none">+</span>}
@@ -443,13 +460,14 @@ function Home({ data, cat, setCat, selected, onInfo, onChoose }: { data: Data; c
             </li>
           );
         })}
-        {list.length === 0 && <li className="py-10 text-center text-[14px] opacity-60">Selles kategoorias pole veebis broneeritavaid teenuseid.</li>}
+        {list.length === 0 && <li className="py-10 text-center text-[14px] opacity-60">{t.noServices}</li>}
       </ul>
     </div>
   );
 }
 
 function ServiceSheet({ sv, onClose, onAdd }: { sv: WidgetService; onClose: () => void; onAdd: () => void }) {
+  const { t, lang } = useL();
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", k);
@@ -461,19 +479,19 @@ function ServiceSheet({ sv, onClose, onAdd }: { sv: WidgetService; onClose: () =
         {sv.imageUrl && <img src={sv.imageUrl} alt="" className="-mx-5 -mt-5 mb-4 aspect-[4/3] max-h-[220px] w-[calc(100%+2.5rem)] rounded-t-[20px] object-cover" />}
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-[19px] font-bold">{sv.name}</h2>
-          <button type="button" onClick={onClose} aria-label="Sulge" className="grid size-8 place-items-center rounded-full hover:bg-black/5">
+          <button type="button" onClick={onClose} aria-label={t.close} className="grid size-8 place-items-center rounded-full hover:bg-black/5">
             <X size={17} />
           </button>
         </div>
         <div className="mt-2 flex flex-wrap gap-2 text-[13px]">
-          <span className="rounded-full bg-black/5 px-2.5 py-1">{sv.durationMinutes} min</span>
-          {sv.showPrice && <span className="rounded-full bg-black/5 px-2.5 py-1">{sv.priceType === "FREE" ? "Tasuta" : eur(sv.campaignPriceCents ?? sv.priceCents)}</span>}
-          {sv.depositPercent > 0 && <span className="rounded-full bg-black/5 px-2.5 py-1">{sv.depositPercent}% ettemaks</span>}
+          <span className="rounded-full bg-black/5 px-2.5 py-1">{sv.durationMinutes} {lang === "ru" ? "мин" : "min"}</span>
+          {sv.showPrice && <span className="rounded-full bg-black/5 px-2.5 py-1">{sv.priceType === "FREE" ? t.free : eur(sv.campaignPriceCents ?? sv.priceCents)}</span>}
+          {sv.depositPercent > 0 && <span className="rounded-full bg-black/5 px-2.5 py-1">{t.depositPct(sv.depositPercent)}</span>}
         </div>
         {sv.description && <p className="mt-3 text-[14px] leading-relaxed opacity-80">{sv.description}</p>}
-        <p className="mt-3 text-[13px] opacity-70">Teevad: {sv.staff.map((m) => m.name).join(", ")}</p>
+        <p className="mt-3 text-[13px] opacity-70">{t.doneBy(sv.staff.map((m) => m.name).join(", "))}</p>
         <PrimaryButton className="mt-5 w-full" onClick={onAdd}>
-          Vali see teenus
+          {t.chooseService}
         </PrimaryButton>
       </div>
     </div>
@@ -491,22 +509,24 @@ function StaffStep({ slug, service, today, value, onChange }: { slug: string; se
       live = false;
     };
   }, [slug, service]);
+  const { t, d, lang } = useL();
+  const relDay = (iso: string) => (iso === today ? t.today : iso === addDaysIso(today, 1) ? t.tomorrow : d.dayShort(iso));
   const minPrice = Math.min(...service.staff.map((m) => m.priceCents));
-  const freeText = (f: Free | undefined) => (free === null ? "Otsin vaba aega…" : f ? `Esimene vaba: ${relDay(f.date, today)} ${f.time}` : "Lähiajal vabu aegu pole");
+  const freeText = (f: Free | undefined) => (free === null ? t.searching : f ? t.firstFree(`${relDay(f.date)} ${f.time}`) : t.noFreeSoon);
 
 
   return (
     <div className="px-4 py-3">
       <p className="text-[13px] opacity-70">
-        {service.name} · {service.durationMinutes} min
+        {service.name} · {service.durationMinutes} {lang === "ru" ? "мин" : "min"}
       </p>
-      <ul role="radiogroup" aria-label="Spetsialist" className="mt-3 space-y-2">
+      <ul role="radiogroup" aria-label={t.specialist} className="mt-3 space-y-2">
         <StaffRow
             value={value}
             onChange={onChange}
           id={null}
-          title="Ükskõik kes"
-          sub={`Esimene vaba aeg${service.showPrice ? ` · alates ${eur(minPrice)}` : ""}`}
+          title={t.anyone}
+          sub={`${t.firstFreeTime}${service.showPrice ? t.fromPrice(eur(minPrice)) : ""}`}
           note={freeText(free?.any)}
           avatar={<span className="grid size-11 place-items-center rounded-full bg-black/5"><Clock size={18} /></span>}
         />
@@ -518,7 +538,7 @@ function StaffStep({ slug, service, today, value, onChange }: { slug: string; se
             id={m.id}
             title={m.name}
             sub={[m.title, service.showPrice ? eur(m.priceCents) : null].filter(Boolean).join(" · ")}
-            note={[m.onLeaveUntil ? `Puhkusel kuni ${dayShort(m.onLeaveUntil)}` : null, freeText(free?.staff[m.id])].filter(Boolean).join(" · ")}
+            note={[m.onLeaveUntil ? t.onLeave(d.dayShort(m.onLeaveUntil)) : null, freeText(free?.staff[m.id])].filter(Boolean).join(" · ")}
             avatar={
               m.avatarUrl ? (
                 <img src={m.avatarUrl} alt="" className="size-11 rounded-full object-cover" />
@@ -580,6 +600,7 @@ function TimeStep({
   const [wForm, setWForm] = useState({ name: "", email: "", website: "" });
   const [wErr, setWErr] = useState<string | null>(null);
   const lastDay = addDaysIso(today, maxDays);
+  const { t, d, srv } = useL();
 
   useEffect(() => {
     let live = true;
@@ -608,39 +629,39 @@ function TimeStep({
   return (
     <div className="px-4 py-3">
       <div className="flex items-center justify-between">
-        <p className="font-semibold">{monthYear(weekStart)}</p>
+        <p className="font-semibold">{d.monthYear(weekStart)}</p>
         <div className="flex gap-1">
-          <button type="button" aria-label="Eelmine nädal" disabled={weekStart <= today} onClick={() => setWeekStart(addDaysIso(weekStart, -7) < today ? today : addDaysIso(weekStart, -7))} className="grid size-9 place-items-center rounded-full hover:bg-black/5 disabled:opacity-30">
+          <button type="button" aria-label={t.prevWeek} disabled={weekStart <= today} onClick={() => setWeekStart(addDaysIso(weekStart, -7) < today ? today : addDaysIso(weekStart, -7))} className="grid size-9 place-items-center rounded-full hover:bg-black/5 disabled:opacity-30">
             <ChevronLeft size={18} />
           </button>
-          <button type="button" aria-label="Järgmine nädal" disabled={addDaysIso(weekStart, 7) > lastDay} onClick={() => setWeekStart(addDaysIso(weekStart, 7))} className="grid size-9 place-items-center rounded-full hover:bg-black/5 disabled:opacity-30">
+          <button type="button" aria-label={t.nextWeek} disabled={addDaysIso(weekStart, 7) > lastDay} onClick={() => setWeekStart(addDaysIso(weekStart, 7))} className="grid size-9 place-items-center rounded-full hover:bg-black/5 disabled:opacity-30">
             <ChevronRight size={18} />
           </button>
         </div>
       </div>
       <div className="mt-2 grid grid-cols-7 gap-1.5">
-        {week.map((d) => {
-          const info = days?.find((x) => x.date === d);
-          const sel = d === date;
+        {week.map((wd) => {
+          const info = days?.find((x) => x.date === wd);
+          const sel = wd === date;
           const none = info && info.free === 0;
           return (
             <button
-              key={d}
+              key={wd}
               type="button"
-              onClick={() => setDate(d)}
+              onClick={() => setDate(wd)}
               aria-pressed={sel}
-              aria-label={`${dayLong(d)}${none ? ", vabu aegu pole" : ""}`}
+              aria-label={`${d.dayLong(wd)}${none ? t.noFreeTimes : ""}`}
               className={clsx("flex h-[58px] flex-col items-center justify-center rounded-[12px] border text-[11px]", sel ? "border-[var(--w-primary)] bg-[var(--w-primary)] text-[var(--w-on-primary)]" : "border-black/10", none && !sel && "opacity-40")}
             >
-              <span className="uppercase opacity-80">{d === today ? "Täna" : weekdayLetter(d)}</span>
-              <span className={clsx("text-[16px] font-bold", none && "line-through")}>{dayNum(d)}</span>
+              <span className="uppercase opacity-80">{wd === today ? t.todayShort : d.weekdayLetter(wd)}</span>
+              <span className={clsx("text-[16px] font-bold", none && "line-through")}>{d.dayNum(wd)}</span>
               {info && info.free > 0 && <span className={clsx("mt-0.5 size-1 rounded-full", sel ? "bg-[var(--w-on-primary)]" : "bg-[var(--w-primary)]")} />}
             </button>
           );
         })}
       </div>
 
-      <p className="mt-5 text-[12px] font-semibold tracking-[0.5px] uppercase opacity-60">{dayLong(date)}</p>
+      <p className="mt-5 text-[12px] font-semibold tracking-[0.5px] uppercase opacity-60">{d.dayLong(date)}</p>
       {day === null ? (
         <div className="mt-3 grid grid-cols-4 gap-2" aria-busy>
           {Array.from({ length: 8 }).map((_, i) => (
@@ -649,7 +670,7 @@ function TimeStep({
         </div>
       ) : day.slots.length > 0 ? (
         <>
-          <div role="radiogroup" aria-label="Kellaaeg" className={clsx("mt-3 grid gap-2", showStaffNames ? "grid-cols-3" : "grid-cols-4")}>
+          <div role="radiogroup" aria-label={t.timeLabel} className={clsx("mt-3 grid gap-2", showStaffNames ? "grid-cols-3" : "grid-cols-4")}>
             {day.slots.map((x) => {
               const sel = slot?.time === x.time;
               return (
@@ -671,17 +692,17 @@ function TimeStep({
         </>
       ) : (
         <div className="mt-3 rounded-[14px] bg-black/[0.03] p-4">
-          <p className="font-semibold">{day.reason === "closed" ? "Sel päeval on suletud" : day.reason === "too-far" ? "Nii kaugele ette ei saa broneerida" : "See päev on täielikult broneeritud"}</p>
-          <p className="mt-1 text-[13px] opacity-70">Vali teine päev{day.reason ? "" : " või liitu ootenimekirjaga"}.</p>
+          <p className="font-semibold">{day.reason === "closed" ? t.closedDay : day.reason === "too-far" ? t.tooFar : t.fullyBooked}</p>
+          <p className="mt-1 text-[13px] opacity-70">{t.pickOther}{day.reason ? "" : t.orWaitlist}.</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {day.next && (
               <button type="button" onClick={() => goto(day.next!.date)} className="h-10 rounded-full bg-[var(--w-primary)] px-4 text-[14px] font-semibold text-[var(--w-on-primary)]">
-                Järgmine vaba päev: {dayShort(day.next.date)}
+                {t.nextFree(d.dayShort(day.next.date))}
               </button>
             )}
             {!day.reason && wait === "closed" && (
               <button type="button" onClick={() => setWait("open")} className="h-10 rounded-full border border-black/15 px-4 text-[14px] font-semibold">
-                Liitu ootenimekirjaga
+                {t.joinWaitlist}
               </button>
             )}
           </div>
@@ -696,22 +717,22 @@ function TimeStep({
             setWErr(null);
             const r = await joinWaitlist({ slug, serviceId: service.id, staffId, date, ...wForm });
             if (r.ok) setWait("done");
-            else setWErr(r.reason);
+            else setWErr(srv(r.reason));
           }}
         >
-          <p className="font-semibold">Saa teavitus, kui {dayShort(date)} aeg vabaneb</p>
+          <p className="font-semibold">{t.notifyWhen(d.dayShort(date))}</p>
           <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden className="absolute -left-[9999px] h-px w-px opacity-0" value={wForm.website} onChange={(e) => setWForm({ ...wForm, website: e.target.value })} />
-          <WInput label="Nimi" value={wForm.name} onChange={(v) => setWForm({ ...wForm, name: v })} autoComplete="name" />
-          <WInput label="E-post" type="email" value={wForm.email} onChange={(v) => setWForm({ ...wForm, email: v })} autoComplete="email" />
+          <WInput label={t.name} value={wForm.name} onChange={(v) => setWForm({ ...wForm, name: v })} autoComplete="name" />
+          <WInput label={t.email} type="email" value={wForm.email} onChange={(v) => setWForm({ ...wForm, email: v })} autoComplete="email" />
           {wErr && <p className="text-[13px] text-[#b42318]">{wErr}</p>}
           <PrimaryButton type="submit" className="w-full">
-            Liitu ootenimekirjaga
+            {t.joinWaitlist}
           </PrimaryButton>
         </form>
       )}
       {wait === "done" && (
         <p className="mt-4 flex items-center gap-2 rounded-[12px] bg-[#ecfdf3] px-3 py-2.5 text-[13px] text-[#067647]">
-          <Check size={16} aria-hidden /> Oled ootenimekirjas. Anname teada, kui aeg vabaneb.
+          <Check size={16} aria-hidden /> {t.onWaitlist}
         </p>
       )}
     </div>
@@ -719,10 +740,11 @@ function TimeStep({
 }
 
 function WaitlistLink({ onClick, hidden }: { onClick: () => void; hidden: boolean }) {
+  const { t } = useL();
   if (hidden) return null;
   return (
     <button type="button" onClick={onClick} className="mt-4 flex items-center gap-2 text-[13px] underline-offset-4 opacity-80 hover:underline">
-      <Bell size={15} aria-hidden /> Ei leia sobivat aega? Saa teavitus, kui aeg vabaneb
+      <Bell size={15} aria-hidden /> {t.cantFind}
     </button>
   );
 }
@@ -756,15 +778,16 @@ function Details({
   pending: boolean;
 }) {
   const [codeInput, setCodeInput] = useState(form.code);
+  const { t, srv } = useL();
   return (
     <div className="space-y-3.5 px-4 py-4">
       <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden className="absolute -left-[9999px] h-px w-px opacity-0" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
-      <WInput id="w-name" label="Täisnimi" value={form.name} onChange={(v) => setForm({ ...form, name: v })} autoComplete="name" />
-      <WInput id="w-email" label="E-post" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} autoComplete="email" inputMode="email" />
-      <WInput id="w-phone" label="Telefon" type="tel" prefix="EE +372" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} autoComplete="tel-national" inputMode="tel" />
+      <WInput id="w-name" label={t.fullName} value={form.name} onChange={(v) => setForm({ ...form, name: v })} autoComplete="name" />
+      <WInput id="w-email" label={t.email} type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} autoComplete="email" inputMode="email" />
+      <WInput id="w-phone" label={t.phone} type="tel" prefix="EE +372" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} autoComplete="tel-national" inputMode="tel" />
       <div>
         <label htmlFor="w-code" className="mb-1 block text-[13px] font-medium">
-          Sooduskood
+          {t.promo}
         </label>
         <div className="flex gap-2">
           <input
@@ -783,7 +806,7 @@ function Details({
                 onApply("");
               }}
             >
-              Eemalda
+              {t.remove}
             </button>
           ) : (
             <button
@@ -795,24 +818,24 @@ function Details({
                 onApply(codeInput.trim());
               }}
             >
-              Rakenda
+              {t.apply}
             </button>
           )}
         </div>
         {q?.code && (
           <p className="mt-1.5 flex items-center gap-1.5 text-[13px] text-[#067647]">
-            <Check size={14} aria-hidden /> {q.code.code} rakendatud: {eur(-q.code.discountCents)}
+            <Check size={14} aria-hidden /> {t.applied(q.code.code, eur(-q.code.discountCents))}
           </p>
         )}
-        {q?.codeMessage && form.code && <p className="mt-1.5 text-[13px] text-[#b42318]">{q.codeMessage}</p>}
+        {q?.codeMessage && form.code && <p className="mt-1.5 text-[13px] text-[#b42318]">{srv(q.codeMessage)}</p>}
       </div>
       {smsAvailable && <label className="flex items-start gap-2.5 text-[14px]">
         <input type="checkbox" checked={form.sms} onChange={(e) => setForm({ ...form, sms: e.target.checked })} className="mt-0.5 size-[18px] accent-[var(--w-primary)]" />
-        Saada mulle SMS-meeldetuletus enne aega
+        {t.smsReminder}
       </label>}
       <label className="flex items-start gap-2.5 text-[14px]">
         <input type="checkbox" checked={form.terms} onChange={(e) => setForm({ ...form, terms: e.target.checked })} className="mt-0.5 size-[18px] accent-[var(--w-primary)]" />
-        Nõustun broneerimistingimustega
+        {t.acceptTerms}
       </label>
     </div>
   );
@@ -821,6 +844,7 @@ function Details({
 // ---------- W7 ----------
 
 function Confirm({ service, date, slot, duration, staffName, q, cancelHours, online }: { service: WidgetService; date: string; slot: Slot; duration: number; staffName?: string; q: Quote; cancelHours: number; online: boolean }) {
+  const { t, d } = useL();
   return (
     <div className="space-y-4 px-4 py-4">
       <div className="rounded-[14px] border border-black/10 p-4">
@@ -829,19 +853,19 @@ function Confirm({ service, date, slot, duration, staffName, q, cancelHours, onl
           <span>{eur(q.baseCents)}</span>
         </div>
         <p className="mt-1 text-[13px] opacity-70">
-          {dayShort(date)} kell {slot.time}–{addMinutes(slot.time, duration)}
+          {d.dayShort(date)} {t.at(`${slot.time}–${addMinutes(slot.time, duration)}`)}
           {staffName ? ` · ${staffName}` : ""}
         </p>
         {q.lines
           .filter((l) => l.kind !== "base" && l.kind !== "staff")
           .map((l, i) => (
             <div key={i} className="mt-2 flex justify-between text-[14px]">
-              <span className="opacity-80">{l.label}</span>
+              <span className="opacity-80">{priceLabel(t, l.label)}</span>
               <span>{eur(l.amountCents)}</span>
             </div>
           ))}
         <div className="mt-3 flex justify-between border-t border-black/10 pt-3 text-[16px] font-bold">
-          <span>Kokku</span>
+          <span>{t.total}</span>
           <span>{eur(q.finalCents)}</span>
         </div>
       </div>
@@ -850,16 +874,16 @@ function Confirm({ service, date, slot, duration, staffName, q, cancelHours, onl
           <Info size={16} className="mt-0.5 shrink-0" aria-hidden />
           <span>
             {online
-              ? `Broneeringu kinnitamiseks tasud kohe ettemaksu ${eur(q.depositCents)}${q.finalCents > q.depositCents ? `, ülejäänud ${eur(q.finalCents - q.depositCents)} kohapeal` : ""}. Tühistamisel kuni ${cancelHours} h enne algust saad ettemaksu tagasi.`
-              : `Selle teenuse ettemaks on ${eur(q.depositCents)}. Praegu tasud kogu summa (${eur(q.finalCents)}) kohapeal.`}
+              ? t.depositOnline(eur(q.depositCents), q.finalCents > q.depositCents ? eur(q.finalCents - q.depositCents) : null, cancelHours)
+              : t.depositOffline(eur(q.depositCents), eur(q.finalCents))}
           </span>
         </p>
       ) : (
         <p className="flex gap-2 rounded-[12px] bg-black/[0.04] p-3 text-[13px]">
-          <Info size={16} className="mt-0.5 shrink-0" aria-hidden /> Tasud kohapeal pärast teenust.
+          <Info size={16} className="mt-0.5 shrink-0" aria-hidden /> {t.payOnSite}
         </p>
       )}
-      <p className="text-[12px] opacity-60">Saad aega muuta või tühistada kinnituskirjas oleva lingi kaudu kuni {cancelHours} h enne algust.</p>
+      <p className="text-[12px] opacity-60">{t.changeLink(cancelHours)}</p>
     </div>
   );
 }
@@ -867,12 +891,13 @@ function Confirm({ service, date, slot, duration, staffName, q, cancelHours, onl
 // ---------- W8 ----------
 
 function Done({ biz, service, date, slot, duration, staffName, email, result }: { biz: Data["business"]; service: WidgetService; date: string; slot: Slot; duration: number; staffName?: string; email: string; result: { number: string; manageToken: string; finalCents: number } }) {
+  const { t, d, lang } = useL();
   const rows: [string, string][] = [
-    ["Teenus", `${service.name} · ${duration} min`],
-    ["Aeg", `${dayShortYear(date)} kell ${slot.time}`],
-    ...(staffName ? ([["Spetsialist", staffName]] as [string, string][]) : []),
-    ["Hind", `${eur(result.finalCents)} · tasud kohapeal`],
-    ["Broneeringu nr", result.number],
+    [t.rowService, `${service.name} · ${duration} ${lang === "ru" ? "мин" : "min"}`],
+    [t.rowTime, `${d.dayShortYear(date)} ${t.at(slot.time)}`],
+    ...(staffName ? ([[t.rowStaff, staffName]] as [string, string][]) : []),
+    [t.rowPrice, `${eur(result.finalCents)} · ${t.payOnSiteShort}`],
+    [t.bookingNo, result.number],
   ];
   return (
     <div className="px-4 py-5">
@@ -880,8 +905,8 @@ function Done({ biz, service, date, slot, duration, staffName, email, result }: 
         <span className="grid size-14 place-items-center rounded-full bg-[#ecfdf3] text-[#067647]">
           <Check size={28} />
         </span>
-        <h2 className="mt-3 text-[20px] font-bold">Aeg on broneeritud!</h2>
-        <p className="mt-1 text-[14px] opacity-70">Kinnitus saadetakse aadressile {email}.</p>
+        <h2 className="mt-3 text-[20px] font-bold">{t.booked}</h2>
+        <p className="mt-1 text-[14px] opacity-70">{t.confirmationTo(email)}</p>
       </div>
       <dl className="mt-5 divide-y divide-black/5 rounded-[14px] border border-black/10">
         {rows.map(([k, v]) => (
@@ -893,13 +918,13 @@ function Done({ biz, service, date, slot, duration, staffName, email, result }: 
       </dl>
       <div className="mt-4 grid grid-cols-2 gap-2">
         <a href={`/b/${result.manageToken}/kalender.ics`} className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-black/15 text-[14px] font-semibold">
-          <CalendarPlus size={16} aria-hidden /> Lisa kalendrisse
+          <CalendarPlus size={16} aria-hidden /> {t.addCal}
         </a>
         <a href={`/b/${result.manageToken}`} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center justify-center rounded-full border border-black/15 text-[14px] font-semibold">
-          Muuda
+          {t.change}
         </a>
       </div>
-      {biz.phone && <p className="mt-4 text-center text-[13px] opacity-60">Küsimused: {biz.phone}</p>}
+      {biz.phone && <p className="mt-4 text-center text-[13px] opacity-60">{t.questions(biz.phone)}</p>}
     </div>
   );
 }
