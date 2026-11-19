@@ -7,11 +7,12 @@ import {
   CalendarCheck,
   ChevronsLeft,
   ChevronsRight,
+  Eye,
   LogOut,
   X,
 } from "lucide-react";
 import { clsx } from "clsx";
-import { NAV, PLATFORM_ITEM, SETTINGS_ITEM, type NavItem } from "./nav";
+import { NAV, PLATFORM_ITEM, PLATFORM_NAV, SETTINGS_ITEM, type NavItem } from "./nav";
 import { canAccess, type Role } from "@/lib/permissions";
 import { Avatar } from "@/components/ui/Avatar";
 import { logout } from "@/app/(auth)/actions";
@@ -59,6 +60,7 @@ export function Sidebar({
   userRole,
   role = "OWNER",
   superadmin = false,
+  mode = "salon",
   initialCollapsed = false,
 }: {
   businessName: string;
@@ -66,6 +68,7 @@ export function Sidebar({
   userRole: string;
   role?: Role;
   superadmin?: boolean;
+  mode?: "platform" | "salon";
   initialCollapsed?: boolean;
 }) {
   const pathname = usePathname();
@@ -99,7 +102,7 @@ export function Sidebar({
     document.cookie = `${SIDEBAR_COOKIE}=${next ? "collapsed" : "open"}; path=/; max-age=31536000; samesite=lax`;
   };
 
-  const groups = NAV.map((g) => ({
+  const groups = (mode === "platform" ? PLATFORM_NAV : NAV).map((g) => ({
     ...g,
     items: g.items.filter((i) => canAccess(role, i.href)),
   })).filter((g) => g.items.length > 0);
@@ -201,12 +204,25 @@ export function Sidebar({
         </nav>
 
         <div className={clsx("pb-5", collapsed ? "px-3" : "px-3.5")}>
-          {superadmin && (
-            <NavLink
-              item={PLATFORM_ITEM}
-              active={isActive(PLATFORM_ITEM.href)}
-              collapsed={collapsed}
-            />
+          {superadmin && mode === "platform" && (
+            <a
+              href="/api/vaade?m=salon"
+              title={collapsed ? "Salongi vaade (demo)" : undefined}
+              className={clsx("flex h-10 items-center gap-3 rounded-lg text-[14px] font-medium text-[#d1d5db] hover:bg-ink-2 hover:text-white", collapsed ? "justify-center" : "px-2.5")}
+            >
+              <Eye size={18} aria-hidden />
+              {!collapsed && "Salongi vaade (demo)"}
+            </a>
+          )}
+          {superadmin && mode === "salon" && (
+            <a
+              href="/api/vaade?m=platvorm"
+              title={collapsed ? "Tagasi platvormile" : undefined}
+              className={clsx("flex h-10 items-center gap-3 rounded-lg bg-lime/10 text-[14px] font-semibold text-lime hover:bg-ink-2", collapsed ? "justify-center" : "px-2.5")}
+            >
+              <PLATFORM_ITEM.icon size={18} aria-hidden />
+              {!collapsed && "Tagasi platvormile"}
+            </a>
           )}
           <NavLink
             item={SETTINGS_ITEM}

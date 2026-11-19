@@ -6,6 +6,8 @@ import Link from "next/link";
 import { clsx } from "clsx";
 import { db, schema as s } from "@/db";
 import { getCurrentBusiness, getCurrentUser } from "@/lib/tenant";
+import { isPlatformMode } from "@/lib/platform-mode";
+import { redirect } from "next/navigation";
 import { countNewClients, isActiveStatus, loadDay, periodStats } from "@/server/day";
 import { addDaysIso, formatEuro, formatLongDate, formatShortDate, fromMinutes, isoWeekday, localDate, todayIso, zonedDateTime } from "@/lib/time";
 import { totalMinutes } from "@/lib/schedule";
@@ -90,6 +92,8 @@ async function StaffDashboard({ business, user }: { business: Awaited<ReturnType
 async function Dashboard() {
   const business = await getCurrentBusiness();
   const user = await getCurrentUser();
+  // platvormi haldur: vaikimisi platvormi vaade
+  if (await isPlatformMode(user)) redirect("/platvorm");
   if (user.role === "STAFF") return <StaffDashboard business={business} user={user} />;
   const tz = business.timezone;
   const today = todayIso(tz);

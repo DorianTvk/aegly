@@ -1,24 +1,37 @@
 "use client";
 
-import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/primitives";
-import { PLAN_IDS, PLAN_STATUS_LABEL, PLANS, type BillingPeriod, type PlanId, type PlanStatus } from "@/lib/plans";
-import { setBusinessPlan } from "./actions";
+import { clsx } from "clsx";
+import { PLAN_STATUS_LABEL, PLANS, type BillingPeriod, type PlanId, type PlanStatus } from "@/lib/plans";
 
-const sel = "h-8 rounded-lg border border-line bg-white px-2 text-[13px]";
+export type PlatformRow = {
+  id: string;
+  name: string;
+  slug: string;
+  plan: PlanId;
+  period: BillingPeriod;
+  status: PlanStatus;
+  billing: "stripe" | "comp" | "none";
+  mrr: string;
+  staff: number;
+  bookings30: number;
+  lastBooking: string;
+  owner: string;
+  created: string;
+  protected: boolean;
+};
 
-export type PlatformRow = { id: string; name: string; slug: string; plan: PlanId; period: BillingPeriod; status: PlanStatus; staff: number; bookings: number; owner: string; created: string; protected: boolean };
+const TONE: Record<PlanStatus, string> = {
+  ACTIVE: "bg-ok-bg text-ok",
+  PAST_DUE: "bg-[#fffaeb] text-[#b54708]",
+  PENDING: "bg-line-soft text-muted",
+  SUSPENDED: "bg-bad-bg text-bad",
+};
 
 export function BusinessRow({ b, selected, onSelect }: { b: PlatformRow; selected: boolean; onSelect: (v: boolean) => void }) {
-  const [v, setV] = useState({ plan: b.plan, period: b.period, status: b.status });
-  const [msg, setMsg] = useState<string | null>(null);
-  const [pending, start] = useTransition();
-  const dirty = v.plan !== b.plan || v.period !== b.period || v.status !== b.status;
-  const over = PLANS[v.plan].staffLimit !== null && b.staff > PLANS[v.plan].staffLimit!;
-
+  const over = PLANS[b.plan].staffLimit !== null && b.staff > PLANS[b.plan].staffLimit!;
   return (
-    <tr className={selected ? "border-t border-line-soft bg-bad-bg/40 align-middle" : "border-t border-line-soft align-middle"}>
+    <tr className={clsx("border-t border-line-soft align-middle", selected && "bg-bad-bg/40")}>
       <td className="py-3 pl-5">
         <input
           type="checkbox"
@@ -26,7 +39,6 @@ export function BusinessRow({ b, selected, onSelect }: { b: PlatformRow; selecte
           disabled={b.protected}
           onChange={(e) => onSelect(e.target.checked)}
           aria-label={b.protected ? `${b.name} (kaitstud)` : `Vali ${b.name}`}
-          title={b.protected ? "Sinu enda või platvormi halduri salongi ei saa kustutada" : undefined}
           className="size-4 accent-[#d92d20] disabled:opacity-30"
         />
       </td>
@@ -34,46 +46,24 @@ export function BusinessRow({ b, selected, onSelect }: { b: PlatformRow; selecte
         <Link href={`/platvorm/${b.id}`} className="font-medium underline-offset-4 hover:underline">
           {b.name}
         </Link>
-        <p className="text-xs text-muted">
-          {b.slug} · {b.owner}
-        </p>
+        <p className="text-xs text-muted">{b.owner}</p>
       </td>
       <td className="py-3">
-        <select aria-label={`Pakett: ${b.name}`} className={sel} value={v.plan} onChange={(e) => setV({ ...v, plan: e.target.value as PlanId })}>
-          {PLAN_IDS.map((p) => (
-            <option key={p} value={p}>
-              {PLANS[p].name}
-            </option>
-          ))}
-        </select>
+        {PLANS[b.plan].name}
+        <p className="text-xs text-muted">{b.period === "YEAR" ? "aasta" : "kuu"}</p>
       </td>
       <td className="py-3">
-        <select aria-label={`Arveldus: ${b.name}`} className={sel} value={v.period} onChange={(e) => setV({ ...v, period: e.target.value as BillingPeriod })}>
-          <option value="MONTH">Kuu</option>
-          <option value="YEAR">Aasta</option>
-        </select>
+        <span className={clsx("rounded-full px-2 py-0.5 text-xs font-semibold", TONE[b.status])}>{PLAN_STATUS_LABEL[b.status]}</span>
+        <p className="mt-0.5 text-xs text-muted">{b.billing === "stripe" ? "Stripe" : b.billing === "comp" ? "Tasuta (käsitsi)" : "—"}</p>
       </td>
-      <td className="py-3">
-        <select aria-label={`Staatus: ${b.name}`} className={sel} value={v.status} onChange={(e) => setV({ ...v, status: e.target.value as PlanStatus })}>
-          {(Object.keys(PLAN_STATUS_LABEL) as PlanStatus[]).map((st) => (
-            <option key={st} value={st}>
-              {PLAN_STATUS_LABEL[st]}
-            </option>
-          ))}
-        </select>
-      </td>
+      <td className="py-3 font-semibold">{b.mrr}</td>
       <td className={over ? "py-3 font-semibold text-bad" : "py-3"}>
         {b.staff}
-        {PLANS[v.plan].staffLimit !== null && ` / ${PLANS[v.plan].staffLimit}`}
+        {PLANS[b.plan].staffLimit !== null && <span className="text-muted"> / {PLANS[b.plan].staffLimit}</span>}
       </td>
-      <td className="py-3">{b.bookings}</td>
-      <td className="py-3 text-muted">{b.created}</td>
-      <td className="py-3 pr-5 text-right">
-        <Button size="sm" variant="primary" disabled={!dirty || pending} onClick={() => start(async () => setMsg((await setBusinessPlan({ businessId: b.id, ...v }))?.message ?? null))}>
-          Salvesta
-        </Button>
-        {msg && <span className="ml-2 text-xs text-muted">{msg}</span>}
-      </td>
+      <td className="py-3">{b.bookings30}</td>
+      <td className="py-3 text-muted">{b.lastBooking}</td>
+      <td className="py-3 pr-5 text-muted">{b.created}</td>
     </tr>
   );
 }

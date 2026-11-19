@@ -68,9 +68,21 @@ export const SETTINGS_ITEM: NavItem = { href: "/seaded", label: "Seaded", icon: 
 
 export const PLATFORM_ITEM: NavItem = { href: "/platvorm", label: "Platvorm", icon: Building2, section: "Aegly" };
 
+/** Platvormi halduri menüü (ilma salongi funktsioonideta) */
+export const PLATFORM_NAV: { section: string; items: NavItem[] }[] = [
+  {
+    section: "Platvorm",
+    items: [
+      { href: "/platvorm", label: "Ülevaade", icon: LayoutGrid, section: "Platvorm" },
+      { href: "/platvorm/kliendid", label: "Kliendid", icon: Building2, section: "Platvorm" },
+    ],
+  },
+];
+
 const EXTRA: NavItem[] = [
   { href: "/seaded/pakett", label: "Pakett ja arveldus", icon: SlidersHorizontal, section: "Seaded" },
   { href: "/teavitused/saadetud", label: "Saadetud teavitused", icon: Bell, section: "Kanal" },
+  { href: "/platvorm/kliendid", label: "Kliendid", icon: Building2, section: "Platvorm" },
   PLATFORM_ITEM,
   { href: "/broneeringud/uus", label: "Uus broneering", icon: CalendarDays, section: "Kalender" },
   { href: "/broneeringud", label: "Broneering", icon: CalendarDays, section: "Kalender" },

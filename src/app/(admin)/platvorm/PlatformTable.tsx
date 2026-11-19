@@ -8,7 +8,7 @@ import { deleteBusinesses } from "./manage-actions";
 
 const CONFIRM_WORD = "KUSTUTA";
 
-export function PlatformTable({ rows }: { rows: PlatformRow[]; ownBusinessId: string }) {
+export function PlatformTable({ rows }: { rows: PlatformRow[] }) {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [dialog, setDialog] = useState(false);
@@ -74,14 +74,14 @@ export function PlatformTable({ rows }: { rows: PlatformRow[]; ownBusinessId: st
                   className="size-4 accent-[#d92d20]"
                 />
               </th>
-              <th className="py-3">Salong</th>
+              <th className="py-3">Klient</th>
               <th className="py-3">Pakett</th>
-              <th className="py-3">Arveldus</th>
               <th className="py-3">Staatus</th>
+              <th className="py-3">Kuutulu</th>
               <th className="py-3">Töötajad</th>
-              <th className="py-3">Broneeringud</th>
-              <th className="py-3">Loodud</th>
-              <th className="py-3 pr-5" />
+              <th className="py-3">Broneeringuid 30 p</th>
+              <th className="py-3">Viimane broneering</th>
+              <th className="py-3 pr-5">Liitus</th>
             </tr>
           </thead>
           <tbody>
@@ -91,7 +91,7 @@ export function PlatformTable({ rows }: { rows: PlatformRow[]; ownBusinessId: st
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={9} className="py-10 text-center text-muted">
-                  Ühtegi salongi ei leitud.
+                  Ühtegi klienti ei leitud.
                 </td>
               </tr>
             )}
