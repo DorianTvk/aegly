@@ -29,6 +29,7 @@ export function Widget({ data, embed }: { data: Data; embed: boolean }) {
   const [slot, setSlot] = useState<Slot | null>(null);
   const [form, setForm] = useState({ name: "", email: "", phone: "", code: "", sms: true, terms: false, website: "" });
   const [q, setQ] = useState<Quote | null>(null);
+  const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   const [result, setResult] = useState<{ number: string; manageToken: string; finalCents: number; depositCents: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -147,7 +148,7 @@ export function Widget({ data, embed }: { data: Data; embed: boolean }) {
           )}
           {step === "details" && <Details form={form} setForm={setForm} q={q} onApply={(code) => loadQuote(code)} pending={pending} smsAvailable={biz.smsAvailable} />}
           {step === "confirm" && service && slot && q && (
-            <Confirm service={service} date={date} slot={slot} duration={duration} staffName={staffName} q={q} cancelHours={biz.cancelUntilHours} />
+            <Confirm service={service} date={date} slot={slot} duration={duration} staffName={staffName} q={q} cancelHours={biz.cancelUntilHours} online={biz.onlineDeposits} />
           )}
           {step === "done" && service && slot && result && (
             <Done biz={biz} service={service} date={date} slot={slot} duration={duration} staffName={staffName} email={form.email} result={result} />
@@ -236,9 +237,17 @@ export function Widget({ data, embed }: { data: Data; embed: boolean }) {
               <p className="flex items-center justify-center gap-1.5 text-[12px] opacity-60">
                 <ShieldCheck size={14} aria-hidden /> Tasuta tühistamine kuni {biz.cancelUntilHours} h enne algust
               </p>
+              {redirectUrl && (
+                <p className="text-center text-[13px]">
+                  Makseleht ei avanenud?{" "}
+                  <a href={redirectUrl} target="_top" className="font-semibold underline">
+                    Ava makseleht
+                  </a>
+                </p>
+              )}
               <PrimaryButton
                 className="w-full"
-                disabled={pending}
+                disabled={pending || !!redirectUrl}
                 onClick={() =>
                   start(async () => {
                     setError(null);
@@ -246,7 +255,12 @@ export function Widget({ data, embed }: { data: Data; embed: boolean }) {
                       slug: biz.slug, serviceId: service.id, staffId: slot.staffId, date, time: slot.time, code: q.code?.code,
                       name: form.name, email: form.email, phone: `+372 ${form.phone}`.replace("+372 +", "+"), smsReminder: form.sms, terms: true, website: form.website,
                     });
-                    if (r.ok) {
+                    if (r.ok && r.checkoutUrl) {
+                      // ettemaks Stripe'is: makseleht ei avane iframe'is, seega suuname kogu lehe
+                      setRedirectUrl(r.checkoutUrl);
+                      if (embed) window.parent.postMessage({ type: "aegly:redirect", url: r.checkoutUrl }, "*");
+                      else window.location.href = r.checkoutUrl;
+                    } else if (r.ok) {
                       setResult(r);
                       setStep("done");
                     } else {
@@ -259,7 +273,7 @@ export function Widget({ data, embed }: { data: Data; embed: boolean }) {
                   })
                 }
               >
-                {pending ? "Broneerin…" : "Kinnita broneering"}
+                {pending || redirectUrl ? (q.depositCents > 0 && biz.onlineDeposits ? "Avan makselehe…" : "Broneerin…") : q.depositCents > 0 && biz.onlineDeposits ? `Maksa ettemaks ${eur(q.depositCents)}` : "Kinnita broneering"}
               </PrimaryButton>
             </div>
           )}
@@ -800,7 +814,7 @@ function Details({
 
 // ---------- W7 ----------
 
-function Confirm({ service, date, slot, duration, staffName, q, cancelHours }: { service: WidgetService; date: string; slot: Slot; duration: number; staffName?: string; q: Quote; cancelHours: number }) {
+function Confirm({ service, date, slot, duration, staffName, q, cancelHours, online }: { service: WidgetService; date: string; slot: Slot; duration: number; staffName?: string; q: Quote; cancelHours: number; online: boolean }) {
   return (
     <div className="space-y-4 px-4 py-4">
       <div className="rounded-[14px] border border-black/10 p-4">
@@ -829,7 +843,9 @@ function Confirm({ service, date, slot, duration, staffName, q, cancelHours }: {
         <p className="flex gap-2 rounded-[12px] bg-black/[0.04] p-3 text-[13px]">
           <Info size={16} className="mt-0.5 shrink-0" aria-hidden />
           <span>
-            Selle teenuse ettemaks on {eur(q.depositCents)}. Veebimakse lisandub peagi – praegu tasud kogu summa ({eur(q.finalCents)}) kohapeal.
+            {online
+              ? `Broneeringu kinnitamiseks tasud kohe ettemaksu ${eur(q.depositCents)}${q.finalCents > q.depositCents ? `, ülejäänud ${eur(q.finalCents - q.depositCents)} kohapeal` : ""}. Tühistamisel kuni ${cancelHours} h enne algust saad ettemaksu tagasi.`
+              : `Selle teenuse ettemaks on ${eur(q.depositCents)}. Praegu tasud kogu summa (${eur(q.finalCents)}) kohapeal.`}
           </span>
         </p>
       ) : (

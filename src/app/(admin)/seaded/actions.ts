@@ -126,3 +126,19 @@ export async function deleteBusiness(confirmName: string): Promise<FormState> {
   await db.delete(s.businesses).where(eq(s.businesses.id, business.id));
   redirect("/registreeru");
 }
+
+/** Ühenda salongi Stripe'i konto (ainult omanik) – suunab Stripe'i liitumisvormile */
+export async function connectStripe(): Promise<FormState> {
+  const { business, user } = await requireSession();
+  if (user.role !== "OWNER") return { message: "Makseid saab ühendada ainult omanik." };
+  const { stripeConfigured, onboardingLink } = await import("@/server/stripe");
+  if (!stripeConfigured()) return { message: "Stripe pole platvormil veel seadistatud." };
+  let url: string;
+  try {
+    url = await onboardingLink(business.id, await appUrl());
+  } catch (e) {
+    console.error("[stripe] onboarding", e);
+    return { message: "Stripe'iga ühendamine ebaõnnestus. Proovi hiljem uuesti." };
+  }
+  redirect(url);
+}

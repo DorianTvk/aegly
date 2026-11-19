@@ -126,6 +126,7 @@ export const businesses = pgTable("businesses", {
   // Stripe Connect
   stripeAccountId: text("stripe_account_id"),
   stripeChargesEnabled: boolean("stripe_charges_enabled").notNull().default(false),
+  stripeDetailsSubmitted: boolean("stripe_details_submitted").notNull().default(false),
   createdAt: createdAt(),
 });
 
@@ -538,6 +539,8 @@ export const payments = pgTable("payments", {
   status: paymentStatusEnum("status").notNull().default("PENDING"),
   method: text("method"),
   stripePaymentIntentId: text("stripe_payment_intent_id").unique(),
+  stripeCheckoutSessionId: text("stripe_checkout_session_id").unique(),
+  stripeAccountId: text("stripe_account_id"),
   refundedCents: integer("refunded_cents").notNull().default(0),
   createdAt: createdAt(),
 });

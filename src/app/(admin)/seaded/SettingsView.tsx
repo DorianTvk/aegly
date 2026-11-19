@@ -32,10 +32,56 @@ import {
   deleteBusiness,
   saveProtection,
   updateAccount,
+  connectStripe,
 } from "./actions";
 import { UsersCard, type PendingInvite, type SettingsUser } from "./UsersCard";
 
 type User = SettingsUser;
+
+const STRIPE_BADGE = {
+  none: { tone: "neutral", label: "Ühendamata" },
+  incomplete: { tone: "warn", label: "Pooleli" },
+  review: { tone: "warn", label: "Stripe kontrollib" },
+  active: { tone: "ok", label: "Ühendatud" },
+} as const;
+
+function StripeConnect({ status, available, isOwner }: { status: "none" | "incomplete" | "review" | "active"; available: boolean; isOwner: boolean }) {
+  const [state, setState] = useState<FormState>(null);
+  const [pending, start] = useTransition();
+  const b = STRIPE_BADGE[status];
+  return (
+    <div className="space-y-3 rounded-[10px] border border-line p-4">
+      <div className="flex items-start gap-3">
+        <CreditCard size={20} className="mt-0.5 text-muted" />
+        <div className="flex-1">
+          <p className="text-sm font-medium">Veebimaksed (Stripe)</p>
+          <p className="text-[13px] text-muted">
+            {status === "active"
+              ? "Kliendid tasuvad vidinas ettemaksu kaardi, Apple Pay või Google Payga. Raha laekub otse sinu Stripe'i kontole."
+              : status === "review"
+                ? "Andmed on esitatud. Stripe kontrollib kontot – tavaliselt võtab see mõne minuti kuni päeva."
+                : status === "incomplete"
+                  ? "Stripe'i konto on loodud, kuid andmed on veel puudu. Jätka sealt, kus pooleli jäi."
+                  : "Ühenda Stripe, et kliendid saaksid vidinas ettemaksu tasuda. Raha laekub otse sinu Stripe'i kontole; Aegly vahendustasu ei võta."}
+          </p>
+        </div>
+        <Badge tone={b.tone}>{b.label}</Badge>
+      </div>
+      {state?.message && <p className="text-[13px] text-bad">{state.message}</p>}
+      {available && isOwner && status !== "active" && (
+        <Button size="sm" variant={status === "none" ? "primary" : "secondary"} disabled={pending} onClick={() => start(async () => setState(await connectStripe()))}>
+          {pending ? "Suunan Stripe'i…" : status === "none" ? "Ühenda Stripe" : "Jätka Stripe'is"}
+        </Button>
+      )}
+      {status === "active" && isOwner && (
+        <a href="https://dashboard.stripe.com" target="_blank" rel="noreferrer" className="inline-flex text-[13px] font-semibold underline">
+          {"Ava Stripe'i töölaud"}
+        </a>
+      )}
+      {!isOwner && status !== "active" && <p className="text-[13px] text-muted">Makseid saab ühendada salongi omanik.</p>}
+    </div>
+  );
+}
 
 export function SettingsView({
   me,
@@ -54,7 +100,8 @@ export function SettingsView({
     name: string;
     noShowProtection: boolean;
     noShowThreshold: number;
-    stripeAccountId: string | null;
+    stripeStatus: "none" | "incomplete" | "review" | "active";
+    stripeAvailable: boolean;
     locale: string;
     currency: string;
     timezone: string;
@@ -176,19 +223,7 @@ export function SettingsView({
         <Card>
           <CardHeader title="Maksed ja kaitse" />
           <div className="space-y-5 p-5">
-            <div className="flex items-start gap-3 rounded-[10px] border border-line p-4">
-              <CreditCard size={20} className="mt-0.5 text-muted" />
-              <div className="flex-1">
-                <p className="text-sm font-medium">Stripe</p>
-                <p className="text-[13px] text-muted">
-                  Kaardimaksed, Apple Pay ja Google Pay. Raha laekub otse sinu
-                  Stripe&apos;i kontole.
-                </p>
-              </div>
-              <Badge tone="neutral">
-                {business.stripeAccountId ? "Ühendatud" : "Lisandub maksetega"}
-              </Badge>
-            </div>
+            <StripeConnect status={business.stripeStatus} available={business.stripeAvailable} isOwner={owner} />
             <div className="flex items-start justify-between gap-4">
               <span className="flex gap-3">
                 <ShieldAlert size={20} className="mt-0.5 text-muted" />

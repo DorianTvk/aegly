@@ -1,4 +1,5 @@
 import "server-only";
+import { canTakeDeposits } from "./stripe";
 import { and, asc, eq, gte, lte } from "drizzle-orm";
 import { db, schema as s } from "@/db";
 import { addDaysIso, isoWeekday, localDate, todayIso } from "@/lib/time";
@@ -104,6 +105,7 @@ export async function loadWidget(slug: string) {
       todayHours: todayHours && !todayHours.closed ? `${todayHours.startTime?.slice(0, 2)}–${todayHours.endTime?.slice(0, 2)}` : null,
       cancelUntilHours: b.cancelUntilHours, maxAdvanceDays: b.maxAdvanceDays, noShowProtection: b.noShowProtection,
       smsAvailable: smsConfigured(),
+      onlineDeposits: canTakeDeposits(b),
     },
     theme: {
       primary: b.widgetPrimary, buttonText: b.widgetButtonColor, background: b.widgetBackground, text: b.widgetTextColor,

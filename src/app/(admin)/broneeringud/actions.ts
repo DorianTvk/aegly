@@ -1,5 +1,8 @@
 "use server";
 
+import { refundBooking } from "@/server/stripe";
+import { formatEuro } from "@/lib/time";
+
 import { after } from "next/server";
 import { appUrl } from "@/lib/app-url";
 import { notifyBooking, notifyWaitlist } from "@/server/notify";
@@ -108,6 +111,9 @@ export async function setBookingStatus(bookingId: string, status: "CONFIRMED" | 
     })
     .where(eq(s.bookings.id, bookingId));
   const base = await appUrl();
+  // salong tühistas → veebis tasutud ettemaks tagasi
+  let refunded = 0;
+  if (status === "CANCELLED") refunded = await refundBooking(bookingId, "Tühistas salong").catch((e) => { console.error("[stripe] refund", e); return -1; });
   if (status === "CANCELLED" && b.startsAt > new Date()) {
     after(async () => {
       await notifyBooking(bookingId, "CANCELLED", base);
@@ -118,6 +124,8 @@ export async function setBookingStatus(bookingId: string, status: "CONFIRMED" | 
   revalidatePath(`/broneeringud/${bookingId}`);
   revalidatePath("/kalender");
   revalidatePath("/toolaud");
+  if (refunded < 0) return { ok: true, message: "Broneering tühistatud, kuid ettemaksu tagastamine ebaõnnestus – tagasta see Stripe'i töölaual." };
+  if (refunded > 0) return { ok: true, message: `Broneering tühistatud. Ettemaks ${formatEuro(refunded, { decimals: true })} tagastatakse kliendile.` };
   return { ok: true, message: "Staatus muudetud." };
 }
 

@@ -4,6 +4,9 @@ import { after } from "next/server";
 import { appUrl } from "@/lib/app-url";
 import { notifyBooking, notifySalon, notifyWaitlist } from "@/server/notify";
 import { recordActivity } from "@/server/activity";
+import { canTakeDeposits, createDepositCheckout, refundBooking } from "@/server/stripe";
+import { loadManaged } from "@/server/manage";
+import { redirect } from "next/navigation";
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -29,6 +32,8 @@ export async function cancel(token: string, reason: string | null) {
   if (r.ok) {
     const base = await appUrl();
     after(async () => {
+      // ettemaks tagasi (tasuta tühistamise aja sees)
+      await refundBooking(r.bookingId, "Klient tühistas").catch((e) => console.error("[stripe] refund", e));
       await Promise.all([
         notifyBooking(r.bookingId, "CANCELLED", base),
         notifySalon(r.bookingId, "CANCELLED", base),
@@ -39,4 +44,22 @@ export async function cancel(token: string, reason: string | null) {
     revalidatePath(`/b/${token}`);
   }
   return r;
+}
+
+/** Maksa ettemaks uuesti (kui klient katkestas makse või see aegus enne kinnitamist) */
+export async function payDeposit(token: string) {
+  const m = await loadManaged(token);
+  if (!m) return { ok: false as const, reason: "Broneeringut ei leitud" };
+  const b = m.booking;
+  if (b.status !== "PENDING_PAYMENT" || b.depositCents <= 0 || m.paidCents > 0 || !canTakeDeposits(m.business)) {
+    return { ok: false as const, reason: "Ettemaksu ei saa praegu tasuda." };
+  }
+  let url: string;
+  try {
+    url = await createDepositCheckout(b.id, await appUrl());
+  } catch (e) {
+    console.error("[stripe] checkout", e);
+    return { ok: false as const, reason: "Makse alustamine ebaõnnestus. Proovi uuesti." };
+  }
+  redirect(url);
 }

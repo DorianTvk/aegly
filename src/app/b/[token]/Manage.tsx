@@ -6,17 +6,17 @@ import { clsx } from "clsx";
 import { addDaysIso, formatEuro } from "@/lib/time";
 import { dayLong, dayNum, dayShort, dayShortYear, monthYear, weekdayLetter } from "@/lib/date-et";
 import { daySlots, weekDays } from "@/app/w/[slug]/actions";
-import { cancel, reschedule } from "./actions";
+import { cancel, payDeposit, reschedule } from "./actions";
 
 type Booking = {
   number: string; status: string; serviceId: string; serviceName: string; staffId: string; staffName: string;
-  date: string; start: string; end: string; finalCents: number; paidCents: number; deadlineDate: string; deadlineTime: string; canChange: boolean;
+  date: string; start: string; end: string; finalCents: number; depositCents: number; paidCents: number; deadlineDate: string; deadlineTime: string; canChange: boolean;
 };
 type Biz = { name: string; slug: string; address: string | null; phone: string | null; logoUrl: string | null; maxAdvanceDays: number };
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   CONFIRMED: { label: "Kinnitatud", cls: "bg-[#ecfdf3] text-[#067647]" },
-  PENDING_PAYMENT: { label: "Ootab kinnitust", cls: "bg-[#fffaeb] text-[#b54708]" },
+  PENDING_PAYMENT: { label: "Ootab ettemaksu / kinnitust", cls: "bg-[#fffaeb] text-[#b54708]" },
   HELD: { label: "Hoitud", cls: "bg-[#fffaeb] text-[#b54708]" },
   COMPLETED: { label: "Toimunud", cls: "bg-black/5" },
   CANCELLED: { label: "Tühistatud", cls: "bg-[#fef3f2] text-[#b42318]" },
@@ -25,7 +25,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 const REASONS = ["Aeg ei sobi", "Haigestusin", "Leidsin muu aja", "Muu"];
 const eur = (c: number) => formatEuro(c, { decimals: true });
 
-export function Manage({ token, today, theme, biz, booking: b }: { token: string; today: string; theme: { primary: string; onPrimary: string }; biz: Biz; booking: Booking }) {
+export function Manage({ token, today, theme, biz, booking: b, payment, canPay }: { token: string; today: string; theme: { primary: string; onPrimary: string }; biz: Biz; booking: Booking; payment: "paid" | "open" | "expired" | "cancelled" | null; canPay: boolean }) {
   const [view, setView] = useState<"main" | "move">("main");
   const [sheet, setSheet] = useState(false);
   const [reason, setReason] = useState<string | null>(null);
@@ -49,6 +49,31 @@ export function Manage({ token, today, theme, biz, booking: b }: { token: string
               </div>
             </header>
             <div className="flex-1 px-5 py-5">
+              {payment === "paid" && b.status === "CONFIRMED" && !msg && (
+                <p role="status" className="mb-4 rounded-[12px] bg-[#ecfdf3] px-3 py-2.5 text-[14px] text-[#067647]">
+                  Ettemaks on tasutud ja broneering kinnitatud. Saatsime kinnituse e-postile.
+                </p>
+              )}
+              {payment === "paid" && b.status === "CANCELLED" && (
+                <p role="status" className="mb-4 rounded-[12px] bg-[#fef3f2] px-3 py-2.5 text-[14px] text-[#b42318]">
+                  Makse jõudis kohale liiga hilja ja aeg vabanes vahepeal. Tagastasime ettemaksu – broneeri palun uus aeg.
+                </p>
+              )}
+              {canPay && (
+                <div className="mb-4 space-y-3 rounded-[12px] bg-[#fffaeb] p-3 text-[14px] text-[#93370d]">
+                  <p>
+                    {payment === "cancelled" ? "Makse jäi pooleli. " : ""}Broneeringu kinnitamiseks tasu ettemaks {eur(b.depositCents)}. Kui ettemaksu ei tasuta 30 minuti jooksul, aeg vabaneb.
+                  </p>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => start(async () => { const r = await payDeposit(token); if (r && !r.ok) setMsg({ ok: false, text: r.reason }); })}
+                    className="flex h-11 w-full items-center justify-center rounded-full bg-[var(--w-primary)] text-[15px] font-semibold text-[var(--w-on-primary)] disabled:opacity-60"
+                  >
+                    {pending ? "Avan makselehe…" : `Maksa ettemaks ${eur(b.depositCents)}`}
+                  </button>
+                </div>
+              )}
               {msg && (
                 <p role="status" className={clsx("mb-4 rounded-[12px] px-3 py-2.5 text-[14px]", msg.ok ? "bg-[#ecfdf3] text-[#067647]" : "bg-[#fef3f2] text-[#b42318]")}>
                   {msg.text}

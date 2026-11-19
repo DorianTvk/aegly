@@ -106,6 +106,13 @@
       "when": 1795011887942,
       "tag": "0014_auth_tokens_roles",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1795078701721,
+      "tag": "0015_stripe",
+      "breakpoints": true
     }
   ]
 }

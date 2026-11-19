@@ -1,6 +1,7 @@
 "use server";
 
 import { recordAttempt, widgetGuard } from "@/server/bot-protection";
+import { canTakeDeposits, createDepositCheckout } from "@/server/stripe";
 import { after } from "next/server";
 import { appUrl } from "@/lib/app-url";
 import { notifyBooking, notifySalon } from "@/server/notify";
@@ -131,10 +132,23 @@ export async function book(input: z.input<typeof bookSchema>) {
     client: { name: q.name, email: q.email, phone: q.phone, consentSms: q.smsReminder && smsConfigured() },
     code: q.code || null,
     source: "WIDGET",
-    deferPayment: true,
+    // veebiettemaks ainult siis, kui salong on Stripe'i ühendanud; muidu tasub kohapeal
+    deferPayment: !canTakeDeposits(c.business),
   });
   if (!res.ok) return res;
   const base = await appUrl();
+  const b = await db.query.bookings.findFirst({ where: eq(s.bookings.id, res.bookingId) });
+  if (b!.status === "PENDING_PAYMENT" && b!.depositCents > 0 && canTakeDeposits(c.business)) {
+    // ettemaks: teavitused lähevad alles pärast makset (syncCheckout)
+    try {
+      const checkoutUrl = await createDepositCheckout(b!.id, base);
+      return { ok: true as const, number: res.number, manageToken: b!.manageToken, finalCents: b!.finalPriceCents, depositCents: b!.depositCents, checkoutUrl };
+    } catch (e) {
+      console.error("[stripe] checkout", e);
+      await db.update(s.bookings).set({ status: "CANCELLED", cancelledAt: new Date(), cancelReason: "Makse alustamine ebaõnnestus" }).where(eq(s.bookings.id, b!.id));
+      return { ok: false as const, reason: "Makse alustamine ebaõnnestus. Proovi uuesti või helista salongi." };
+    }
+  }
   after(() =>
     Promise.all([
       res.status === "CONFIRMED" ? notifyBooking(res.bookingId, "CONFIRMATION", base) : null,
@@ -142,8 +156,7 @@ export async function book(input: z.input<typeof bookSchema>) {
       recordActivity(c.business.id, "BOOKING_NEW", { bookingId: res.bookingId }),
     ]),
   );
-  const b = await db.query.bookings.findFirst({ where: eq(s.bookings.id, res.bookingId) });
-  return { ok: true as const, number: res.number, manageToken: b!.manageToken, finalCents: b!.finalPriceCents, depositCents: b!.depositCents };
+  return { ok: true as const, number: res.number, manageToken: b!.manageToken, finalCents: b!.finalPriceCents, depositCents: b!.depositCents, checkoutUrl: null };
 }
 
 const waitSchema = z.object({ slug: z.string().max(80), serviceId: idStr, staffId: idStr.nullable(), date: isoDate, name: z.string().trim().min(2, "Sisesta nimi").max(80), email: z.email("Sisesta kehtiv e-post"), website: z.string().max(200).optional() });

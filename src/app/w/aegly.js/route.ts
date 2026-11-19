@@ -41,7 +41,12 @@ const SCRIPT = String.raw`(function () {
     document.documentElement.style.overflow = '';
     if (lastFocus && lastFocus.focus) lastFocus.focus();
   }
-  window.addEventListener('message', function (e) { if (e.origin === base && e.data && e.data.type === 'aegly:close') close(); });
+  window.addEventListener('message', function (e) {
+    if (e.origin !== base || !e.data) return;
+    if (e.data.type === 'aegly:close') close();
+    // ettemaks: Stripe'i makseleht avatakse kogu aknas (iframe'is see ei tööta)
+    if (e.data.type === 'aegly:redirect' && typeof e.data.url === 'string' && e.data.url.indexOf('https://checkout.stripe.com/') === 0) window.location.href = e.data.url;
+  });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
   document.addEventListener('click', function (e) { var t = e.target.closest && e.target.closest('[data-aegly-open]'); if (t) { e.preventDefault(); open(); } });
   window.Aegly = { open: open, close: close };
