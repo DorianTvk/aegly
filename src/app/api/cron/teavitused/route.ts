@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { reportError } from "@/lib/report";
 import { runScheduledNotifications } from "@/server/notify";
 import { expireUnpaidHolds } from "@/server/stripe";
@@ -8,7 +9,10 @@ import { expireUnpaidHolds } from "@/server/stripe";
  */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
-  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) return new Response("Unauthorized", { status: 401 });
+  const got = Buffer.from(req.headers.get("authorization") ?? "");
+  const want = Buffer.from(`Bearer ${secret ?? ""}`);
+  // ajakindel võrdlus, et salajast võtit ei saaks vastuse aja järgi ära arvata
+  if (!secret || got.length !== want.length || !timingSafeEqual(got, want)) return new Response("Unauthorized", { status: 401 });
   const base = (process.env.APP_URL ?? new URL(req.url).origin).replace(/\/$/, "");
   const result = await runScheduledNotifications(base);
   const expiredHolds = await expireUnpaidHolds().catch((e) => { reportError("stripe holds", e); return 0; });

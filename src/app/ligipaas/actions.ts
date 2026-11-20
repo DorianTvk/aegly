@@ -19,5 +19,5 @@ export async function unlock(_prev: { error?: string } | null, formData: FormDat
   }
   (await cookies()).set(GATE_COOKIE, await gateToken(), { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });
   const next = String(formData.get("next") ?? "/");
-  redirect(next.startsWith("/") && !next.startsWith("//") ? next : "/");
+  redirect(/^\/(?![\/\\])[^\s\\]*$/.test(next) ? next : "/");
 }

@@ -12,6 +12,8 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/pilt/[id]">) {
       "Content-Type": img.contentType,
       "Cache-Control": "public, max-age=31536000, immutable",
       "X-Content-Type-Options": "nosniff",
+      // ka otse avatud SVG ei saa käivitada skripte ega laadida väliseid ressursse
+      "Content-Security-Policy": "default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox",
     },
   });
 }

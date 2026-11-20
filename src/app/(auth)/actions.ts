@@ -36,7 +36,8 @@ const registerSchema = z.object({
 });
 
 /** Ainult sisemised teed, et vältida avatud ümbersuunamist */
-const safeNext = (next?: string) => (next && next.startsWith("/") && !next.startsWith("//") ? next : "/toolaud");
+/** Ainult oma lehe suhteline aadress: "/x", mitte "//x", "/\\x" ega juhtmärgid (avatud ümbersuunamise kaitse) */
+const safeNext = (next?: string) => (next && /^\/(?![\/\\])[^\s\\]*$/.test(next) ? next : "/toolaud");
 
 export async function login(_prev: FormState, formData: FormData): Promise<FormState> {
   const parsed = loginSchema.safeParse(Object.fromEntries(formData));

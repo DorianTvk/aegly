@@ -11,7 +11,7 @@ import { isSuperadmin } from "@/lib/plans";
 export const SESSION_COOKIE = "aegly_session";
 const SESSION_DAYS = 30;
 
-const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
+export const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 
 export async function createSession(userId: string, opts: { hours?: number } = {}) {
   const token = randomBytes(32).toString("base64url");

@@ -148,7 +148,9 @@ check("märge lisatud", (await text()).includes("Testmärge"));
 await page.goto(B + "/broneeringud/uus", { waitUntil: "networkidle0" });
 await page.type("input[aria-label='Otsi klienti']", "Katrin"); await wait(1200);
 await page.click("ul button ::-p-text(Katrin)"); await wait(300);
-const tomorrow = new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10);
+// vähemalt 2 päeva pärast, aga mitte nädalavahetusel (salong võib olla kinni)
+let d2 = new Date(Date.now() + 86400000 * 2); while ([0, 6].includes(d2.getDay())) d2 = new Date(d2.getTime() + 86400000);
+const tomorrow = d2.toISOString().slice(0, 10);
 await page.$eval("#mDate", (e, v) => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; set.call(e, v); e.dispatchEvent(new Event("input", { bubbles: true })); }, tomorrow);
 await wait(1500);
 const slotBtns = await page.$$("button[aria-pressed]");

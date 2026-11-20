@@ -7,7 +7,8 @@ import { redirect } from "next/navigation";
 import { and, eq, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema as s } from "@/db";
-import { requireManager, requireSession, destroySession } from "@/lib/session";
+import { requireManager, requireSession, destroySession, hashToken, SESSION_COOKIE } from "@/lib/session";
+import { cookies } from "next/headers";
 import { after } from "next/server";
 import { appUrl } from "@/lib/app-url";
 import { manageableRoles } from "@/lib/permissions";
@@ -22,8 +23,10 @@ export async function changePassword(_prev: FormState, formData: FormData): Prom
   if (next.length < 8) return { errors: { next: ["Vähemalt 8 märki"] } };
   if (!(await verifyPassword(current, user.passwordHash))) return { errors: { current: ["Vale parool"] } };
   await db.update(s.users).set({ passwordHash: await hashPassword(next) }).where(eq(s.users.id, user.id));
-  // logi välja teistest seadmetest
-  return { ok: true, message: "Parool muudetud." };
+  // logi välja teistest seadmetest (praegune sessioon jääb)
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  await db.delete(s.sessions).where(and(eq(s.sessions.userId, user.id), token ? ne(s.sessions.id, hashToken(token)) : undefined));
+  return { ok: true, message: "Parool muudetud. Teised seadmed logiti välja." };
 }
 
 export async function updateAccount(input: { name: string }): Promise<FormState> {
