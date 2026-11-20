@@ -1,5 +1,6 @@
 "use server";
 
+import { releasePrepaid } from "@/server/prepaid";
 import { reportError } from "@/lib/report";
 
 import { recordAttempt, widgetGuard } from "@/server/bot-protection";
@@ -16,6 +17,8 @@ import { db, schema as s } from "@/db";
 import { fromMinutes, todayIso, zonedDateTime } from "@/lib/time";
 import { getSlots } from "@/server/availability";
 import { checkDiscountCode, quotePrice } from "@/server/pricing";
+import { applyPrepaid, checkGiftCard, findUsablePackage } from "@/server/prepaid";
+import { startShopOrder } from "@/server/shop";
 import { createBooking } from "@/server/bookings";
 import { findPublicBusiness, firstFree, weekAvailability } from "@/server/widget";
 
@@ -75,6 +78,8 @@ const quoteSchema = z.object({
   time: hhmm,
   code: z.string().trim().max(40).optional(),
   email: z.string().trim().max(200).optional(),
+  giftCode: z.string().trim().max(40).optional(),
+  usePackage: z.boolean().optional(),
 });
 
 /** W6–W7: hind koos sooduskoodiga */
@@ -89,20 +94,35 @@ export async function quote(input: z.input<typeof quoteSchema>) {
     if (check.ok) code = check.code;
     else codeMessage = check.reason;
   }
-  const price = await quotePrice(c.business.id, { serviceId: c.service.id, staffId: q.staffId, startsAt: zonedDateTime(q.date, q.time, c.business.timezone), code });
+  const startsAt = zonedDateTime(q.date, q.time, c.business.timezone);
+  const price = await quotePrice(c.business.id, { serviceId: c.service.id, staffId: q.staffId, startsAt, code });
   if (!price) return { ok: false as const, reason: "Hinda ei õnnestunud arvutada" };
+  // ostetud pakett (sama e-postiga) või kinkekaart
+  const pkg = q.email ? await findUsablePackage(c.business.id, q.email, c.service.id, startsAt) : null;
+  const usePkg = !!pkg && q.usePackage !== false;
+  let gift: { code: string; balanceCents: number } | null = null;
+  let giftMessage: string | null = null;
+  if (!usePkg && q.giftCode) {
+    const g = await checkGiftCard(c.business.id, q.giftCode);
+    if (g.ok) gift = g;
+    else giftMessage = g.reason;
+  }
+  const prepaid = applyPrepaid(price.finalCents, c.service.depositPercent, { pkg: usePkg ? pkg : null, gift });
   if (code && !price.code) {
     codeMessage = price.codeRejected === "min-amount" ? "Kood nõuab suuremat summat" : price.codeRejected === "not-combinable" ? "Koodi ei saa kampaaniaga kombineerida" : "Kood ei kehti sellele teenusele";
   }
   return {
     ok: true as const,
-    lines: price.lines.filter((l) => l.kind !== "info"),
-    finalCents: price.finalCents,
+    lines: [...price.lines.filter((l) => l.kind !== "info"), ...(prepaid.line ? [prepaid.line] : [])],
+    finalCents: prepaid.payableCents,
     baseCents: price.staffCents,
-    depositCents: price.depositCents,
-    payOnSiteCents: price.payOnSiteCents,
+    depositCents: prepaid.depositCents,
+    payOnSiteCents: prepaid.payableCents - prepaid.depositCents,
     code: price.code ? { code: price.code.code, discountCents: price.code.discountCents } : null,
     codeMessage,
+    pkg: pkg ? { name: pkg.name, usesLeft: pkg.usesLeft, applied: usePkg } : null,
+    gift: gift && prepaid.giftCents > 0 ? { code: gift.code, appliedCents: prepaid.giftCents, balanceCents: gift.balanceCents } : null,
+    giftMessage,
   };
 }
 
@@ -133,6 +153,8 @@ export async function book(input: z.input<typeof bookSchema>) {
     startsAt: zonedDateTime(q.date, q.time, c.business.timezone),
     client: { name: q.name, email: q.email, phone: q.phone, consentSms: q.smsReminder && smsConfigured() },
     code: q.code || null,
+    giftCode: q.giftCode || null,
+    usePackage: !!q.usePackage,
     source: "WIDGET",
     // veebiettemaks ainult siis, kui salong on Stripe'i ühendanud; muidu tasub kohapeal
     deferPayment: !canTakeDeposits(c.business),
@@ -144,10 +166,11 @@ export async function book(input: z.input<typeof bookSchema>) {
     // ettemaks: teavitused lähevad alles pärast makset (syncCheckout)
     try {
       const checkoutUrl = await createDepositCheckout(b!.id, base);
-      return { ok: true as const, number: res.number, manageToken: b!.manageToken, finalCents: b!.finalPriceCents, depositCents: b!.depositCents, checkoutUrl };
+      return { ok: true as const, number: res.number, manageToken: b!.manageToken, finalCents: b!.finalPriceCents - b!.giftCardCents, prepaid: b!.clientPackageId ? ("package" as const) : b!.giftCardCents > 0 ? ("gift" as const) : null, depositCents: b!.depositCents, checkoutUrl };
     } catch (e) {
       reportError("stripe checkout", e);
       await db.update(s.bookings).set({ status: "CANCELLED", cancelledAt: new Date(), cancelReason: "Makse alustamine ebaõnnestus" }).where(eq(s.bookings.id, b!.id));
+      await releasePrepaid(b!.id);
       return { ok: false as const, reason: "Makse alustamine ebaõnnestus. Proovi uuesti või võta ühendust teenusepakkujaga." };
     }
   }
@@ -158,7 +181,7 @@ export async function book(input: z.input<typeof bookSchema>) {
       recordActivity(c.business.id, "BOOKING_NEW", { bookingId: res.bookingId }),
     ]),
   );
-  return { ok: true as const, number: res.number, manageToken: b!.manageToken, finalCents: b!.finalPriceCents, depositCents: b!.depositCents, checkoutUrl: null };
+  return { ok: true as const, number: res.number, manageToken: b!.manageToken, finalCents: b!.finalPriceCents - b!.giftCardCents, prepaid: b!.clientPackageId ? ("package" as const) : b!.giftCardCents > 0 ? ("gift" as const) : null, depositCents: b!.depositCents, checkoutUrl: null };
 }
 
 const waitSchema = z.object({ slug: z.string().max(80), serviceId: idStr, staffId: idStr.nullable(), date: isoDate, name: z.string().trim().min(2, "Sisesta nimi").max(80), email: z.email("Sisesta kehtiv e-post"), website: z.string().max(200).optional() });
@@ -180,4 +203,71 @@ export async function joinWaitlist(input: z.input<typeof waitSchema>) {
   const [y, m, d] = q.date.split("-");
   after(() => recordActivity(c.business.id, "WAITLIST", { body: `${q.name} · ${c.service.name} · ${d}.${m}.${y}` }));
   return { ok: true as const };
+}
+
+// ---------- Pood: kinkekaart ja pakett ----------
+
+const giftSchema = z.object({
+  slug: z.string().max(80),
+  amountCents: z.number().int().positive(),
+  buyerName: z.string().trim().min(2, "Sisesta nimi").max(80),
+  buyerEmail: z.email("Sisesta kehtiv e-post"),
+  forOther: z.boolean(),
+  recipientName: z.string().trim().max(80).optional(),
+  recipientEmail: z.union([z.literal(""), z.email("Sisesta saaja kehtiv e-post")]).optional(),
+  message: z.string().trim().max(300).optional(),
+  lang: z.enum(["et", "en", "ru"]),
+  terms: z.literal(true, { error: "Nõustu tingimustega" }),
+  website: z.string().max(200).optional(),
+});
+
+/** Kinkekaardi ost → Stripe'i makseleht */
+export async function buyGiftCard(input: z.input<typeof giftSchema>) {
+  const parsed = giftSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, reason: parsed.error.issues[0]?.message ?? "Kontrolli andmeid" };
+  const q = parsed.data;
+  if (q.forOther && !q.recipientEmail) return { ok: false as const, reason: "Sisesta saaja kehtiv e-post" };
+  const guard = await widgetGuard("WIDGET_BOOK", q.buyerEmail, q.website);
+  if (guard.error) return { ok: false as const, reason: guard.error };
+  const b = await findPublicBusiness(q.slug);
+  if (!b) return { ok: false as const, reason: "Teenust ei leitud" };
+  await recordAttempt("WIDGET_BOOK", guard.ip, q.buyerEmail.toLowerCase(), true);
+  try {
+    return await startShopOrder(b, {
+      kind: "GIFT_CARD", amountCents: q.amountCents, buyerName: q.buyerName, buyerEmail: q.buyerEmail, lang: q.lang,
+      recipientName: q.forOther ? q.recipientName || null : null, recipientEmail: q.forOther ? q.recipientEmail || null : null, message: q.forOther ? q.message || null : null,
+    }, await appUrl());
+  } catch (e) {
+    reportError("shop gift checkout", e);
+    return { ok: false as const, reason: "Makse alustamine ebaõnnestus. Proovi uuesti või võta ühendust teenusepakkujaga." };
+  }
+}
+
+const packageSchema = z.object({
+  slug: z.string().max(80),
+  packageId: idStr,
+  buyerName: z.string().trim().min(2, "Sisesta nimi").max(80),
+  buyerEmail: z.email("Sisesta kehtiv e-post"),
+  buyerPhone: z.string().trim().max(30).optional(),
+  lang: z.enum(["et", "en", "ru"]),
+  terms: z.literal(true, { error: "Nõustu tingimustega" }),
+  website: z.string().max(200).optional(),
+});
+
+/** Paketi ost → Stripe'i makseleht */
+export async function buyPackage(input: z.input<typeof packageSchema>) {
+  const parsed = packageSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, reason: parsed.error.issues[0]?.message ?? "Kontrolli andmeid" };
+  const q = parsed.data;
+  const guard = await widgetGuard("WIDGET_BOOK", q.buyerEmail, q.website);
+  if (guard.error) return { ok: false as const, reason: guard.error };
+  const b = await findPublicBusiness(q.slug);
+  if (!b) return { ok: false as const, reason: "Teenust ei leitud" };
+  await recordAttempt("WIDGET_BOOK", guard.ip, q.buyerEmail.toLowerCase(), true);
+  try {
+    return await startShopOrder(b, { kind: "PACKAGE", packageId: q.packageId, buyerName: q.buyerName, buyerEmail: q.buyerEmail, buyerPhone: q.buyerPhone || null, lang: q.lang }, await appUrl());
+  } catch (e) {
+    reportError("shop package checkout", e);
+    return { ok: false as const, reason: "Makse alustamine ebaõnnestus. Proovi uuesti või võta ühendust teenusepakkujaga." };
+  }
 }

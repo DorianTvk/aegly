@@ -1,7 +1,8 @@
 "use server";
 
+import { giftCode } from "@/lib/gift-code";
+
 import { logActivity } from "@/server/audit";
-import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -10,11 +11,6 @@ import { requireManager } from "@/lib/session";
 import type { FormState } from "@/components/ui/form";
 
 /** GC-XXXX-XXX, ilma segadust tekitavate märkideta */
-function giftCode(): string {
-  const a = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const r = Array.from(randomBytes(7), (b) => a[b % a.length]).join("");
-  return `GC-${r.slice(0, 4)}-${r.slice(4)}`;
-}
 
 const sellSchema = z.object({
   valueCents: z.number().int().min(100, "Sisesta summa"),

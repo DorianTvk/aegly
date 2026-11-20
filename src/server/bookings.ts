@@ -4,6 +4,7 @@ import { db, schema as s } from "@/db";
 import { localDate, localMinutes } from "@/lib/time";
 import { getSlots } from "./availability";
 import { checkDiscountCode, quotePrice } from "./pricing";
+import { applyPrepaid, checkGiftCard, findUsablePackage } from "./prepaid";
 
 export type NewClient = { name: string; email?: string | null; phone?: string | null; consentSms?: boolean; consentMarketing?: boolean };
 
@@ -24,6 +25,10 @@ export type CreateBookingInput = {
   /** vidin enne maksete lisandumist: ettemaks tasutakse kohapeal, broneering kinnitatakse kohe */
   deferPayment?: boolean;
   note?: string | null;
+  /** kinkekaardi kood (saldo kasutatakse kuni hinnani) */
+  giftCode?: string | null;
+  /** kasuta kliendi ostetud paketti (üks kord) */
+  usePackage?: boolean;
 };
 
 export type CreateBookingResult = { ok: true; bookingId: string; number: string; status: "CONFIRMED" | "PENDING_PAYMENT" } | { ok: false; reason: string };
@@ -90,10 +95,22 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
   const price = await quotePrice(input.businessId, { serviceId: service.id, staffId, startsAt: input.startsAt, code: codeInput });
   if (!price) return { ok: false, reason: "Hinda ei õnnestunud arvutada" };
   const final = input.priceOverrideCents ?? price.finalCents;
-  const lines = input.priceOverrideCents != null && input.priceOverrideCents !== price.finalCents
+  const baseLines = input.priceOverrideCents != null && input.priceOverrideCents !== price.finalCents
     ? [...price.lines, { label: "Käsitsi muudetud hind", amountCents: input.priceOverrideCents - price.finalCents, kind: "info" as const }]
     : price.lines;
-  const deposit = Math.round((final * service.depositPercent) / 100);
+
+  // 3b. pakett või kinkekaart
+  const pkg = input.usePackage ? await findUsablePackage(input.businessId, clientEmail, service.id, input.startsAt) : null;
+  if (input.usePackage && !pkg) return { ok: false, reason: "Sellele teenusele pole kehtivat paketti" };
+  let gift: { id: string; code: string; balanceCents: number } | null = null;
+  if (!pkg && input.giftCode) {
+    const g = await checkGiftCard(input.businessId, input.giftCode);
+    if (!g.ok) return { ok: false, reason: g.reason };
+    gift = g;
+  }
+  const prepaid = applyPrepaid(final, service.depositPercent, { pkg, gift });
+  const lines = prepaid.line ? [...baseLines, prepaid.line] : baseLines;
+  const deposit = prepaid.depositCents;
 
   const duration = (slot.end - slot.start) * 60_000;
   const endsAt = new Date(input.startsAt.getTime() + duration);
@@ -132,7 +149,11 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
           status,
           source: input.source,
           basePriceCents: price.baseCents,
-          finalPriceCents: final,
+          // pakett on juba ostmisel tasutud → käive arvestatakse seal, mitte siin
+          finalPriceCents: pkg ? 0 : final,
+          clientPackageId: pkg?.id ?? null,
+          giftCardId: gift?.id ?? null,
+          giftCardCents: prepaid.giftCents,
           depositCents: deposit,
           priceBreakdown: lines,
           discountCodeId: price.code?.id ?? null,
@@ -140,15 +161,33 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
           note: input.note ?? null,
         })
         .returning({ id: s.bookings.id, number: s.bookings.number, status: s.bookings.status });
+      if (pkg) {
+        const used = await tx
+          .update(s.clientPackages)
+          .set({ usesLeft: sql`${s.clientPackages.usesLeft} - 1` })
+          .where(and(eq(s.clientPackages.id, pkg.id), gt(s.clientPackages.usesLeft, 0)))
+          .returning({ id: s.clientPackages.id });
+        if (!used.length) throw new Error("PREPAID");
+      }
+      if (gift && prepaid.giftCents > 0) {
+        const used = await tx
+          .update(s.giftCards)
+          .set({ balanceCents: sql`${s.giftCards.balanceCents} - ${prepaid.giftCents}` })
+          .where(and(eq(s.giftCards.id, gift.id), sql`${s.giftCards.balanceCents} >= ${prepaid.giftCents}`, sql`${s.giftCards.expiresAt} > now()`))
+          .returning({ id: s.giftCards.id });
+        if (!used.length) throw new Error("PREPAID");
+        await tx.insert(s.giftCardRedemptions).values({ giftCardId: gift.id, bookingId: b.id, amountCents: prepaid.giftCents, note: `Broneering ${b.number}` });
+      }
       if (price.code) await tx.update(s.discountCodes).set({ usedCount: sql`${s.discountCodes.usedCount} + 1` }).where(eq(s.discountCodes.id, price.code.id));
-      if (input.paid && final > 0) {
-        await tx.insert(s.payments).values({ businessId: input.businessId, bookingId: b.id, amountCents: final, status: "SUCCEEDED", method: "kohapeal" });
+      if (input.paid && prepaid.payableCents > 0) {
+        await tx.insert(s.payments).values({ businessId: input.businessId, bookingId: b.id, amountCents: prepaid.payableCents, status: "SUCCEEDED", method: "kohapeal" });
       }
       return b;
     });
     return { ok: true, bookingId: result.id, number: result.number, status: result.status === "CONFIRMED" ? "CONFIRMED" : "PENDING_PAYMENT" };
   } catch (e) {
     if (e instanceof Error && e.message === "CLASH") return { ok: false, reason: "See aeg broneeriti just ära. Vali teine aeg." };
+    if (e instanceof Error && e.message === "PREPAID") return { ok: false, reason: "Paketi või kinkekaardi saldo muutus vahepeal. Proovi uuesti." };
     throw e;
   }
 }

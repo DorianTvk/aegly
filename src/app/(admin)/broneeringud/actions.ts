@@ -1,5 +1,6 @@
 "use server";
 
+import { releasePrepaid } from "@/server/prepaid";
 import { logActivity } from "@/server/audit";
 import { reportError } from "@/lib/report";
 
@@ -114,6 +115,7 @@ export async function setBookingStatus(bookingId: string, status: "CONFIRMED" | 
       cancelReason: status === "CANCELLED" ? (reason?.trim() || "Tühistas teenusepakkuja") : null,
     })
     .where(eq(s.bookings.id, bookingId));
+  if (status === "CANCELLED") await releasePrepaid(bookingId);
   const STATUS_TEXT = { CONFIRMED: "kinnitatuks", COMPLETED: "tehtuks", NO_SHOW: "mitteilmunuks", CANCELLED: "tühistatuks" } as const;
   await logActivity({
     action: `booking.${status.toLowerCase()}`,

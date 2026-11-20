@@ -3,7 +3,7 @@ import { and, count, desc, eq, gt } from "drizzle-orm";
 import { db, schema as s } from "@/db";
 import { formatShortDate, localDate, localTime } from "@/lib/time";
 
-export type ActivityKind = "BOOKING_NEW" | "BOOKING_CHANGED" | "BOOKING_CANCELLED" | "WAITLIST" | "WIDGET_INSTALLED";
+export type ActivityKind = "BOOKING_NEW" | "BOOKING_CHANGED" | "BOOKING_CANCELLED" | "WAITLIST" | "WIDGET_INSTALLED" | "SHOP_GIFT" | "SHOP_PACKAGE";
 
 const TITLES: Record<ActivityKind, string> = {
   BOOKING_NEW: "Uus broneering veebist",
@@ -11,6 +11,8 @@ const TITLES: Record<ActivityKind, string> = {
   BOOKING_CANCELLED: "Klient tühistas broneeringu",
   WAITLIST: "Uus ootenimekirjas",
   WIDGET_INSTALLED: "Vidin on kodulehel kasutusel",
+  SHOP_GIFT: "Kinkekaart müüdud veebis",
+  SHOP_PACKAGE: "Pakett müüdud veebis",
 };
 
 /** Lisa sündmus kellukese voogu. Broneeringu puhul koostatakse kirjeldus broneeringu andmetest. */

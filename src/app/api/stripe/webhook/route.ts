@@ -2,6 +2,7 @@ import { reportError } from "@/lib/report";
 import type Stripe from "stripe";
 import { applyAccount, stripe, stripeConfigured, syncCheckout } from "@/server/stripe";
 import { applySubscription } from "@/server/billing";
+import { syncShopOrder } from "@/server/shop";
 
 /**
  * Stripe'i webhook. Samale aadressile saadavad kaks Stripe'i sihtkohta:
@@ -32,9 +33,13 @@ export async function POST(req: Request) {
         case "checkout.session.completed":
         case "checkout.session.async_payment_succeeded":
         case "checkout.session.async_payment_failed":
-        case "checkout.session.expired":
-          await syncCheckout((event.data.object as Stripe.Checkout.Session).id, base);
+        case "checkout.session.expired": {
+          const sess = event.data.object as Stripe.Checkout.Session;
+          // vidina pood (kinkekaart/pakett) või broneeringu ettemaks
+          if (sess.metadata?.shopOrderId) await syncShopOrder(sess.id, base);
+          else await syncCheckout(sess.id, base);
           break;
+        }
         case "account.updated":
           await applyAccount(event.data.object as Stripe.Account);
           break;

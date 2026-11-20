@@ -2,16 +2,17 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Bell, CalendarCheck, CalendarClock, CalendarX, Code, ListPlus } from "lucide-react";
+import { Bell, CalendarCheck, CalendarClock, CalendarX, Code, Gift, ListPlus, Package } from "lucide-react";
 import { clsx } from "clsx";
 import { loadNotifications, markNotificationsSeen } from "./topbar-actions";
 
 type Feed = Awaited<ReturnType<typeof loadNotifications>>;
 
-const ICON = { BOOKING_NEW: CalendarCheck, BOOKING_CHANGED: CalendarClock, BOOKING_CANCELLED: CalendarX, WAITLIST: ListPlus, WIDGET_INSTALLED: Code } as const;
+const ICON = { BOOKING_NEW: CalendarCheck, BOOKING_CHANGED: CalendarClock, BOOKING_CANCELLED: CalendarX, WAITLIST: ListPlus, WIDGET_INSTALLED: Code, SHOP_GIFT: Gift, SHOP_PACKAGE: Package } as const;
 const TONE: Record<string, string> = {
   BOOKING_NEW: "bg-ok-bg text-ok", BOOKING_CHANGED: "bg-[#eff8ff] text-[#175cd3]", BOOKING_CANCELLED: "bg-bad-bg text-bad",
   WAITLIST: "bg-warn-bg text-warn", WIDGET_INSTALLED: "bg-[#f7fee7] text-[#3f6212]",
+  SHOP_GIFT: "bg-[#fdf2fa] text-[#c11574]", SHOP_PACKAGE: "bg-[#f4f3ff] text-[#5925dc]",
 };
 
 function ago(iso: string) {

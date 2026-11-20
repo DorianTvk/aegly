@@ -440,6 +440,32 @@ export const giftCards = pgTable("gift_cards", {
   createdAt: createdAt(),
 });
 
+/** Vidinas tehtud ostud (kinkekaart, pakett): makse Stripe'is, pärast makset luuakse kaart või pakett */
+export const shopOrders = pgTable(
+  "shop_orders",
+  {
+    id: id(),
+    businessId: businessId(),
+    kind: text("kind").$type<"GIFT_CARD" | "PACKAGE">().notNull(),
+    status: text("status").$type<"PENDING" | "PAID" | "EXPIRED">().notNull().default("PENDING"),
+    amountCents: integer("amount_cents").notNull(),
+    buyerName: text("buyer_name").notNull(),
+    buyerEmail: text("buyer_email").notNull(),
+    buyerPhone: text("buyer_phone"),
+    lang: text("lang").notNull().default("et"),
+    /** kinkekaart: saaja ja sõnum; pakett: paketi id */
+    data: jsonb("data").$type<{ recipientName?: string | null; recipientEmail?: string | null; message?: string | null; packageId?: string }>().notNull().default({}),
+    stripeCheckoutSessionId: text("stripe_checkout_session_id").unique(),
+    stripeAccountId: text("stripe_account_id"),
+    stripePaymentIntentId: text("stripe_payment_intent_id"),
+    /** loodud kinkekaardi või kliendi paketi id */
+    resultId: text("result_id"),
+    paidAt: ts("paid_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("shop_orders_business_created").on(t.businessId, t.createdAt)],
+);
+
 /** Kinkekaardi kasutamised (saldo muutus) */
 export const giftCardRedemptions = pgTable("gift_card_redemptions", {
   id: id(),
@@ -541,7 +567,11 @@ export const bookings = pgTable(
     priceBreakdown: jsonb("price_breakdown").$type<PriceLine[]>().notNull().default([]),
     discountCodeId: text("discount_code_id"),
     campaignId: text("campaign_id"),
+    /** ostetud paketist kasutatud kord (tühistamisel tagastatakse) */
     clientPackageId: text("client_package_id"),
+    /** kinkekaardiga tasutud osa (tühistamisel tagastatakse kaardi saldosse) */
+    giftCardId: text("gift_card_id"),
+    giftCardCents: integer("gift_card_cents").notNull().default(0),
     note: text("note"),
     cancelReason: text("cancel_reason"),
     cancelledAt: ts("cancelled_at"),

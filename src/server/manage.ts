@@ -1,4 +1,5 @@
 import "server-only";
+import { releasePrepaid } from "./prepaid";
 import { and, eq, gt, inArray, lt, ne, sql } from "drizzle-orm";
 import { db, schema as s } from "@/db";
 import { localMinutes, zonedDateTime } from "@/lib/time";
@@ -58,6 +59,7 @@ export async function cancelManaged(token: string, reason: string | null): Promi
   if (!m) return { ok: false, reason: "Broneeringut ei leitud" };
   if (!m.canChange) return { ok: false, reason: "Tasuta tühistamise aeg on läbi. Võta ühendust teenusepakkujaga." };
   await db.update(s.bookings).set({ status: "CANCELLED", cancelledAt: new Date(), cancelReason: reason ? `Klient: ${reason}` : "Klient tühistas" }).where(eq(s.bookings.id, m.booking.id));
+  await releasePrepaid(m.booking.id);
   return { ok: true, bookingId: m.booking.id, businessId: m.booking.businessId };
 }
 

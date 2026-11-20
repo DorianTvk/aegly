@@ -6,6 +6,7 @@ import { formatShortDate, localDate, localTime } from "@/lib/time";
 import { notifyBooking, notifySalon } from "./notify";
 import { recordActivity } from "./activity";
 import { industryByLabel } from "@/lib/industries";
+import { releasePrepaid } from "./prepaid";
 
 /**
  * Stripe Connect (direct charges): klient maksab ettemaksu otse salongi Stripe'i kontole.
@@ -168,6 +169,7 @@ async function expirePayment(paymentId: string, bookingId: string) {
     .update(s.bookings)
     .set({ status: "CANCELLED", cancelledAt: new Date(), cancelReason: "Ettemaks jäi tasumata", holdExpiresAt: null })
     .where(and(eq(s.bookings.id, bookingId), eq(s.bookings.status, "PENDING_PAYMENT")));
+  await releasePrepaid(bookingId);
 }
 
 /** Tühista tasumata broneeringud, mille ettemaksu aeg on läbi (cron) */

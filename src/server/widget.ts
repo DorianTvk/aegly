@@ -6,6 +6,7 @@ import { db, schema as s } from "@/db";
 import { addDaysIso, isoWeekday, localDate, todayIso } from "@/lib/time";
 import { getSlots } from "./availability";
 import { smsConfigured } from "./messaging";
+import { shopInfo } from "./shop";
 
 /** Avalik salong slug'i järgi; peatatud tellimusega salongi vidin ei tööta */
 export async function findPublicBusiness(slug: string) {
@@ -112,6 +113,8 @@ export async function loadWidget(slug: string) {
       cancelUntilHours: b.cancelUntilHours, maxAdvanceDays: b.maxAdvanceDays, noShowProtection: b.noShowProtection,
       smsAvailable: smsConfigured(),
       onlineDeposits: canTakeDeposits(b),
+      /** kinkekaardi koodi saab broneerimisel kasutada ka ilma veebimakseteta (kohapeal müüdud kaardid) */
+      giftCards: b.giftCardsEnabled,
     },
     theme: {
       primary: b.widgetPrimary, buttonText: b.widgetButtonColor, background: b.widgetBackground, text: b.widgetTextColor,
@@ -121,6 +124,7 @@ export async function loadWidget(slug: string) {
     categories: categories.filter((c) => out.some((sv) => sv.categoryId === c.id)).map((c) => ({ id: c.id, name: c.name, tr: c.translations })),
     hasUncategorized: out.some((sv) => sv.categoryId === null),
     services: out,
+    shop: await shopInfo(b),
     today,
   };
 }

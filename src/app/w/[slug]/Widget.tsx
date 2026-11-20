@@ -1,17 +1,18 @@
 "use client";
 
+import { logActivity } from "@/server/audit";
 import { createContext, useContext, useEffect, useId, useMemo, useState, useTransition, type CSSProperties, type ReactNode } from "react";
-import { ArrowLeft, Bell, CalendarPlus, Check, ChevronLeft, ChevronRight, Clock, CreditCard, Info, MapPin, ShieldCheck, Tag, X } from "lucide-react";
+import { ArrowLeft, Bell, CalendarPlus, Check, ChevronLeft, ChevronRight, Clock, CreditCard, Gift, Info, MapPin, Package, ShieldCheck, Tag, X } from "lucide-react";
 import { clsx } from "clsx";
 import type { WidgetData, WidgetService } from "@/server/widget";
 import { formatEuro, addDaysIso } from "@/lib/time";
 import { addMinutes } from "@/lib/date-et";
 import { dates, DICT, LANGS, priceLabel, serverText, type Dict, type Lang } from "../i18n";
 import { loc } from "@/lib/translations";
-import { book, daySlots, joinWaitlist, quote, staffFirstFree, weekDays } from "./actions";
+import { book, buyGiftCard, buyPackage, daySlots, joinWaitlist, quote, staffFirstFree, weekDays } from "./actions";
 
 type Data = NonNullable<WidgetData>;
-type Step = "home" | "staff" | "time" | "details" | "confirm" | "done";
+type Step = "home" | "staff" | "time" | "details" | "confirm" | "done" | "gift" | "packages";
 type Slot = { time: string; end: string; staffId: string; staffName: string };
 type Quote = Extract<Awaited<ReturnType<typeof quote>>, { ok: true }>;
 type Free = { date: string; time: string } | null;
@@ -57,10 +58,10 @@ export function Widget({ data: raw, embed, lang: initialLang }: { data: Data; em
   const [staffId, setStaffId] = useState<string | null>(null); // null = ükskõik kes
   const [date, setDate] = useState<string>(today);
   const [slot, setSlot] = useState<Slot | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", code: "", sms: true, terms: false, website: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", code: "", giftCode: "", usePackage: true, sms: true, terms: false, website: "" });
   const [q, setQ] = useState<Quote | null>(null);
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
-  const [result, setResult] = useState<{ number: string; manageToken: string; finalCents: number; depositCents: number } | null>(null);
+  const [result, setResult] = useState<{ number: string; manageToken: string; finalCents: number; depositCents: number; prepaid: "package" | "gift" | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -79,8 +80,10 @@ export function Widget({ data: raw, embed, lang: initialLang }: { data: Data; em
   const close = () => {
     if (embed) window.parent.postMessage({ type: "aegly:close" }, "*");
   };
+  const shopStep = step === "gift" || step === "packages";
   const back = () => {
     setError(null);
+    if (shopStep) return setStep("home");
     const i = steps.indexOf(step);
     if (i > 0) setStep(steps[i - 1]);
   };
@@ -104,11 +107,15 @@ export function Widget({ data: raw, embed, lang: initialLang }: { data: Data; em
   const staffName = service?.staff.find((m) => m.id === (slot?.staffId ?? staffId))?.name;
   const duration = service ? (service.staff.find((m) => m.id === slot?.staffId)?.durationMinutes ?? service.durationMinutes) : 0;
 
-  const loadQuote = (code = form.code) =>
+  const loadQuote = (code = form.code, extra: { giftCode?: string; usePackage?: boolean } = {}) =>
     new Promise<Quote | null>((resolve) =>
       start(async () => {
         if (!service || !slot) return resolve(null);
-        const r = await quote({ slug: biz.slug, serviceId: service.id, staffId: slot.staffId, date, time: slot.time, code: code || undefined, email: form.email || undefined });
+        const giftCode = extra.giftCode ?? form.giftCode;
+        const r = await quote({
+          slug: biz.slug, serviceId: service.id, staffId: slot.staffId, date, time: slot.time, code: code || undefined, email: form.email || undefined,
+          giftCode: giftCode || undefined, usePackage: extra.usePackage ?? form.usePackage,
+        });
         if (r.ok) {
           setQ(r);
           resolve(r);
@@ -132,11 +139,13 @@ export function Widget({ data: raw, embed, lang: initialLang }: { data: Data; em
               <ArrowLeft size={18} />
             </button>
             <h1 className="flex-1 text-[17px] font-semibold">
-              {step === "staff" ? t.stepStaff : step === "time" ? t.stepTime : step === "details" ? t.stepDetails : t.stepConfirm}
+              {step === "gift" ? t.shopGift : step === "packages" ? t.shopPackages : step === "staff" ? t.stepStaff : step === "time" ? t.stepTime : step === "details" ? t.stepDetails : t.stepConfirm}
             </h1>
-            <span className="text-[13px] opacity-60">
-              {stepNo}/{steps.length}
-            </span>
+            {!shopStep && (
+              <span className="text-[13px] opacity-60">
+                {stepNo}/{steps.length}
+              </span>
+            )}
             {embed && (
               <button type="button" onClick={close} aria-label={t.close} className="grid size-9 place-items-center rounded-full hover:bg-black/5">
                 <X size={18} />
@@ -144,7 +153,7 @@ export function Widget({ data: raw, embed, lang: initialLang }: { data: Data; em
             )}
           </header>
         )}
-        {step !== "home" && step !== "done" && (
+        {step !== "home" && step !== "done" && !shopStep && (
           <div className="flex gap-1 px-4 pt-2" aria-hidden>
             {steps.map((s, i) => (
               <span key={s} className={clsx("h-1 flex-1 rounded-full", i < stepNo ? "bg-[var(--w-primary)]" : "bg-black/10")} />
@@ -158,7 +167,9 @@ export function Widget({ data: raw, embed, lang: initialLang }: { data: Data; em
               {error}
             </p>
           )}
-          {step === "home" && <Home data={data} cat={cat} setCat={setCat} selected={service} onInfo={setInfo} onChoose={choose} />}
+          {step === "home" && <Home data={data} cat={cat} setCat={setCat} selected={service} onInfo={setInfo} onChoose={choose} onShop={setStep} />}
+          {step === "gift" && data.shop.gift && <GiftShop slug={biz.slug} gift={data.shop.gift} embed={embed} />}
+          {step === "packages" && <PackageShop slug={biz.slug} packages={data.shop.packages} embed={embed} />}
           {step === "staff" && service && <StaffStep slug={biz.slug} service={service} today={today} value={staffId} onChange={setStaffId} />}
           {step === "time" && service && (
             <TimeStep
@@ -177,17 +188,26 @@ export function Widget({ data: raw, embed, lang: initialLang }: { data: Data; em
               showStaffNames={staffId === null && service.staff.length > 1}
             />
           )}
-          {step === "details" && <Details form={form} setForm={setForm} q={q} onApply={(code) => loadQuote(code)} pending={pending} smsAvailable={biz.smsAvailable} />}
+          {step === "details" && (
+            <Details
+              form={form} setForm={setForm} q={q} pending={pending} smsAvailable={biz.smsAvailable} giftCards={biz.giftCards}
+              onApply={(code) => loadQuote(code)}
+              onGift={(giftCode) => loadQuote(form.code, { giftCode })}
+            />
+          )}
           {step === "confirm" && service && slot && q && (
-            <Confirm service={service} date={date} slot={slot} duration={duration} staffName={staffName} q={q} cancelHours={biz.cancelUntilHours} online={biz.onlineDeposits} />
+            <Confirm
+              service={service} date={date} slot={slot} duration={duration} staffName={staffName} q={q} cancelHours={biz.cancelUntilHours} online={biz.onlineDeposits}
+              onTogglePackage={(v) => { setForm({ ...form, usePackage: v }); loadQuote(form.code, { usePackage: v }); }}
+            />
           )}
           {step === "done" && service && slot && result && (
             <Done biz={biz} service={service} date={date} slot={slot} duration={duration} staffName={staffName} email={form.email} result={result} />
           )}
         </div>
 
-        {/* Jalus */}
-        <Footer>
+        {/* Jalus (poe vaadetel on oma nupp) */}
+        {!shopStep && <Footer>
           {step === "home" && service && (
             <FooterRow
               left={
@@ -282,6 +302,7 @@ export function Widget({ data: raw, embed, lang: initialLang }: { data: Data; em
                     setError(null);
                     const r = await book({
                       slug: biz.slug, serviceId: service.id, staffId: slot.staffId, date, time: slot.time, code: q.code?.code,
+                      giftCode: !q.pkg?.applied && q.gift ? q.gift.code : undefined, usePackage: !!q.pkg?.applied,
                       name: form.name, email: form.email, phone: `+372 ${form.phone}`.replace("+372 +", "+"), smsReminder: form.sms, terms: true, website: form.website,
                     });
                     if (r.ok && r.checkoutUrl) {
@@ -314,7 +335,7 @@ export function Widget({ data: raw, embed, lang: initialLang }: { data: Data; em
               </PrimaryButton>
             </div>
           )}
-        </Footer>
+        </Footer>}
 
         {info && (
           <ServiceSheet
@@ -409,7 +430,7 @@ function HomeHeader({ data, onClose, compact, lang, setLang }: { data: Data; onC
   );
 }
 
-function Home({ data, cat, setCat, selected, onInfo, onChoose }: { data: Data; cat: string; setCat: (c: string) => void; selected: WidgetService | null; onInfo: (s: WidgetService) => void; onChoose: (s: WidgetService) => void }) {
+function Home({ data, cat, setCat, selected, onInfo, onChoose, onShop }: { data: Data; cat: string; setCat: (c: string) => void; selected: WidgetService | null; onInfo: (s: WidgetService) => void; onChoose: (s: WidgetService) => void; onShop: (s: "gift" | "packages") => void }) {
   const { t } = useL();
   const tabs = [...data.categories, ...(data.hasUncategorized ? [{ id: "none", name: t.other }] : [])];
   const list = data.services.filter((s) => (s.categoryId ?? "none") === cat);
@@ -427,6 +448,7 @@ function Home({ data, cat, setCat, selected, onInfo, onChoose }: { data: Data; c
           <Clock size={13} aria-hidden /> {t.cancelUntil(data.business.cancelUntilHours)}
         </span>
       </div>
+      <ShopEntry shop={data.shop} onGift={() => onShop("gift")} onPackages={() => onShop("packages")} />
       {data.banner && (
         <p className="mt-3 flex items-center gap-2 rounded-[12px] px-3 py-2.5 text-[13px] font-semibold text-[#9a3412]" style={{ background: data.banner.color }}>
           <Tag size={15} aria-hidden /> {data.banner.text}
@@ -792,16 +814,20 @@ function WInput({ id: idProp, label, value, onChange, type = "text", autoComplet
 }
 
 function Details({
-  form, setForm, q, onApply, pending, smsAvailable,
+  form, setForm, q, onApply, onGift, pending, smsAvailable, giftCards,
 }: {
   smsAvailable: boolean;
-  form: { name: string; email: string; phone: string; code: string; sms: boolean; terms: boolean; website: string };
+  giftCards: boolean;
+  form: { name: string; email: string; phone: string; code: string; giftCode: string; usePackage: boolean; sms: boolean; terms: boolean; website: string };
   setForm: (f: typeof form) => void;
   q: Quote | null;
   onApply: (code: string) => void;
+  onGift: (code: string) => void;
   pending: boolean;
 }) {
   const [codeInput, setCodeInput] = useState(form.code);
+  const [giftInput, setGiftInput] = useState(form.giftCode);
+  const [giftOpen, setGiftOpen] = useState(!!form.giftCode);
   const { t, srv } = useL();
   return (
     <div className="space-y-3.5 px-4 py-4">
@@ -853,6 +879,41 @@ function Details({
         )}
         {q?.codeMessage && form.code && <p className="mt-1.5 text-[13px] text-[#b42318]">{srv(q.codeMessage)}</p>}
       </div>
+      {(giftCards || form.giftCode) && !giftOpen && (
+        <button type="button" onClick={() => setGiftOpen(true)} className="flex items-center gap-1.5 text-[14px] font-semibold text-[var(--w-primary)]">
+          <Gift size={15} aria-hidden /> {t.haveGift}
+        </button>
+      )}
+      {giftOpen && (
+        <div>
+          <label htmlFor="w-gift" className="mb-1 block text-[13px] font-medium">{t.giftCode}</label>
+          <div className="flex gap-2">
+            <input
+              id="w-gift" value={giftInput} placeholder="GC-XXXX-XXX" autoComplete="off" spellCheck={false}
+              onChange={(e) => setGiftInput(e.target.value.toUpperCase())}
+              className="h-12 min-w-0 flex-1 rounded-[12px] border border-black/15 bg-transparent px-3 text-[15px] uppercase outline-none focus:border-[var(--w-primary)]"
+            />
+            {form.giftCode && q?.gift ? (
+              <button type="button" className="h-12 rounded-[12px] border border-black/15 px-4 text-[14px] font-semibold" onClick={() => { setGiftInput(""); setForm({ ...form, giftCode: "" }); onGift(""); }}>
+                {t.remove}
+              </button>
+            ) : (
+              <button
+                type="button" disabled={!giftInput.trim() || pending} className="h-12 rounded-[12px] border border-black/15 px-4 text-[14px] font-semibold disabled:opacity-40"
+                onClick={() => { setForm({ ...form, giftCode: giftInput.trim() }); onGift(giftInput.trim()); }}
+              >
+                {t.apply}
+              </button>
+            )}
+          </div>
+          {q?.gift && (
+            <p className="mt-1.5 flex items-center gap-1.5 text-[13px] text-[#067647]">
+              <Check size={14} aria-hidden /> {t.giftApplied(q.gift.code, eur(q.gift.appliedCents))} · {t.giftLeft(eur(q.gift.balanceCents - q.gift.appliedCents))}
+            </p>
+          )}
+          {q?.giftMessage && form.giftCode && <p className="mt-1.5 text-[13px] text-[#b42318]">{srv(q.giftMessage)}</p>}
+        </div>
+      )}
       {smsAvailable && <label className="flex items-start gap-2.5 text-[14px]">
         <input type="checkbox" checked={form.sms} onChange={(e) => setForm({ ...form, sms: e.target.checked })} className="mt-0.5 size-[18px] accent-[var(--w-primary)]" />
         {t.smsReminder}
@@ -867,10 +928,19 @@ function Details({
 
 // ---------- W7 ----------
 
-function Confirm({ service, date, slot, duration, staffName, q, cancelHours, online }: { service: WidgetService; date: string; slot: Slot; duration: number; staffName?: string; q: Quote; cancelHours: number; online: boolean }) {
+function Confirm({ service, date, slot, duration, staffName, q, cancelHours, online, onTogglePackage }: { service: WidgetService; date: string; slot: Slot; duration: number; staffName?: string; q: Quote; cancelHours: number; online: boolean; onTogglePackage: (v: boolean) => void }) {
   const { t, d } = useL();
   return (
     <div className="space-y-4 px-4 py-4">
+      {q.pkg && (
+        <div className={clsx("rounded-[14px] border p-3.5", q.pkg.applied ? "border-[var(--w-primary)] bg-[var(--w-primary)]/5" : "border-black/10")}>
+          <Check2 checked={q.pkg.applied} onChange={onTogglePackage}>
+            <span className="flex items-center gap-1.5 font-semibold">
+              <Package size={15} aria-hidden /> {t.pkgUse(q.pkg.name, q.pkg.usesLeft)}
+            </span>
+          </Check2>
+        </div>
+      )}
       <div className="rounded-[14px] border border-black/10 p-4">
         <div className="flex justify-between gap-3 font-semibold">
           <span>{service.name}</span>
@@ -893,7 +963,11 @@ function Confirm({ service, date, slot, duration, staffName, q, cancelHours, onl
           <span>{eur(q.finalCents)}</span>
         </div>
       </div>
-      {q.depositCents > 0 ? (
+      {q.pkg?.applied ? (
+        <p className="flex gap-2 rounded-[12px] bg-[#ecfdf3] p-3 text-[13px] text-[#067647]">
+          <Check size={16} className="mt-0.5 shrink-0" aria-hidden /> {t.pkgCovered}
+        </p>
+      ) : q.depositCents > 0 ? (
         <p className="flex gap-2 rounded-[12px] bg-black/[0.04] p-3 text-[13px]">
           <Info size={16} className="mt-0.5 shrink-0" aria-hidden />
           <span>
@@ -904,7 +978,7 @@ function Confirm({ service, date, slot, duration, staffName, q, cancelHours, onl
         </p>
       ) : (
         <p className="flex gap-2 rounded-[12px] bg-black/[0.04] p-3 text-[13px]">
-          <Info size={16} className="mt-0.5 shrink-0" aria-hidden /> {t.payOnSite}
+          <Info size={16} className="mt-0.5 shrink-0" aria-hidden /> {q.finalCents === 0 && q.gift ? t.giftCovered : t.payOnSite}
         </p>
       )}
       <p className="text-[12px] opacity-60">{t.changeLink(cancelHours)}</p>
@@ -914,13 +988,13 @@ function Confirm({ service, date, slot, duration, staffName, q, cancelHours, onl
 
 // ---------- W8 ----------
 
-function Done({ biz, service, date, slot, duration, staffName, email, result }: { biz: Data["business"]; service: WidgetService; date: string; slot: Slot; duration: number; staffName?: string; email: string; result: { number: string; manageToken: string; finalCents: number } }) {
+function Done({ biz, service, date, slot, duration, staffName, email, result }: { biz: Data["business"]; service: WidgetService; date: string; slot: Slot; duration: number; staffName?: string; email: string; result: { number: string; manageToken: string; finalCents: number; prepaid: "package" | "gift" | null } }) {
   const { t, d, lang } = useL();
   const rows: [string, string][] = [
     [t.rowService, `${service.name} · ${duration} ${lang === "ru" ? "мин" : "min"}`],
     [t.rowTime, `${d.dayShortYear(date)} ${t.at(slot.time)}`],
     ...(staffName ? ([[t.rowStaff, staffName]] as [string, string][]) : []),
-    [t.rowPrice, `${eur(result.finalCents)} · ${t.payOnSiteShort}`],
+    [t.rowPrice, result.prepaid === "package" ? t.pkgLine : result.finalCents === 0 ? `${eur(0)} · ${t.giftLine}` : `${eur(result.finalCents)} · ${t.payOnSiteShort}`],
     [t.bookingNo, result.number],
   ];
   return (
@@ -953,3 +1027,226 @@ function Done({ biz, service, date, slot, duration, staffName, email, result }: 
   );
 }
 
+
+// ---------- Pood: kinkekaart ja paketid ----------
+
+function ShopEntry({ shop, onGift, onPackages }: { shop: Data["shop"]; onGift: () => void; onPackages: () => void }) {
+  const { t } = useL();
+  if (!shop.gift && !shop.packages.length) return null;
+  const card = "flex flex-1 items-center gap-3 rounded-[14px] border border-black/10 p-3 text-left hover:border-[var(--w-primary)]";
+  return (
+    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+      {shop.gift && (
+        <button type="button" onClick={onGift} className={card}>
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--w-primary)]/10 text-[var(--w-primary)]">
+            <Gift size={18} aria-hidden />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[14px] font-semibold">{t.shopGift}</span>
+            <span className="block text-[12px] opacity-60">{t.shopGiftSub}</span>
+          </span>
+        </button>
+      )}
+      {shop.packages.length > 0 && (
+        <button type="button" onClick={onPackages} className={card}>
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--w-primary)]/10 text-[var(--w-primary)]">
+            <Package size={18} aria-hidden />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[14px] font-semibold">{t.shopPackages}</span>
+            <span className="block text-[12px] opacity-60">{t.shopPackagesSub}</span>
+          </span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function Check2({ checked, onChange, children }: { checked: boolean; onChange: (v: boolean) => void; children: ReactNode }) {
+  return (
+    <label className="flex items-start gap-2.5 text-[14px]">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 size-[18px] accent-[var(--w-primary)]" />
+      {children}
+    </label>
+  );
+}
+
+/** Stripe'i makseleht ei avane iframe'is → suuna kogu leht */
+function goToPayment(url: string, embed: boolean) {
+  if (embed) window.parent.postMessage({ type: "aegly:redirect", url }, "*");
+  else window.location.href = url;
+}
+
+function GiftShop({ slug, gift, embed }: { slug: string; gift: NonNullable<Data["shop"]["gift"]>; embed: boolean }) {
+  const { t, lang, srv } = useL();
+  const [amount, setAmount] = useState<number | null>(gift.amounts[1] ?? gift.amounts[0] ?? null);
+  const [custom, setCustom] = useState("");
+  const [f, setF] = useState({ name: "", email: "", forOther: false, rName: "", rEmail: "", message: "", terms: false, website: "" });
+  const [error, setError] = useState<string | null>(null);
+  const [redirect, setRedirect] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  const customCents = Math.round(Number(custom.replace(",", ".")) * 100);
+  const cents = amount ?? (Number.isFinite(customCents) ? customCents : 0);
+
+  const submit = () =>
+    start(async () => {
+      setError(null);
+      if (!cents || (amount === null && cents < gift.minCents)) return setError(t.minAmount(eur(gift.minCents)));
+      if (f.name.trim().length < 2) return setError(t.errName);
+      if (!/^\S+@\S+\.\S+$/.test(f.email)) return setError(t.errEmail);
+      if (f.forOther && !/^\S+@\S+\.\S+$/.test(f.rEmail)) return setError(srv("Sisesta saaja kehtiv e-post"));
+      if (!f.terms) return setError(srv("Nõustu tingimustega"));
+      const r = await buyGiftCard({
+        slug, amountCents: cents, buyerName: f.name, buyerEmail: f.email, forOther: f.forOther, recipientName: f.rName, recipientEmail: f.rEmail,
+        message: f.message, lang, terms: true, website: f.website,
+      });
+      if (r.ok) {
+        setRedirect(r.url);
+        goToPayment(r.url, embed);
+      } else setError(srv(r.reason));
+    });
+
+  return (
+    <div className="flex min-h-full flex-col">
+      <div className="flex-1 space-y-4 px-4 py-4">
+        {error && <p role="alert" className="rounded-[10px] bg-[#fef3f2] px-3 py-2 text-[13px] text-[#b42318]">{error}</p>}
+        <fieldset>
+          <legend className="mb-2 text-[13px] font-medium">{t.pickAmount}</legend>
+          <div className="grid grid-cols-3 gap-2">
+            {gift.amounts.map((a) => (
+              <button
+                key={a}
+                type="button"
+                aria-pressed={amount === a}
+                onClick={() => { setAmount(a); setCustom(""); }}
+                className={clsx("h-12 rounded-[12px] border text-[15px] font-semibold", amount === a ? "border-[var(--w-primary)] bg-[var(--w-primary)] text-[var(--w-on-primary)]" : "border-black/15")}
+              >
+                {formatEuro(a)}
+              </button>
+            ))}
+          </div>
+          {gift.custom && (
+            <div className="mt-2">
+              <WInput id="g-custom" label={`${t.otherAmount} (€) · ${t.minAmount(eur(gift.minCents)).toLowerCase()}`} value={custom} inputMode="text" onChange={(v) => { setCustom(v.replace(/[^\d.,]/g, "")); setAmount(null); }} />
+            </div>
+          )}
+          <p className="mt-2 text-[12px] opacity-60">{t.giftValid(gift.validityMonths)}</p>
+        </fieldset>
+        <fieldset className="space-y-3">
+          <legend className="mb-1 text-[13px] font-medium">{t.buyerDetails}</legend>
+          <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden className="absolute -left-[9999px] h-px w-px opacity-0" value={f.website} onChange={(e) => setF({ ...f, website: e.target.value })} />
+          <WInput id="g-name" label={t.fullName} value={f.name} onChange={(v) => setF({ ...f, name: v })} autoComplete="name" />
+          <WInput id="g-email" label={t.email} type="email" value={f.email} onChange={(v) => setF({ ...f, email: v })} autoComplete="email" inputMode="email" />
+        </fieldset>
+        <Check2 checked={f.forOther} onChange={(v) => setF({ ...f, forOther: v })}>{t.forOther}</Check2>
+        {f.forOther && (
+          <div className="space-y-3 rounded-[14px] bg-black/[0.03] p-3">
+            <WInput id="g-rname" label={t.recipientName} value={f.rName} onChange={(v) => setF({ ...f, rName: v })} />
+            <WInput id="g-remail" label={t.recipientEmail} type="email" value={f.rEmail} onChange={(v) => setF({ ...f, rEmail: v })} inputMode="email" />
+            <div>
+              <label htmlFor="g-msg" className="mb-1 block text-[13px] font-medium">{t.giftMessage}</label>
+              <textarea id="g-msg" rows={3} maxLength={300} value={f.message} onChange={(e) => setF({ ...f, message: e.target.value })} className="w-full rounded-[12px] border border-black/15 bg-transparent px-3 py-2 text-[15px] outline-none focus:border-[var(--w-primary)]" />
+            </div>
+          </div>
+        )}
+        <Check2 checked={f.terms} onChange={(v) => setF({ ...f, terms: v })}>{t.acceptShopTerms}</Check2>
+      </div>
+      <div className="sticky bottom-0 space-y-2 border-t border-black/5 bg-[var(--w-bg)] px-4 py-3">
+        {redirect && (
+          <p className="text-center text-[13px]">
+            {t.payNotOpened} <a href={redirect} target="_top" className="font-semibold underline">{t.openPay}</a>
+          </p>
+        )}
+        <PrimaryButton className="w-full" disabled={pending || !!redirect || !cents} onClick={submit}>
+          {pending || redirect ? t.openingPay : t.payAmount(cents ? eur(cents) : "")}
+        </PrimaryButton>
+      </div>
+    </div>
+  );
+}
+
+function PackageShop({ slug, packages, embed }: { slug: string; packages: Data["shop"]["packages"]; embed: boolean }) {
+  const { t, lang, srv } = useL();
+  const [picked, setPicked] = useState<string | null>(packages.length === 1 ? packages[0].id : null);
+  const [f, setF] = useState({ name: "", email: "", phone: "", terms: false, website: "" });
+  const [error, setError] = useState<string | null>(null);
+  const [redirect, setRedirect] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  const pkg = packages.find((p) => p.id === picked) ?? null;
+
+  const submit = () =>
+    start(async () => {
+      setError(null);
+      if (!pkg) return;
+      if (f.name.trim().length < 2) return setError(t.errName);
+      if (!/^\S+@\S+\.\S+$/.test(f.email)) return setError(t.errEmail);
+      if (!f.terms) return setError(srv("Nõustu tingimustega"));
+      const r = await buyPackage({ slug, packageId: pkg.id, buyerName: f.name, buyerEmail: f.email, buyerPhone: f.phone ? `+372 ${f.phone}`.replace("+372 +", "+") : "", lang, terms: true, website: f.website });
+      if (r.ok) {
+        setRedirect(r.url);
+        goToPayment(r.url, embed);
+      } else setError(srv(r.reason));
+    });
+
+  return (
+    <div className="flex min-h-full flex-col">
+      <div className="flex-1 space-y-3 px-4 py-4">
+        {error && <p role="alert" className="rounded-[10px] bg-[#fef3f2] px-3 py-2 text-[13px] text-[#b42318]">{error}</p>}
+        <ul className="space-y-2">
+          {packages.map((p) => {
+            const active = p.id === picked;
+            const visits = p.items.reduce((n, i) => n + i.quantity, 0);
+            return (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setPicked(p.id)}
+                  className={clsx("w-full rounded-[14px] border p-3.5 text-left", active ? "border-[var(--w-primary)] ring-1 ring-[var(--w-primary)]" : "border-black/10")}
+                >
+                  <span className="flex items-start justify-between gap-3">
+                    <span className="font-semibold">{p.name}</span>
+                    <span className="shrink-0 font-semibold">{eur(p.priceCents)}</span>
+                  </span>
+                  {p.description && <span className="mt-1 block text-[13px] opacity-70">{p.description}</span>}
+                  <span className="mt-2 block text-[13px]">
+                    <span className="opacity-60">{t.packageIncludes}: </span>
+                    {p.items.map((i) => `${i.quantity}× ${i.serviceName}`).join(", ")}
+                  </span>
+                  <span className="mt-1 block text-[12px] opacity-60">
+                    {t.packageUses(visits)}
+                    {p.validityDays ? ` · ${t.packageValid(p.validityDays)}` : ""}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        {pkg && (
+          <div className="space-y-3 pt-2">
+            <p className="flex gap-2 rounded-[12px] bg-black/[0.04] p-3 text-[13px]">
+              <Info size={16} className="mt-0.5 shrink-0" aria-hidden /> {t.packageInfo}
+            </p>
+            <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden className="absolute -left-[9999px] h-px w-px opacity-0" value={f.website} onChange={(e) => setF({ ...f, website: e.target.value })} />
+            <WInput id="p-name" label={t.fullName} value={f.name} onChange={(v) => setF({ ...f, name: v })} autoComplete="name" />
+            <WInput id="p-email" label={t.email} type="email" value={f.email} onChange={(v) => setF({ ...f, email: v })} autoComplete="email" inputMode="email" />
+            <WInput id="p-phone" label={t.phone} type="tel" prefix="EE +372" value={f.phone} onChange={(v) => setF({ ...f, phone: v })} autoComplete="tel-national" inputMode="tel" />
+            <Check2 checked={f.terms} onChange={(v) => setF({ ...f, terms: v })}>{t.acceptShopTerms}</Check2>
+          </div>
+        )}
+      </div>
+      {pkg && (
+        <div className="sticky bottom-0 space-y-2 border-t border-black/5 bg-[var(--w-bg)] px-4 py-3">
+          {redirect && (
+            <p className="text-center text-[13px]">
+              {t.payNotOpened} <a href={redirect} target="_top" className="font-semibold underline">{t.openPay}</a>
+            </p>
+          )}
+          <PrimaryButton className="w-full" disabled={pending || !!redirect} onClick={submit}>
+            {pending || redirect ? t.openingPay : t.payAmount(eur(pkg.priceCents))}
+          </PrimaryButton>
+        </div>
+      )}
+    </div>
+  );
+}
