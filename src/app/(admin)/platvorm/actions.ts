@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/server/audit";
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { db, schema as s } from "@/db";
@@ -18,6 +19,7 @@ export async function setBusinessPlan(input: { businessId: string; plan: string;
     .update(s.businesses)
     .set({ plan: parsePlan(input.plan), billingPeriod: parsePeriod(input.period), planStatus: status, planChangedAt: new Date() })
     .where(eq(s.businesses.id, input.businessId));
+  await logActivity({ action: "support.plan_set", summary: `Aegly tugi määras paketi: ${parsePlan(input.plan)} · ${status}`, businessId: input.businessId, actor: { name: "Aegly tugi", email: user.email } });
   revalidatePath("/platvorm");
   revalidatePath(`/platvorm/${input.businessId}`);
   return { ok: true, message: "Salvestatud." };

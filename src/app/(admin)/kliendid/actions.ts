@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/server/audit";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, eq, ne, sql } from "drizzle-orm";
@@ -41,10 +42,12 @@ export async function saveClient(id: string | null, input: ClientInput): Promise
     await db.update(s.clients).set(d).where(eq(s.clients.id, id));
     revalidatePath(`/kliendid/${id}`);
     revalidatePath("/kliendid");
+    await logActivity({ action: "client.updated", summary: `Muutis kliendi ${d.name} andmeid`, target: { type: "client", id } });
     return { ok: true, message: "Salvestatud.", id };
   }
   const [c] = await db.insert(s.clients).values({ ...d, businessId: business.id, consentTermsAt: new Date() }).returning({ id: s.clients.id });
   revalidatePath("/kliendid");
+  await logActivity({ action: "client.created", summary: `Lisas kliendi ${d.name}`, target: { type: "client", id: c.id } });
   return { ok: true, message: "Klient lisatud.", id: c.id };
 }
 
@@ -71,7 +74,8 @@ export async function deleteNote(clientId: string, index: number) {
 
 export async function setNoShowExempt(clientId: string, exempt: boolean) {
   const { business } = await requireManager();
-  await own(business.id, clientId);
+  const c = await own(business.id, clientId);
+  await logActivity({ action: "client.noshow_exempt", summary: `${exempt ? "Vabastas" : "Eemaldas vabastuse:"} kliendi ${c.name} ettemaksu nõudest`, target: { type: "client", id: clientId } });
   await db.update(s.clients).set({ noShowExempt: exempt }).where(eq(s.clients.id, clientId));
   revalidatePath(`/kliendid/${clientId}`);
 }
@@ -82,8 +86,9 @@ export async function setNoShowExempt(clientId: string, exempt: boolean) {
  */
 export async function deleteClient(clientId: string) {
   const { business } = await requireManager();
-  await own(business.id, clientId);
+  const c = await own(business.id, clientId);
   const used = await db.$count(s.bookings, eq(s.bookings.clientId, clientId));
+  await logActivity({ action: "client.deleted", summary: `Kustutas kliendi ${c.name}${used > 0 ? " (andmed anonüümiti, broneeringud jäid alles)" : ""}`, target: { type: "client", id: clientId } });
   if (used > 0) {
     await db
       .update(s.clients)

@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/server/audit";
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
@@ -50,6 +51,7 @@ export async function sellGiftCard(input: SellInput): Promise<FormState & { code
         source: "ADMIN",
         paymentMethod: d.paymentMethod,
       });
+      await logActivity({ action: "giftcard.sold", summary: `Müüs kinkekaardi ${code} (${(d.valueCents / 100).toFixed(2)} €)` });
       revalidatePath("/kinkekaardid");
       return { ok: true, message: `Kinkekaart ${code} loodud.`, code };
     } catch (e) {
@@ -70,6 +72,7 @@ export async function redeemGiftCard(id: string, amountCents: number, note: stri
       .returning();
     if (!g) return { message: "Saldo on väiksem või kaart on aegunud" };
     await tx.insert(s.giftCardRedemptions).values({ giftCardId: id, amountCents, note: note.trim() || null });
+    await logActivity({ action: "giftcard.redeemed", summary: `Kasutas kinkekaardi ${g.code} saldost ${(amountCents / 100).toFixed(2)} €` });
     revalidatePath("/kinkekaardid");
     return { ok: true, message: "Saldo kasutatud." };
   });

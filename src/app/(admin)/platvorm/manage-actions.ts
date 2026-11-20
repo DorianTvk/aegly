@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/server/audit";
 import { cancelSubscriptionNow } from "@/server/billing";
 
 import { randomBytes } from "node:crypto";
@@ -24,7 +25,7 @@ const IMPERSONATE_HOURS = 2;
 
 /** Sisene salongi kontole omanikuna (tugi ja seadistamine). Oma sessioon jääb alles tagasipöördumiseks. */
 export async function impersonate(businessId: string) {
-  await requireSuperadmin();
+  const { user: admin } = await requireSuperadmin();
   const store = await cookies();
   const own = store.get(SESSION_COOKIE)?.value;
   const owner = await db.query.users.findFirst({ where: and(eq(s.users.businessId, businessId), eq(s.users.role, "OWNER")) });
@@ -33,6 +34,8 @@ export async function impersonate(businessId: string) {
     httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/",
     expires: new Date(Date.now() + IMPERSONATE_HOURS * 3_600_000),
   });
+  // nähtav ka ettevõtte enda tegevuste logis (läbipaistvus)
+  await logActivity({ action: "support.impersonation_started", summary: "Aegly tugi sisenes kontole (kliendi vaade)", businessId, actor: { name: "Aegly tugi", email: admin.email, userId: null } });
   await createSession(owner.id, { hours: IMPERSONATE_HOURS });
   redirect("/toolaud");
 }
@@ -41,6 +44,8 @@ export async function impersonate(businessId: string) {
 export async function stopImpersonation() {
   const store = await cookies();
   const back = store.get(RETURN_COOKIE)?.value;
+  const current = await readSession();
+  if (current) await logActivity({ action: "support.impersonation_ended", summary: "Aegly tugi lahkus kontolt" });
   await destroySession();
   store.delete(RETURN_COOKIE);
   const admin = back ? await sessionUserByToken(back) : null;
@@ -63,23 +68,25 @@ const editSchema = z.object({
 });
 
 export async function updateBusiness(businessId: string, input: z.input<typeof editSchema>): Promise<FormState> {
-  await requireSuperadmin();
+  const { user: admin } = await requireSuperadmin();
   const p = editSchema.safeParse(input);
   if (!p.success) return { message: p.error.issues[0]?.message ?? "Kontrolli välju" };
   await db.update(s.businesses).set({ name: p.data.name, email: p.data.email || null, phone: p.data.phone || null }).where(eq(s.businesses.id, businessId));
+  await logActivity({ action: "support.business_updated", summary: "Aegly tugi muutis ettevõtte kontaktandmeid", businessId, actor: { name: "Aegly tugi", email: admin.email } });
   revalidatePath(`/platvorm/${businessId}`);
   return { ok: true, message: "Salvestatud." };
 }
 
 /** Uus ajutine parool kasutajale; kõik tema sessioonid lõpetatakse */
 export async function resetUserPassword(userId: string): Promise<{ ok: true; password: string } | { ok: false; message: string }> {
-  await requireSuperadmin();
+  const { user: admin } = await requireSuperadmin();
   const user = await db.query.users.findFirst({ where: eq(s.users.id, userId) });
   if (!user) return { ok: false, message: "Kasutajat ei leitud" };
   if (isSuperadmin(user.email)) return { ok: false, message: "Platvormi halduri parooli siit muuta ei saa." };
   const password = randomBytes(9).toString("base64url");
   await db.update(s.users).set({ passwordHash: await hashPassword(password) }).where(eq(s.users.id, userId));
   await db.delete(s.sessions).where(eq(s.sessions.userId, userId));
+  await logActivity({ action: "support.password_reset", summary: `Aegly tugi määras kasutajale ${user.name} ajutise parooli`, businessId: user.businessId, actor: { name: "Aegly tugi", email: admin.email } });
   return { ok: true, password };
 }
 
@@ -91,6 +98,7 @@ export async function deleteBusiness(businessId: string, confirmSlug: string): P
   if (b.id === own.id) return { message: "Oma kontot siit kustutada ei saa." };
   if (confirmSlug.trim() !== b.slug) return { message: `Kinnitamiseks sisesta täpselt: ${b.slug}` };
   await cancelSubscriptionNow(b.stripeSubscriptionId);
+  await logActivity({ action: "platform.business_deleted", summary: `Kustutas kliendi ${b.name} (${b.slug})`, businessId: null });
   await db.delete(s.businesses).where(eq(s.businesses.id, businessId));
   revalidatePath("/platvorm");
   redirect("/platvorm");
@@ -108,7 +116,8 @@ export async function deleteBusinesses(ids: string[], confirmWord: string): Prom
   if (!toDelete.length) return { ok: false, message: "Valitud kliente ei saa kustutada (platvormi halduri konto)." };
   const subs = await db.select({ sub: s.businesses.stripeSubscriptionId }).from(s.businesses).where(inArray(s.businesses.id, toDelete));
   await Promise.all(subs.map((x) => cancelSubscriptionNow(x.sub)));
-  const deleted = await db.delete(s.businesses).where(inArray(s.businesses.id, toDelete)).returning({ id: s.businesses.id });
+  const deleted = await db.delete(s.businesses).where(inArray(s.businesses.id, toDelete)).returning({ id: s.businesses.id, name: s.businesses.name });
+  await logActivity({ action: "platform.business_deleted", summary: `Kustutas ${deleted.length} klienti: ${deleted.map((d) => d.name).join(", ")}`, businessId: null });
   revalidatePath("/platvorm");
   const skipped = unique.length - deleted.length;
   return { ok: true, message: `Kustutatud ${deleted.length} klienti.${skipped ? ` ${skipped} jäeti vahele (kaitstud).` : ""}` };

@@ -11,7 +11,7 @@ export const MANAGERS: Role[] = ["OWNER", "ADMIN"];
 /** Halduspaneeli teed, kuhu töötaja ei pääse (kõik alamteed kaasa arvatud) */
 const MANAGER_ONLY = [
   "/aruanded", "/teenused", "/paketid", "/hinnakiri", "/tootajad", "/tooajad", "/sooduskoodid",
-  "/kampaaniad", "/kinkekaardid", "/vidin", "/profiil", "/teavitused", "/kliendid/export",
+  "/kampaaniad", "/kinkekaardid", "/vidin", "/profiil", "/teavitused", "/kliendid/export", "/seaded/logi",
 ];
 const OWNER_ONLY = ["/seaded/pakett"];
 

@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/server/audit";
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { and, eq, ne, sql } from "drizzle-orm";
@@ -66,6 +67,7 @@ export async function saveCode(id: string | null, input: CodeInput): Promise<For
   };
   if (id) await db.update(s.discountCodes).set(values).where(and(eq(s.discountCodes.id, id), eq(s.discountCodes.businessId, business.id)));
   else await db.insert(s.discountCodes).values({ ...values, businessId: business.id });
+  await logActivity({ action: id ? "code.updated" : "code.created", summary: `${id ? "Muutis" : "Lisas"} sooduskoodi ${d.code}` });
   revalidatePath("/sooduskoodid");
   return { ok: true, message: "Salvestatud." };
 }

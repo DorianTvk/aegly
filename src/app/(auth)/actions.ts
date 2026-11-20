@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/server/audit";
 import { reportError } from "@/lib/report";
 
 import { billingEnabled, subscriptionCheckout } from "@/server/billing";
@@ -12,7 +13,8 @@ import { appUrl } from "@/lib/app-url";
 import { createToken, findToken, markUsed, sendAccountEmail, sendVerifyEmail } from "@/server/auth-tokens";
 import { z } from "zod";
 import { hashPassword, verifyPassword } from "@/lib/password";
-import { createSession, destroySession } from "@/lib/session";
+import { completeMfa, createSession, destroySession, readPendingMfa } from "@/lib/session";
+import { checkSecondFactor } from "@/server/mfa";
 import { createBusinessWithOwner, findUserByEmail } from "@/server/business";
 import type { FormState } from "@/components/ui/form";
 import { parsePeriod, parsePlan } from "@/lib/plans";
@@ -54,8 +56,40 @@ export async function login(_prev: FormState, formData: FormData): Promise<FormS
   await recordAttempt("LOGIN", ip, parsed.data.email, !!user && ok);
   if (!user || !ok) return { message: "Vale e-post või parool." };
 
+  return startSession(user, parsed.data.next);
+}
+
+/** Loo sessioon; kui kasutajal on kaheastmeline sisselogimine, küsitakse enne veel koodi */
+async function startSession(user: { id: string; name: string; email: string; businessId: string; totpEnabledAt: Date | null }, next?: string): Promise<never> {
+  if (user.totpEnabledAt) {
+    await createSession(user.id, { mfaPending: true });
+    const n = safeNext(next);
+    redirect(n === "/toolaud" ? "/logi-sisse/kood" : `/logi-sisse/kood?next=${encodeURIComponent(n)}`);
+  }
   await createSession(user.id);
-  redirect(safeNext(parsed.data.next));
+  await logActivity({ action: "security.login", summary: "Logis sisse", businessId: user.businessId, actor: { name: user.name, email: user.email, userId: user.id } });
+  redirect(safeNext(next));
+}
+
+/** Kaheastmelise sisselogimise kood (autentimisrakendusest või varukood) */
+export async function verifyLoginCode(_prev: FormState, formData: FormData): Promise<FormState> {
+  const pending = await readPendingMfa();
+  if (!pending) redirect("/logi-sisse");
+  const code = String(formData.get("code") ?? "");
+  const ip = await clientIp();
+  // 5 valet koodi 15 minuti jooksul → ootamine (6-kohalist koodi ei saa läbi proovida)
+  const failed = await recentAttempts("MFA_FAIL", { email: pending.user.email }, 15);
+  if (failed >= 5) return { message: "Liiga palju valesid koode. Proovi 15 minuti pärast uuesti." };
+  const ok = await checkSecondFactor(pending.user, code);
+  if (!ok) {
+    await recordAttempt("MFA_FAIL", ip, pending.user.email, false);
+    return { errors: { code: ["Vale kood. Proovi uuesti."] } };
+  }
+  await recordAttempt("LOGIN", ip, pending.user.email, true);
+  await completeMfa(pending);
+  const u = pending.user;
+  await logActivity({ action: "security.login", summary: ok === "recovery" ? "Logis sisse varukoodiga" : "Logis sisse (kaheastmeline)", businessId: u.businessId, actor: { name: u.name, email: u.email, userId: u.id } });
+  redirect(safeNext(String(formData.get("next") ?? "")));
 }
 
 export async function register(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -150,8 +184,9 @@ export async function resetPassword(_prev: FormState, formData: FormData): Promi
   await db.update(s.users).set({ passwordHash: await hashPassword(parsed.data.password), emailVerifiedAt: new Date() }).where(eq(s.users.id, row.userId));
   // kõik vanad sessioonid (ka võimaliku ründaja oma) lõpetatakse
   await db.delete(s.sessions).where(eq(s.sessions.userId, row.userId));
-  await createSession(row.userId);
-  redirect("/toolaud");
+  // parooli taastamine e-postiga ei lase kaheastmelisest sisselogimisest mööda
+  const u = await db.query.users.findFirst({ where: eq(s.users.id, row.userId), columns: { id: true, name: true, email: true, businessId: true, totpEnabledAt: true } });
+  return startSession(u!);
 }
 
 // ---------- Kutse vastuvõtmine ----------

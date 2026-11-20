@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/server/audit";
 import { reportError } from "@/lib/report";
 
 import { revalidatePath } from "next/cache";
@@ -26,6 +27,7 @@ export async function changePassword(_prev: FormState, formData: FormData): Prom
   // logi välja teistest seadmetest (praegune sessioon jääb)
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   await db.delete(s.sessions).where(and(eq(s.sessions.userId, user.id), token ? ne(s.sessions.id, hashToken(token)) : undefined));
+  await logActivity({ action: "security.password_changed", summary: "Muutis oma parooli" });
   return { ok: true, message: "Parool muudetud. Teised seadmed logiti välja." };
 }
 
@@ -63,6 +65,7 @@ export async function inviteUser(input: z.input<typeof inviteSchema>): Promise<F
     email: d.email, businessId: business.id,
     data: { businessId: business.id, email: d.email, name: d.name, role: d.role, staffId: d.role === "STAFF" ? d.staffId : null, invitedBy: user.name },
   });
+  await logActivity({ action: "user.invited", summary: `Kutsus ${d.name} (${d.email}) ${d.role === "ADMIN" ? "administraatoriks" : "töötajaks"}` });
   const base = await appUrl();
   after(() =>
     sendAccountEmail({
@@ -86,6 +89,7 @@ export async function cancelInvite(email: string) {
     .update(s.authTokens)
     .set({ usedAt: new Date() })
     .where(and(eq(s.authTokens.kind, "INVITE"), eq(s.authTokens.businessId, business.id), eq(s.authTokens.email, email), isNull(s.authTokens.usedAt)));
+  await logActivity({ action: "user.invite_cancelled", summary: `Tühistas kutse: ${email}` });
   revalidatePath("/seaded");
 }
 
@@ -96,6 +100,9 @@ async function targetUser(businessId: string, userId: string) {
 export async function setUserRole(userId: string, role: "ADMIN" | "STAFF") {
   const { business, user } = await requireSession();
   if (user.role !== "OWNER" || userId === user.id) return;
+  const target = await targetUser(business.id, userId);
+  if (!target) return;
+  await logActivity({ action: "user.role", summary: `Muutis kasutaja ${target.name} rolliks ${role === "ADMIN" ? "administraator" : "töötaja"}`, target: { type: "user", id: userId } });
   await db.update(s.users).set({ role, ...(role === "ADMIN" ? { staffId: null } : {}) }).where(and(eq(s.users.id, userId), eq(s.users.businessId, business.id), ne(s.users.role, "OWNER")));
   revalidatePath("/seaded");
 }
@@ -116,6 +123,7 @@ export async function removeUser(userId: string) {
   const target = await targetUser(business.id, userId);
   if (!target || !manageableRoles(user.role).includes(target.role as "ADMIN" | "STAFF")) return;
   await db.delete(s.users).where(eq(s.users.id, userId));
+  await logActivity({ action: "user.removed", summary: `Eemaldas kasutaja ${target.name} (${target.email})` });
   revalidatePath("/seaded");
 }
 
@@ -123,6 +131,7 @@ export async function saveProtection(input: { noShowProtection: boolean; noShowT
   const { business } = await requireManager();
   if (![1, 2, 3, 5].includes(input.noShowThreshold)) return { message: "Vigane piir" };
   await db.update(s.businesses).set(input).where(eq(s.businesses.id, business.id));
+  await logActivity({ action: "settings.protection", summary: input.noShowProtection ? `Lülitas sisse mitteilmumise kaitse (piir ${input.noShowThreshold})` : "Lülitas välja mitteilmumise kaitse" });
   revalidatePath("/seaded");
   return { ok: true, message: "Salvestatud." };
 }
@@ -132,6 +141,8 @@ export async function deleteBusiness(confirmName: string): Promise<FormState> {
   const { business, user } = await requireSession();
   if (user.role !== "OWNER") return { message: "Kontot saab kustutada ainult omanik" };
   if (confirmName.trim() !== business.name) return { message: "Nimi ei ühti" };
+  // ettevõtte logi kustub koos ettevõttega → kirje jääb platvormi logisse
+  await logActivity({ action: "business.deleted", summary: `Kustutas ettevõtte ${business.name} konto (${business.slug})`, businessId: null });
   await destroySession();
   await db.delete(s.businesses).where(eq(s.businesses.id, business.id));
   redirect("/registreeru");

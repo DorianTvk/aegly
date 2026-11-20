@@ -35,6 +35,7 @@ import {
   connectStripe,
 } from "./actions";
 import { UsersCard, type PendingInvite, type SettingsUser } from "./UsersCard";
+import { TwoFactorCard } from "./TwoFactorCard";
 
 type User = SettingsUser;
 
@@ -85,6 +86,7 @@ function StripeConnect({ status, available, isOwner }: { status: "none" | "incom
 
 export function SettingsView({
   me,
+  security,
   users,
   invites,
   staff,
@@ -93,6 +95,7 @@ export function SettingsView({
   invites: PendingInvite[];
   staff: { id: string; name: string }[];
   me: { name: string; email: string; role: User["role"] };
+  security: { enabled: boolean; recoveryLeft: number; required: boolean; otherSessions: number };
   users: User[];
   business: {
     planName: string;
@@ -214,6 +217,20 @@ export function SettingsView({
           </form>
         </div>
       </Card>
+
+      <TwoFactorCard {...security} />
+
+      {manager && (
+        <Card className="flex flex-wrap items-center justify-between gap-4 p-5">
+          <div>
+            <h2 className="text-[15px] font-semibold">Tegevuste logi</h2>
+            <p className="mt-0.5 text-[13px] text-muted">Kes mida ja millal muutis – broneeringud, kliendid, seaded ja sisselogimised.</p>
+          </div>
+          <Link href="/seaded/logi" className="inline-flex h-9 items-center rounded-[10px] border border-line px-3 text-sm font-semibold hover:bg-line-soft">
+            Ava logi
+          </Link>
+        </Card>
+      )}
 
       {manager && (
         <UsersCard me={me} users={users} invites={invites} staff={staff} />

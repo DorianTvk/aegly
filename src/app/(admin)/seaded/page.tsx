@@ -5,7 +5,7 @@ import { db, schema as s } from "@/db";
 import { requireSession } from "@/lib/session";
 import { Card } from "@/components/ui/primitives";
 import { SettingsView } from "./SettingsView";
-import { PLANS } from "@/lib/plans";
+import { isSuperadmin, PLANS } from "@/lib/plans";
 import { formatEuro } from "@/lib/time";
 import { stripeConfigured, syncAccount } from "@/server/stripe";
 
@@ -22,14 +22,16 @@ async function Settings() {
     }
   }
   const stripeStatus = !b.stripeAccountId ? "none" : b.stripeChargesEnabled ? "active" : b.stripeDetailsSubmitted ? "review" : "incomplete";
-  const [users, staff, invites] = await Promise.all([
+  const [users, staff, invites, sessionCount] = await Promise.all([
     db.query.users.findMany({ where: eq(s.users.businessId, b.id), orderBy: [asc(s.users.createdAt)] }),
     db.query.staffMembers.findMany({ where: and(eq(s.staffMembers.businessId, b.id), eq(s.staffMembers.active, true)), orderBy: [asc(s.staffMembers.sortOrder)] }),
     db.query.authTokens.findMany({ where: and(eq(s.authTokens.businessId, b.id), eq(s.authTokens.kind, "INVITE"), isNull(s.authTokens.usedAt), gt(s.authTokens.expiresAt, new Date())) }),
+    db.$count(s.sessions, and(eq(s.sessions.userId, user.id), eq(s.sessions.mfaPending, false), gt(s.sessions.expiresAt, new Date()))),
   ]);
   return (
     <SettingsView
       me={{ name: user.name, email: user.email, role: user.role }}
+      security={{ enabled: !!user.totpEnabledAt, recoveryLeft: user.recoveryCodes.length, required: isSuperadmin(user.email), otherSessions: Math.max(0, sessionCount - 1) }}
       users={users.map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, isMe: u.id === user.id, staffId: u.staffId }))}
       staff={staff.map((m) => ({ id: m.id, name: m.name }))}
       invites={invites.map((i) => ({ email: i.email, name: i.data?.name ?? i.email, role: i.data?.role ?? "STAFF", expires: i.expiresAt.toLocaleDateString("et-EE", { timeZone: b.timezone }) }))}

@@ -13,10 +13,12 @@ const SESSION_DAYS = 30;
 
 export const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 
-export async function createSession(userId: string, opts: { hours?: number } = {}) {
+export async function createSession(userId: string, opts: { hours?: number; mfaPending?: boolean } = {}) {
   const token = randomBytes(32).toString("base64url");
-  const expiresAt = new Date(Date.now() + (opts.hours ? opts.hours * 3_600_000 : SESSION_DAYS * 86_400_000));
-  await db.insert(s.sessions).values({ id: hashToken(token), userId, expiresAt });
+  // kaheastmelise koodi ootel sessioon kehtib ainult 10 minutit
+  const ms = opts.mfaPending ? 10 * 60_000 : opts.hours ? opts.hours * 3_600_000 : SESSION_DAYS * 86_400_000;
+  const expiresAt = new Date(Date.now() + ms);
+  await db.insert(s.sessions).values({ id: hashToken(token), userId, expiresAt, mfaPending: !!opts.mfaPending });
   (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -32,7 +34,7 @@ export const RETURN_COOKIE = "aegly_admin_return";
 
 export async function sessionUserByToken(token: string) {
   const row = await db.query.sessions.findFirst({ where: eq(s.sessions.id, hashToken(token)), with: { user: true } });
-  return row && row.expiresAt > new Date() ? { ...row.user, sessionExpiresAt: row.expiresAt } : null;
+  return row && !row.mfaPending && row.expiresAt > new Date() ? { ...row.user, sessionExpiresAt: row.expiresAt } : null;
 }
 
 export async function setSessionCookie(token: string, expires: Date) {
@@ -54,7 +56,7 @@ export const readSession = cache(async function readSession() {
     where: eq(s.sessions.id, hashToken(token)),
     with: { user: { with: { business: true } } },
   });
-  if (!row || row.expiresAt < new Date()) return null;
+  if (!row || row.mfaPending || row.expiresAt < new Date()) return null;
   // vigade juures näeme, kelle kontol see juhtus (ainult id-d, mitte nimi/e-post)
   if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
     Sentry.setUser({ id: row.user.id });
@@ -62,6 +64,23 @@ export const readSession = cache(async function readSession() {
   }
   return { user: row.user, business: row.user.business };
 });
+
+/** Sisselogimine, mis ootab kaheastmelise sisselogimise koodi (parool oli õige) */
+export async function readPendingMfa() {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  const id = hashToken(token);
+  const row = await db.query.sessions.findFirst({ where: eq(s.sessions.id, id), with: { user: true } });
+  if (!row || !row.mfaPending || row.expiresAt < new Date()) return null;
+  return { sessionId: id, token, user: row.user };
+}
+
+/** Kood õige → sessioon muutub täisväärtuslikuks (30 päeva) */
+export async function completeMfa(pending: { sessionId: string; token: string }) {
+  const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000);
+  await db.update(s.sessions).set({ mfaPending: false, expiresAt }).where(eq(s.sessions.id, pending.sessionId));
+  await setSessionCookie(pending.token, expiresAt);
+}
 
 /** Kasuta igas halduspaneeli lehes ja serveri toimingus. Suunab sisselogimisele, kui sessiooni pole. */
 export async function requireSession() {

@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/server/audit";
 import { applyImageField } from "@/server/images";
 import { readTranslations } from "@/lib/translations";
 
@@ -137,6 +138,7 @@ export async function saveService(serviceId: string | null, _prev: FormState, fo
   });
 
   revalidatePath("/teenused");
+  await logActivity({ action: serviceId ? "service.updated" : "service.created", summary: `${serviceId ? "Muutis" : "Lisas"} teenuse ${d.name}`, target: { type: "service", id } });
   if (!serviceId) redirect(`/teenused/${id}`);
   return { ok: true, message: "Muudatused salvestatud." };
 }
@@ -154,6 +156,8 @@ export async function toggleOnline(serviceId: string, online: boolean) {
 export async function deleteService(serviceId: string) {
   const { business } = await requireManager();
   const used = await db.$count(s.bookings, and(eq(s.bookings.serviceId, serviceId), eq(s.bookings.businessId, business.id)));
+  const svc = await db.query.services.findFirst({ where: and(eq(s.services.id, serviceId), eq(s.services.businessId, business.id)), columns: { name: true } });
+  if (svc) await logActivity({ action: "service.deleted", summary: `${used > 0 ? "Arhiveeris" : "Kustutas"} teenuse ${svc.name}`, target: { type: "service", id: serviceId } });
   if (used > 0) {
     await db
       .update(s.services)

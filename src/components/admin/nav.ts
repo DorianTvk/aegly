@@ -6,6 +6,7 @@ import {
   Clock,
   Code2,
   Gift,
+  History,
   LayoutGrid,
   Layers,
   Megaphone,
@@ -75,12 +76,15 @@ export const PLATFORM_NAV: { section: string; items: NavItem[] }[] = [
     items: [
       { href: "/platvorm", label: "Ülevaade", icon: LayoutGrid, section: "Platvorm" },
       { href: "/platvorm/kliendid", label: "Kliendid", icon: Building2, section: "Platvorm" },
+      { href: "/platvorm/logi", label: "Tegevuste logi", icon: History, section: "Platvorm" },
     ],
   },
 ];
 
 const EXTRA: NavItem[] = [
   { href: "/seaded/pakett", label: "Pakett ja arveldus", icon: SlidersHorizontal, section: "Seaded" },
+  { href: "/seaded/logi", label: "Tegevuste logi", icon: History, section: "Seaded" },
+  { href: "/platvorm/logi", label: "Tegevuste logi", icon: History, section: "Platvorm" },
   { href: "/teavitused/saadetud", label: "Saadetud teavitused", icon: Bell, section: "Kanal" },
   { href: "/platvorm/kliendid", label: "Kliendid", icon: Building2, section: "Platvorm" },
   PLATFORM_ITEM,

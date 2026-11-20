@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/server/audit";
 import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { and, eq, gt, inArray, lt, ne, sql } from "drizzle-orm";
@@ -71,5 +72,6 @@ export async function moveBooking(raw: z.infer<typeof input>): Promise<MoveResul
   revalidatePath("/kalender");
   revalidatePath(`/broneeringud/${b.id}`);
   const when = `${formatShortDate(localDate(startsAt, tz))} ${localTime(startsAt, tz)}`;
+  await logActivity({ action: "booking.moved", summary: timeChanged ? `Viis broneeringu ${b.number} uuele ajale: ${when}` : `Vahetas broneeringu ${b.number} töötajat`, target: { type: "booking", id: b.id } });
   return { ok: true, message: timeChanged ? `Broneering viidud: ${when}${notify ? " · klienti teavitatakse" : ""}` : "Töötaja vahetatud." };
 }

@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/server/audit";
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -48,6 +49,7 @@ export async function saveNotifications(input: NotificationsInput): Promise<Form
         .onConflictDoUpdate({ target: [s.notificationSettings.businessId, s.notificationSettings.type], set: it });
     }
   });
+  await logActivity({ action: "settings.notifications", summary: "Muutis teavituste seadeid" });
   revalidatePath("/teavitused");
   return { ok: true, message: "Salvestatud." };
 }

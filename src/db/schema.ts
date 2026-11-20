@@ -152,6 +152,13 @@ export const users = pgTable(
     staffId: text("staff_id"),
     /** millal kasutaja viimati kellukese teavitusi vaatas */
     notificationsSeenAt: ts("notifications_seen_at"),
+    /** kaheastmeline sisselogimine: autentimisrakenduse saladus (base32); kehtib alles siis, kui totpEnabledAt on olemas */
+    totpSecret: text("totp_secret"),
+    totpEnabledAt: ts("totp_enabled_at"),
+    /** viimati kasutatud koodi ajasamm (sama koodi ei saa uuesti kasutada) */
+    totpLastStep: integer("totp_last_step"),
+    /** kasutamata varukoodide SHA-256 räsid */
+    recoveryCodes: jsonb("recovery_codes").$type<string[]>().notNull().default([]),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("users_email").on(t.email)],
@@ -166,6 +173,8 @@ export const sessions = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     expiresAt: ts("expires_at").notNull(),
+    /** parool on õige, kuid kaheastmelise sisselogimise kood veel sisestamata – halduspaneeli ei lase */
+    mfaPending: boolean("mfa_pending").notNull().default(false),
     createdAt: createdAt(),
   },
   (t) => [index("sessions_user").on(t.userId)],
@@ -608,6 +617,31 @@ export const activityEvents = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("activity_business_created").on(t.businessId, t.createdAt)],
+);
+
+// ---------- Tegevuste logi (kes mida muutis) ----------
+
+export const auditLog = pgTable(
+  "audit_log",
+  {
+    id: id(),
+    /** null = platvormi tasandi tegevus (nt ettevõtte kustutamine) */
+    businessId: text("business_id").references(() => businesses.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+    /** nimi ja e-post salvestatakse eraldi, et logi jääks loetavaks ka pärast kasutaja eemaldamist */
+    actorName: text("actor_name").notNull(),
+    actorEmail: text("actor_email"),
+    /** platvormi halduri e-post, kui tegevus tehti "logi sisse kui" kaudu */
+    viaAdmin: text("via_admin"),
+    /** nt booking.created, client.deleted, security.2fa_enabled */
+    action: text("action").notNull(),
+    summary: text("summary").notNull(),
+    targetType: text("target_type"),
+    targetId: text("target_id"),
+    ip: text("ip"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("audit_business_created").on(t.businessId, t.createdAt), index("audit_created").on(t.createdAt)],
 );
 
 // ---------- Sisselogimise kaitse (katsete piiramine) ----------

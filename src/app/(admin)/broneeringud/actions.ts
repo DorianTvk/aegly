@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/server/audit";
 import { reportError } from "@/lib/report";
 
 import { refundBooking } from "@/server/stripe";
@@ -85,6 +86,7 @@ export async function createManualBooking(input: ManualBookingInput): Promise<Fo
   if (res.status === "CONFIRMED") after(() => notifyBooking(res.bookingId, "CONFIRMATION", base));
   revalidatePath("/kalender");
   revalidatePath("/toolaud");
+  await logActivity({ action: "booking.created", summary: `Lisas broneeringu ${res.number}`, target: { type: "booking", id: res.bookingId } });
   return { ok: true, message: `Broneering ${res.number} loodud.`, bookingId: res.bookingId };
 }
 
@@ -112,6 +114,12 @@ export async function setBookingStatus(bookingId: string, status: "CONFIRMED" | 
       cancelReason: status === "CANCELLED" ? (reason?.trim() || "Tühistas teenusepakkuja") : null,
     })
     .where(eq(s.bookings.id, bookingId));
+  const STATUS_TEXT = { CONFIRMED: "kinnitatuks", COMPLETED: "tehtuks", NO_SHOW: "mitteilmunuks", CANCELLED: "tühistatuks" } as const;
+  await logActivity({
+    action: `booking.${status.toLowerCase()}`,
+    summary: `Märkis broneeringu ${b.number} ${STATUS_TEXT[status]}${status === "CANCELLED" && reason?.trim() ? ` (${reason.trim()})` : ""}`,
+    target: { type: "booking", id: bookingId },
+  });
   const base = await appUrl();
   // salong tühistas → veebis tasutud ettemaks tagasi
   let refunded = 0;

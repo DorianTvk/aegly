@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/server/audit";
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -58,6 +59,7 @@ export async function saveCampaign(id: string | null, input: CampaignInput): Pro
   let savedId = id;
   if (id) await db.update(s.campaigns).set(values).where(and(eq(s.campaigns.id, id), eq(s.campaigns.businessId, business.id)));
   else savedId = (await db.insert(s.campaigns).values({ ...values, businessId: business.id }).returning({ id: s.campaigns.id }))[0].id;
+  await logActivity({ action: id ? "campaign.updated" : "campaign.created", summary: `${id ? "Muutis" : "Lisas"} kampaania ${d.name}` });
   revalidatePath("/kampaaniad");
   return { ok: true, message: "Salvestatud.", id: savedId! };
 }

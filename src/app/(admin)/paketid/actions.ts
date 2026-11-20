@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/server/audit";
 import { revalidatePath } from "next/cache";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
@@ -46,6 +47,7 @@ export async function savePackage(id: string | null, input: PackageInput): Promi
     for (const i of d.items) merged.set(i.serviceId, (merged.get(i.serviceId) ?? 0) + i.quantity);
     await tx.insert(s.packageItems).values([...merged].map(([serviceId, quantity]) => ({ packageId: pid!, serviceId, quantity })));
   });
+  await logActivity({ action: id ? "package.updated" : "package.created", summary: `${id ? "Muutis" : "Lisas"} paketi ${d.name}` });
   revalidatePath("/paketid");
   return { ok: true, message: "Salvestatud." };
 }

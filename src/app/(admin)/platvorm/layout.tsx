@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { readSession } from "@/lib/session";
 import { isSuperadmin } from "@/lib/plans";
 
@@ -7,6 +7,10 @@ import { isSuperadmin } from "@/lib/plans";
 async function Guard({ children }: { children: React.ReactNode }) {
   const session = await readSession();
   if (!session || !isSuperadmin(session.user.email)) notFound();
+  // platvormi halduril on ligipääs kõigi klientide andmetele → kaheastmeline sisselogimine kohustuslik
+  // (päris keskkonnas; kohalikus arenduses ja testides saab sisse lülitada REQUIRE_2FA=1)
+  const enforce = process.env.VERCEL_ENV === "production" || process.env.REQUIRE_2FA === "1";
+  if (enforce && !session.user.totpEnabledAt) redirect("/seaded#turvalisus");
   return <>{children}</>;
 }
 

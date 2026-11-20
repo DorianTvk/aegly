@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/server/audit";
 import { reportError } from "@/lib/report";
 
 import { revalidatePath } from "next/cache";
@@ -41,6 +42,7 @@ export async function changePlan(input: { plan: string; period: string }): Promi
       }
       revalidatePath("/seaded/pakett");
       revalidatePath("/tootajad");
+      await logActivity({ action: "plan.changed", summary: `Vahetas paketi: ${PLANS[plan].name} (${period === "YEAR" ? "aastane" : "kuine"})` });
       return { ok: true, message: `Pakett vahetatud: ${PLANS[plan].name}. Hinnavahe arvestatakse järgmisel arvel.` };
     }
     let url: string;
@@ -57,6 +59,7 @@ export async function changePlan(input: { plan: string; period: string }): Promi
   await db.update(s.businesses).set({ plan, billingPeriod: period, planChangedAt: new Date() }).where(eq(s.businesses.id, business.id));
   revalidatePath("/seaded/pakett");
   revalidatePath("/tootajad");
+  await logActivity({ action: "plan.changed", summary: `Vahetas paketi: ${PLANS[plan].name}` });
   return { ok: true, message: `Pakett vahetatud: ${PLANS[plan].name}.` };
 }
 

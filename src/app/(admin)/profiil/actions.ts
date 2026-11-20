@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/server/audit";
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -49,6 +50,7 @@ export async function saveBusinessProfile(_prev: FormState, formData: FormData):
   if (removeBanner) patch.bannerUrl = null;
 
   await db.update(s.businesses).set(patch).where(eq(s.businesses.id, business.id));
+  await logActivity({ action: "settings.profile", summary: "Muutis ettevõtte profiili" });
   revalidatePath("/profiil");
   revalidatePath("/vidin");
   revalidatePath("/toolaud");

@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/server/audit";
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -56,6 +57,7 @@ export async function saveScheduleSettings(input: SettingsInput): Promise<FormSt
       })
       .where(eq(s.businesses.id, business.id));
   });
+  await logActivity({ action: "settings.hours", summary: "Muutis lahtiolekuaegu ja broneerimise reegleid" });
   revalidatePath("/tooajad");
   revalidatePath("/kalender");
   return { ok: true, message: "Salvestatud." };
@@ -88,6 +90,7 @@ export async function addHoliday(_prev: FormState, formData: FormData): Promise<
     startTime: d.mode === "short" ? d.startTime : null,
     endTime: d.mode === "short" ? d.endTime : null,
   });
+  await logActivity({ action: "settings.holiday", summary: `Lisas erandpäeva ${d.name}` });
   revalidatePath("/tooajad");
   revalidatePath("/kalender");
   return { ok: true, message: "Erand lisatud." };

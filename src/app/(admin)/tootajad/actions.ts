@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/server/audit";
 import { applyImageField } from "@/server/images";
 import { readTranslations } from "@/lib/translations";
 
@@ -53,6 +54,7 @@ export async function saveProfile(staffId: string | null, _prev: FormState, form
     }
     await db.update(s.staffMembers).set(values).where(eq(s.staffMembers.id, staffId));
     revalidatePath("/tootajad");
+    await logActivity({ action: "staff.updated", summary: `Muutis töötaja ${values.name} andmeid${!values.active && current.active ? " (deaktiveeris)" : ""}`, target: { type: "staff", id: staffId } });
     return { ok: true, message: "Salvestatud." };
   }
 
@@ -72,6 +74,7 @@ export async function saveProfile(staffId: string | null, _prev: FormState, form
     return m.id;
   });
   revalidatePath("/tootajad");
+  await logActivity({ action: "staff.created", summary: `Lisas töötaja ${values.name}`, target: { type: "staff", id } });
   redirect(`/tootajad/${id}?tab=tooaeg`);
 }
 
@@ -109,7 +112,7 @@ function validateDay(intervals: { start: string; end: string }[]): string | null
  */
 export async function saveWeek(staffId: string, input: WeekInput): Promise<FormState> {
   const { business } = await requireManager();
-  await ownStaff(business.id, staffId);
+  const member = await ownStaff(business.id, staffId);
   const parsed = weekSchema.safeParse(input);
   if (!parsed.success) return { message: "Kontrolli kellaaegu." };
 
@@ -139,6 +142,7 @@ export async function saveWeek(staffId: string, input: WeekInput): Promise<FormS
   revalidatePath(`/tootajad/${staffId}`);
   revalidatePath("/tootajad");
   revalidatePath("/kalender");
+  await logActivity({ action: "staff.schedule", summary: `Muutis töötaja ${member.name} tööaega`, target: { type: "staff", id: staffId } });
   return { ok: true, message: "Tööaeg salvestatud." };
 }
 
@@ -158,7 +162,7 @@ const timeOffSchema = z
 
 export async function addTimeOff(staffId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   const { business } = await requireManager();
-  await ownStaff(business.id, staffId);
+  const member = await ownStaff(business.id, staffId);
   const parsed = timeOffSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { errors: z.flattenError(parsed.error).fieldErrors };
   const d = parsed.data;
@@ -169,6 +173,7 @@ export async function addTimeOff(staffId: string, _prev: FormState, formData: Fo
   if (endsAt <= startsAt) return { errors: { toTime: ["Lõpp peab olema pärast algust"] } };
 
   await db.insert(s.timeOff).values({ staffId, type: d.type, note: d.note, startsAt, endsAt });
+  await logActivity({ action: "staff.time_off", summary: `Lisas töötajale ${member.name} puudumise ${d.fromDate}${d.toDate !== d.fromDate ? `–${d.toDate}` : ""}`, target: { type: "staff", id: staffId } });
   revalidatePath(`/tootajad/${staffId}`);
   revalidatePath("/kalender");
   return { ok: true, message: "Erand lisatud." };

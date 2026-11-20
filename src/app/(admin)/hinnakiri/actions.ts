@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/server/audit";
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -41,6 +42,7 @@ export async function savePriceRule(id: string | null, input: RuleInput): Promis
     await db.insert(s.priceRules).values({ ...d, businessId: business.id });
   }
   revalidatePath("/hinnakiri");
+  await logActivity({ action: "pricing.rule", summary: `${id ? "Muutis" : "Lisas"} hinnareegli` });
   return { ok: true, message: "Salvestatud." };
 }
 

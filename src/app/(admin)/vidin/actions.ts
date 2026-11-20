@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/server/audit";
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -42,6 +43,7 @@ export async function saveWidgetSettings(input: WidgetSettings): Promise<FormSta
     .update(s.businesses)
     .set({ ...parsed.data, allowedDomains: [...new Set(parsed.data.allowedDomains)], widgetCustomizedAt: business.widgetCustomizedAt ?? new Date() })
     .where(eq(s.businesses.id, business.id));
+  await logActivity({ action: "settings.widget", summary: "Muutis vidina seadeid" });
   revalidatePath("/vidin");
   return { ok: true, message: "Muudatused avaldatud. Vidin uueneb kodulehel kohe." };
 }

@@ -1,3 +1,4 @@
+import { pruneAudit } from "@/server/audit-query";
 import { timingSafeEqual } from "node:crypto";
 import { reportError } from "@/lib/report";
 import { runScheduledNotifications } from "@/server/notify";
@@ -15,6 +16,7 @@ export async function GET(req: Request) {
   if (!secret || got.length !== want.length || !timingSafeEqual(got, want)) return new Response("Unauthorized", { status: 401 });
   const base = (process.env.APP_URL ?? new URL(req.url).origin).replace(/\/$/, "");
   const result = await runScheduledNotifications(base);
+  await pruneAudit().catch(() => {});
   const expiredHolds = await expireUnpaidHolds().catch((e) => { reportError("stripe holds", e); return 0; });
   return Response.json({ ok: true, ...result, expiredHolds });
 }
