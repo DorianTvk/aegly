@@ -3,7 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { db, schema as s } from "@/db";
 import type { InviteData } from "@/db/schema";
-import { emailHtml } from "@/lib/messages";
+import { accountEmailHtml } from "@/lib/messages";
 import { sendEmail } from "./messaging";
 
 export type TokenKind = "RESET" | "VERIFY" | "INVITE";
@@ -35,10 +35,13 @@ export async function markUsed(token: string) {
 }
 
 /** Platvormi (Aegly) kiri kasutajale: parooli taastamine, kinnitamine, kutse */
-export async function sendAccountEmail(opts: { businessId: string; to: string; kind: string; subject: string; text: string }) {
+type AccountMail = { preheader: string; heading: string; greeting: string; intro: string; cta: { label: string; url: string }; note: string };
+
+export async function sendAccountEmail(opts: { businessId: string; to: string; kind: string; subject: string } & AccountMail) {
+  const text = `${opts.greeting}\n\n${opts.intro}\n\n${opts.cta.label}: ${opts.cta.url}\n\n${opts.note}\n\nAegly`;
   await sendEmail({
-    businessId: opts.businessId, kind: opts.kind, to: opts.to, subject: opts.subject, text: opts.text,
-    html: emailHtml({ body: opts.text, salon: "Aegly", color: "#1f2937", footer: "Aegly · broneerimissüsteem teenusepakkujatele" }),
+    businessId: opts.businessId, kind: opts.kind, to: opts.to, subject: opts.subject, text,
+    html: accountEmailHtml(opts),
     fromName: "Aegly",
   });
 }
@@ -48,6 +51,11 @@ export async function sendVerifyEmail(user: { id: string; email: string; name: s
   await sendAccountEmail({
     businessId: user.businessId, to: user.email, kind: "ACCOUNT_VERIFY",
     subject: "Kinnita oma e-posti aadress – Aegly",
-    text: `Tere ${user.name.split(" ")[0]}!\n\nKinnita oma e-posti aadress, vajutades lingile:\n${baseUrl}/kinnita?token=${token}\n\nLink kehtib 3 päeva. Kui sa ei loonud Aegly kontot, võid selle kirja kustutada.\n\nAegly`,
+    preheader: "Üks klõps ja sinu Aegly konto on kinnitatud.",
+    heading: "Kinnita oma e-posti aadress",
+    greeting: `Tere, ${user.name.split(" ")[0]}!`,
+    intro: "Aitäh, et lõid Aegly konto. Vajuta allolevat nuppu, et kinnitada, et see e-posti aadress kuulub sulle.",
+    cta: { label: "Kinnita e-post", url: `${baseUrl}/kinnita?token=${token}` },
+    note: "Link kehtib 3 päeva. Kui sa ei loonud Aegly kontot, võid selle kirja lihtsalt kustutada.",
   });
 }

@@ -126,7 +126,12 @@ export async function requestPasswordReset(_prev: FormState, formData: FormData)
     after(() =>
       sendAccountEmail({
         businessId: user.businessId, to: email, kind: "ACCOUNT_RESET", subject: "Parooli muutmine – Aegly",
-        text: `Tere ${user.name.split(" ")[0]}!\n\nKeegi (loodetavasti sina) palus Aegly konto parooli muuta. Uue parooli saad määrata siin:\n${base}/parool/uus?token=${token}\n\nLink kehtib 1 tunni. Kui sa ei palunud parooli muuta, võid selle kirja kustutada – parool jääb samaks.\n\nAegly`,
+        preheader: "Määra oma Aegly kontole uus parool.",
+        heading: "Määra uus parool",
+        greeting: `Tere, ${user.name.split(" ")[0]}!`,
+        intro: "Saime palve sinu Aegly konto parooli muutmiseks. Uue parooli saad määrata alloleva nupu kaudu.",
+        cta: { label: "Määra uus parool", url: `${base}/parool/uus?token=${token}` },
+        note: "Link kehtib 1 tunni. Kui sa ei palunud parooli muuta, võid selle kirja kustutada – sinu parool jääb samaks.",
       }),
     );
   }

@@ -68,7 +68,12 @@ export async function inviteUser(input: z.input<typeof inviteSchema>): Promise<F
     sendAccountEmail({
       businessId: business.id, to: d.email, kind: "ACCOUNT_INVITE",
       subject: `${user.name} kutsub sind Aeglysse – ${business.name}`,
-      text: `Tere ${d.name.split(" ")[0]}!\n\n${user.name} kutsub sind ettevõtte ${business.name} Aegly kontole (${d.role === "ADMIN" ? "administraatorina" : "töötajana"}).\n\nLoo endale parool ja logi sisse:\n${base}/kutse?token=${token}\n\nKutse kehtib 7 päeva.\n\nAegly`,
+      preheader: `${user.name} lisas sind ettevõtte ${business.name} meeskonda.`,
+      heading: `Liitu ettevõttega ${business.name}`,
+      greeting: `Tere, ${d.name.split(" ")[0]}!`,
+      intro: `${user.name} kutsub sind ettevõtte ${business.name} Aegly kontole ${d.role === "ADMIN" ? "administraatorina" : "töötajana"}. Loo endale parool ja oledki sees.`,
+      cta: { label: "Võta kutse vastu", url: `${base}/kutse?token=${token}` },
+      note: "Kutse kehtib 7 päeva. Kui sa ei oodanud seda kutset, võid kirja kustutada.",
     }),
   );
   revalidatePath("/seaded");
