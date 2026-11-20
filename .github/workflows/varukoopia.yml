@@ -1,0 +1,61 @@
+# Öine andmebaasi varukoopia (Neonist sõltumatu). Hoitakse 30 päeva GitHubi Actions'i artefaktina.
+# Koopia on krüptitud (AES-256): repo on avalik, ilma paroolita ei saa keegi seda avada.
+#
+# Vaja on repo saladusi (Settings → Secrets and variables → Actions):
+#   BACKUP_DATABASE_URL – Neoni ühendus (Connect → "Connection pooling" VÄLJAS, st otseühendus)
+#   BACKUP_PASSPHRASE   – pikk juhuslik parool krüptimiseks; hoia see ka paroolihalduris!
+#
+# Taastamine: vt docs/varukoopia.md
+name: Varukoopia
+on:
+  schedule:
+    - cron: "17 1 * * *" # iga öö 03:17 Eesti talveajal
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Kontrolli saladusi
+        env:
+          DB: ${{ secrets.BACKUP_DATABASE_URL }}
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$DB" ] || [ -z "$PASS" ]; then echo "::error::BACKUP_DATABASE_URL või BACKUP_PASSPHRASE puudub (Settings → Secrets and variables → Actions)"; exit 1; fi
+          if [ ${#PASS} -lt 20 ]; then echo "::error::BACKUP_PASSPHRASE peab olema vähemalt 20 märki"; exit 1; fi
+
+      - name: Tee koopia (pg_dump)
+        env:
+          DB: ${{ secrets.BACKUP_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          # pg_dump uusim versioon (oskab teha koopiat ka vanemast serverist)
+          docker run --rm -e DB="$DB" -v "$PWD/out:/out" postgres:18 \
+            sh -c 'pg_dump "$DB" --format=custom --no-owner --no-privileges --compress=9 --file=/out/aegly.dump && pg_restore --list /out/aegly.dump > /out/list.txt'
+          TABLES=$(grep -c "TABLE DATA" out/list.txt || true)
+          SIZE=$(du -h out/aegly.dump | cut -f1)
+          echo "Tabeleid andmetega: $TABLES · suurus: $SIZE"
+          if [ "$TABLES" -lt 10 ]; then echo "::error::Koopias on kahtlaselt vähe tabeleid ($TABLES)"; exit 1; fi
+          echo "### Varukoopia $(date -u +%Y-%m-%d) · $SIZE · $TABLES tabelit" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Krüpti (AES-256)
+        env:
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          NAME="aegly-$(date -u +%Y-%m-%d).dump.gpg"
+          printf '%s' "$PASS" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 --symmetric --cipher-algo AES256 --output "out/$NAME" out/aegly.dump
+          shred -u out/aegly.dump out/list.txt
+          echo "NAME=$NAME" >> "$GITHUB_ENV"
+
+      - name: Salvesta (30 päeva)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.NAME }}
+          path: out/${{ env.NAME }}
+          retention-days: 30
+          compression-level: 0
+          if-no-files-found: error
