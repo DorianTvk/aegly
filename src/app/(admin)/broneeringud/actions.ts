@@ -1,6 +1,6 @@
 "use server";
 
-import { releasePrepaid } from "@/server/prepaid";
+import { applyPrepaid, checkGiftCard, findUsablePackage, releasePrepaid } from "@/server/prepaid";
 import { logActivity } from "@/server/audit";
 import { reportError } from "@/lib/report";
 
@@ -30,7 +30,10 @@ export async function adminSlots(serviceId: string, staffId: string | null, isoD
   return { slots: r.slots.map((x) => ({ time: fromMinutes(x.start), staffIds: x.staffIds })), reason: r.reason };
 }
 
-export async function adminQuote(serviceId: string, staffId: string | null, isoDate: string, time: string, code: string | null, clientEmail: string | null) {
+export async function adminQuote(
+  serviceId: string, staffId: string | null, isoDate: string, time: string, code: string | null, clientEmail: string | null,
+  prepaid: { clientId?: string | null; usePackage?: boolean; giftCode?: string | null } = {},
+) {
   const { business } = await requireSession();
   let codeInput = null;
   let codeError: string | null = null;
@@ -39,10 +42,30 @@ export async function adminQuote(serviceId: string, staffId: string | null, isoD
     if (c.ok) codeInput = c.code;
     else codeError = c.reason;
   }
-  const q = await quotePrice(business.id, { serviceId, staffId, startsAt: zonedDateTime(isoDate, time, business.timezone), code: codeInput });
+  const startsAt = zonedDateTime(isoDate, time, business.timezone);
+  const q = await quotePrice(business.id, { serviceId, staffId, startsAt, code: codeInput });
   if (!q) return null;
   const rejected = { "min-amount": "Ostusumma on alla koodi miinimumi", "not-applicable": "Kood ei kehti sellele teenusele", "not-combinable": "Kampaania soodustus on suurem – kood ei liitu" };
-  return { finalCents: q.finalCents, depositCents: q.depositCents, lines: q.lines, codeError: codeError ?? (q.codeRejected ? rejected[q.codeRejected] : null) };
+  // kliendi pakett (kliendi id või e-posti järgi) ja kinkekaart
+  const pkg = prepaid.clientId || clientEmail ? await findUsablePackage(business.id, { clientId: prepaid.clientId, email: clientEmail }, serviceId, startsAt) : null;
+  const usePkg = !!pkg && prepaid.usePackage !== false;
+  let gift: { code: string; balanceCents: number } | null = null;
+  let giftError: string | null = null;
+  if (!usePkg && prepaid.giftCode) {
+    const g = await checkGiftCard(business.id, prepaid.giftCode);
+    if (g.ok) gift = g;
+    else giftError = g.reason;
+  }
+  const svc = await db.query.services.findFirst({ where: and(eq(s.services.id, serviceId), eq(s.services.businessId, business.id)), columns: { depositPercent: true } });
+  const pre = applyPrepaid(q.finalCents, svc?.depositPercent ?? 0, { pkg: usePkg ? pkg : null, gift });
+  return {
+    finalCents: q.finalCents, depositCents: q.depositCents, payableCents: pre.payableCents,
+    lines: pre.line ? [...q.lines, pre.line] : q.lines,
+    codeError: codeError ?? (q.codeRejected ? rejected[q.codeRejected] : null),
+    pkg: pkg ? { name: pkg.name, usesLeft: pkg.usesLeft, applied: usePkg } : null,
+    gift: gift && pre.giftCents > 0 ? { code: gift.code, appliedCents: pre.giftCents, balanceCents: gift.balanceCents } : null,
+    giftError,
+  };
 }
 
 const manualSchema = z.object({
@@ -56,6 +79,8 @@ const manualSchema = z.object({
   priceOverrideCents: z.number().int().min(0).nullable(),
   payment: z.enum(["ON_SITE", "LINK", "PAID"]),
   note: z.string().trim().max(500).nullable(),
+  usePackage: z.boolean().optional(),
+  giftCode: z.string().trim().max(40).nullable().optional(),
 });
 export type ManualBookingInput = z.infer<typeof manualSchema>;
 
@@ -80,6 +105,8 @@ export async function createManualBooking(input: ManualBookingInput): Promise<Fo
     ignoreLead: true,
     paid: d.payment === "PAID",
     note: d.note,
+    usePackage: !!d.usePackage,
+    giftCode: d.usePackage ? null : d.giftCode || null,
   });
   if (!res.ok) return { message: res.reason };
   const base = await appUrl();

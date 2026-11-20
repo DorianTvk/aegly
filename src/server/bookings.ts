@@ -100,7 +100,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
     : price.lines;
 
   // 3b. pakett või kinkekaart
-  const pkg = input.usePackage ? await findUsablePackage(input.businessId, clientEmail, service.id, input.startsAt) : null;
+  const pkg = input.usePackage ? await findUsablePackage(input.businessId, { clientId }, service.id, input.startsAt) : null;
   if (input.usePackage && !pkg) return { ok: false, reason: "Sellele teenusele pole kehtivat paketti" };
   let gift: { id: string; code: string; balanceCents: number } | null = null;
   if (!pkg && input.giftCode) {

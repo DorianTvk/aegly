@@ -9,7 +9,9 @@ import { BOOKING_STATUS } from "@/lib/booking-status";
 import { formatEuro, formatShortDate, localDate, localTime } from "@/lib/time";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge, Card, CardHeader, LinkButton } from "@/components/ui/primitives";
-import { DeleteClientButton, EditClientButton, NoShowExempt, NotesCard } from "./ClientParts";
+import { DeleteClientButton, EditClientButton, NoShowExempt, NotesCard, PackageUses, SellPackageButton } from "./ClientParts";
+import { db, schema as s } from "@/db";
+import { and, eq } from "drizzle-orm";
 
 export const metadata: Metadata = { title: "Kliendikaart" };
 
@@ -33,6 +35,10 @@ async function ClientCard({ params }: { params: Promise<{ id: string }> }) {
   const data = await getClient(business.id, id);
   if (!data) notFound();
   const { client: c, bookings, packages, gifts } = data;
+  // müüdavad paketid (kohapeal müümiseks)
+  const sellable = manager
+    ? await db.query.packages.findMany({ where: and(eq(s.packages.businessId, business.id), eq(s.packages.active, true)), with: { items: true } }).catch(() => [])
+    : [];
   const now = new Date();
   const yearAgo = new Date(now.getTime() - 365 * 86_400_000);
 
@@ -181,7 +187,10 @@ async function ClientCard({ params }: { params: Promise<{ id: string }> }) {
           </Card>
 
           <Card>
-            <CardHeader title="Paketid ja kinkekaardid" />
+            <CardHeader
+              title="Paketid ja kinkekaardid"
+              action={manager ? <SellPackageButton clientId={c.id} packages={sellable.map((p) => ({ id: p.id, name: p.name, priceCents: p.priceCents, uses: p.items.reduce((n, i) => n + i.quantity, 0) })).filter((p) => p.uses > 0)} /> : undefined}
+            />
             <div className="space-y-3 p-5">
               {packages.map((p) => (
                 <div key={p.id} className="flex items-center justify-between gap-4">
@@ -189,6 +198,7 @@ async function ClientCard({ params }: { params: Promise<{ id: string }> }) {
                     <p className="text-sm font-medium">{p.package.name}</p>
                     <p className="text-xs text-muted">{p.expiresAt ? `Kehtib kuni ${date(p.expiresAt)}` : "Tähtajatu"}</p>
                   </div>
+                  {manager && <PackageUses clientId={c.id} id={p.id} left={p.usesLeft} total={p.usesTotal} />}
                   <div className="w-24 text-right">
                     <p className="text-sm font-semibold tabular-nums">
                       {p.usesLeft} / {p.usesTotal}

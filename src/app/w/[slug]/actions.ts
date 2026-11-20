@@ -98,7 +98,7 @@ export async function quote(input: z.input<typeof quoteSchema>) {
   const price = await quotePrice(c.business.id, { serviceId: c.service.id, staffId: q.staffId, startsAt, code });
   if (!price) return { ok: false as const, reason: "Hinda ei õnnestunud arvutada" };
   // ostetud pakett (sama e-postiga) või kinkekaart
-  const pkg = q.email ? await findUsablePackage(c.business.id, q.email, c.service.id, startsAt) : null;
+  const pkg = q.email ? await findUsablePackage(c.business.id, { email: q.email }, c.service.id, startsAt) : null;
   const usePkg = !!pkg && q.usePackage !== false;
   let gift: { code: string; balanceCents: number } | null = null;
   let giftMessage: string | null = null;

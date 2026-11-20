@@ -10,10 +10,15 @@ import { normalizeGiftCode } from "@/lib/gift-code";
 
 export type UsablePackage = { id: string; name: string; usesLeft: number };
 
-/** Kliendi (e-posti järgi) kehtiv pakett, mis sisaldab seda teenust */
-export async function findUsablePackage(businessId: string, email: string | null | undefined, serviceId: string, at: Date): Promise<UsablePackage | null> {
-  const e = email?.trim().toLowerCase();
-  if (!e) return null;
+/** Kliendi kehtiv pakett, mis sisaldab seda teenust (kliendi id või e-posti järgi) */
+export async function findUsablePackage(
+  businessId: string,
+  who: { clientId?: string | null; email?: string | null },
+  serviceId: string,
+  at: Date,
+): Promise<UsablePackage | null> {
+  const e = who.email?.trim().toLowerCase();
+  if (!who.clientId && !e) return null;
   const rows = await db
     .select({ id: s.clientPackages.id, name: s.packages.name, usesLeft: s.clientPackages.usesLeft, expiresAt: s.clientPackages.expiresAt })
     .from(s.clientPackages)
@@ -23,7 +28,7 @@ export async function findUsablePackage(businessId: string, email: string | null
     .where(
       and(
         eq(s.clients.businessId, businessId),
-        sql`lower(${s.clients.email}) = ${e}`,
+        who.clientId ? eq(s.clients.id, who.clientId) : sql`lower(${s.clients.email}) = ${e}`,
         gt(s.clientPackages.usesLeft, 0),
         or(isNull(s.clientPackages.expiresAt), gt(s.clientPackages.expiresAt, at)),
       ),

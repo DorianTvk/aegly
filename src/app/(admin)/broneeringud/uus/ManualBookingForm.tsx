@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { Check, Search, UserPlus, X } from "lucide-react";
+import { Check, Package, Search, UserPlus, X } from "lucide-react";
 import { clsx } from "clsx";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button, Card, CardHeader } from "@/components/ui/primitives";
@@ -39,6 +39,8 @@ export function ManualBookingForm({
   const [slots, setSlots] = useState<{ time: string; staffIds: string[] }[] | null>(null);
   const [slotReason, setSlotReason] = useState<string | undefined>();
   const [code, setCode] = useState("");
+  const [giftCode, setGiftCode] = useState("");
+  const [usePackage, setUsePackage] = useState(true);
   const [quote, setQuote] = useState<Awaited<ReturnType<typeof adminQuote>>>(null);
   const [priceText, setPriceText] = useState<string | null>(null);
   const [payment, setPayment] = useState<"ON_SITE" | "LINK" | "PAID">("ON_SITE");
@@ -74,10 +76,15 @@ export function ManualBookingForm({
     if (!serviceId || !time) return;
     const slotStaff = staffParam ?? slots?.find((x) => x.time === time)?.staffIds[0] ?? null;
     startLoad(async () => {
-      setQuote(await adminQuote(serviceId, slotStaff, date, time, code.trim() || null, client?.email ?? (newClient?.email || null)));
+      setQuote(
+        await adminQuote(serviceId, slotStaff, date, time, code.trim() || null, client?.email ?? (newClient?.email || null), {
+          clientId: client?.id ?? null, usePackage, giftCode: giftCode.trim() || null,
+        }),
+      );
       setPriceText(null);
     });
-  }, [serviceId, staffParam, date, time, code, client, newClient, slots]);
+  }, [serviceId, staffParam, date, time, code, client, newClient, slots, usePackage, giftCode]);
+  const pkgApplied = !!quote?.pkg?.applied;
 
   const timeValid = !!time && !!slots?.some((x) => x.time === time);
   const finalCents = priceText !== null ? parseEuroToCents(priceText) : (quote?.finalCents ?? null);
@@ -95,6 +102,8 @@ export function ManualBookingForm({
         priceOverrideCents: priceText !== null ? finalCents : null,
         payment,
         note: note.trim() || null,
+        usePackage: pkgApplied,
+        giftCode: giftCode.trim() || null,
       });
       setState(r);
       if (r?.ok && r.bookingId) router.push(`/broneeringud/${r.bookingId}`);
@@ -217,9 +226,28 @@ export function ManualBookingForm({
           )}
         </Field>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {quote?.pkg && (
+          <label className={clsx("flex items-center gap-3 rounded-[10px] border p-3", quote.pkg.applied ? "border-lime bg-lime-soft/60" : "border-line")}>
+            <input type="checkbox" checked={quote.pkg.applied} onChange={(e) => setUsePackage(e.target.checked)} className="size-4 accent-ink" />
+            <Package size={18} className="text-muted" aria-hidden />
+            <span className="flex-1 text-sm">
+              <b>Kasuta kliendi paketti „{quote.pkg.name}“</b>
+              <span className="block text-[13px] text-muted">Jäänud {quote.pkg.usesLeft} {quote.pkg.usesLeft === 1 ? "kord" : "korda"} · selle aja eest tasuda pole vaja</span>
+            </span>
+          </label>
+        )}
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
           <Field label="Sooduskood" htmlFor="mCode" error={quote?.codeError ?? undefined}>
             <Input id="mCode" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="Puudub" className="font-mono" />
+          </Field>
+          <Field
+            label="Kinkekaart"
+            htmlFor="mGift"
+            error={quote?.giftError ?? undefined}
+            hint={quote?.gift ? `Kasutatakse ${formatEuro(quote.gift.appliedCents, { decimals: true })} · jääb ${formatEuro(quote.gift.balanceCents - quote.gift.appliedCents, { decimals: true })}` : undefined}
+          >
+            <Input id="mGift" value={giftCode} disabled={pkgApplied} onChange={(e) => setGiftCode(e.target.value.toUpperCase())} placeholder="GC-…" className="font-mono" />
           </Field>
           <Field label="Hind" htmlFor="mPrice" hint={priceText !== null ? "Käsitsi muudetud" : "Arvutatud reeglite järgi"}>
             <UnitInput unit="€" id="mPrice" inputMode="decimal" value={priceText ?? centsToInput(quote?.finalCents ?? service?.priceCents ?? 0)} onChange={(e) => setPriceText(e.target.value)} />

@@ -2,12 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useOptimistic, useState, useTransition } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/primitives";
 import { Dialog } from "@/components/ui/Dialog";
-import { Field, FormMessage, Input, type FormState } from "@/components/ui/form";
-import { Switch } from "@/components/ui/pickers";
-import { addNote, deleteClient, deleteNote, saveClient, setNoShowExempt, type ClientInput } from "../actions";
+import { Field, FormMessage, Input, Select, type FormState } from "@/components/ui/form";
+import { Segmented, Switch } from "@/components/ui/pickers";
+import { addNote, adjustPackageUses, deleteClient, deleteNote, saveClient, sellPackageToClient, setNoShowExempt, type ClientInput } from "../actions";
 
 export function EditClientButton({ id, initial }: { id: string; initial: ClientInput }) {
   const router = useRouter();
@@ -123,5 +123,74 @@ export function DeleteClientButton({ id, name }: { id: string; name: string }) {
     >
       <Trash2 size={15} /> Kustuta klient
     </Button>
+  );
+}
+
+export function SellPackageButton({ clientId, packages }: { clientId: string; packages: { id: string; name: string; priceCents: number; uses: number }[] }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [pkg, setPkg] = useState(packages[0]?.id ?? "");
+  const [method, setMethod] = useState<"kaart" | "sularaha" | "ülekanne">("kaart");
+  const [state, setState] = useState<FormState>(null);
+  const [pending, start] = useTransition();
+  if (!packages.length) return null;
+  const chosen = packages.find((p) => p.id === pkg);
+  return (
+    <>
+      <Button size="sm" onClick={() => { setState(null); setOpen(true); }}>
+        <Plus size={14} /> Müü pakett
+      </Button>
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Müü pakett"
+        subtitle="Klient maksab kohapeal. Pakett lisatakse kliendikaardile ja seda saab kasutada nii vidinas kui käsitsi broneerides."
+        footer={
+          <>
+            <Button onClick={() => setOpen(false)}>Tühista</Button>
+            <Button
+              variant="primary"
+              disabled={pending || !pkg}
+              onClick={() => start(async () => {
+                const r = await sellPackageToClient(clientId, pkg, method);
+                setState(r);
+                if (r?.ok) { setOpen(false); router.refresh(); }
+              })}
+            >
+              {pending ? "Lisan…" : chosen ? `Müü · ${(chosen.priceCents / 100).toFixed(2).replace(".", ",")} €` : "Müü"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <FormMessage state={state?.ok ? null : state} />
+          <Field label="Pakett" htmlFor="sellPkg">
+            <Select id="sellPkg" value={pkg} onChange={(e) => setPkg(e.target.value)}>
+              {packages.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} · {p.uses} korda · {(p.priceCents / 100).toFixed(2).replace(".", ",")} €
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Makseviis">
+            <Segmented value={method} onChange={setMethod} options={[{ value: "kaart", label: "Kaart" }, { value: "sularaha", label: "Sularaha" }, { value: "ülekanne", label: "Ülekanne" }]} />
+          </Field>
+        </div>
+      </Dialog>
+    </>
+  );
+}
+
+export function PackageUses({ clientId, id, left, total }: { clientId: string; id: string; left: number; total: number }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const adj = (d: 1 | -1) => start(async () => { await adjustPackageUses(clientId, id, d); router.refresh(); });
+  const btn = "grid size-7 place-items-center rounded-md border border-line text-sm font-semibold hover:bg-line-soft disabled:opacity-40";
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <button type="button" aria-label="Märgi üks kord kasutatuks" title="Märgi üks kord kasutatuks" disabled={pending || left <= 0} onClick={() => adj(-1)} className={btn}>−</button>
+      <button type="button" aria-label="Tagasta üks kord" title="Tagasta üks kord" disabled={pending || left >= total} onClick={() => adj(1)} className={btn}>+</button>
+    </span>
   );
 }
