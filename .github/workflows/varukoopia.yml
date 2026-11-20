@@ -35,6 +35,7 @@ jobs:
           # pg_dump uusim versioon (oskab teha koopiat ka vanemast serverist)
           docker run --rm -e DB="$DB" -v "$PWD/out:/out" postgres:18 \
             sh -c 'pg_dump "$DB" --format=custom --no-owner --no-privileges --compress=9 --file=/out/aegly.dump && pg_restore --list /out/aegly.dump > /out/list.txt'
+          sudo chown -R "$(id -u):$(id -g)" out # Docker teeb failid root'ina
           TABLES=$(grep -c "TABLE DATA" out/list.txt || true)
           SIZE=$(du -h out/aegly.dump | cut -f1)
           echo "Tabeleid andmetega: $TABLES · suurus: $SIZE"
