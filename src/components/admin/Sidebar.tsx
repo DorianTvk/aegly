@@ -212,11 +212,11 @@ export function Sidebar({
           {superadmin && mode === "platform" && (
             <a
               href="/api/vaade?m=salon"
-              title={collapsed ? "Salongi vaade (demo)" : undefined}
+              title={collapsed ? "Kliendi vaade (demo)" : undefined}
               className={clsx("flex h-10 items-center gap-3 rounded-lg text-[14px] font-medium text-[#d1d5db] hover:bg-ink-2 hover:text-white", collapsed ? "justify-center" : "px-2.5")}
             >
               <Eye size={18} aria-hidden />
-              {!collapsed && "Salongi vaade (demo)"}
+              {!collapsed && "Kliendi vaade (demo)"}
             </a>
           )}
           {superadmin && mode === "salon" && (

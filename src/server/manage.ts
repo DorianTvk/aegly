@@ -56,7 +56,7 @@ export async function rescheduleManaged(token: string, isoDate: string, hhmm: st
 export async function cancelManaged(token: string, reason: string | null): Promise<{ ok: true; bookingId: string; businessId: string } | { ok: false; reason: string }> {
   const m = await loadManaged(token);
   if (!m) return { ok: false, reason: "Broneeringut ei leitud" };
-  if (!m.canChange) return { ok: false, reason: "Tasuta tühistamise aeg on läbi. Võta ühendust salongiga." };
+  if (!m.canChange) return { ok: false, reason: "Tasuta tühistamise aeg on läbi. Võta ühendust teenusepakkujaga." };
   await db.update(s.bookings).set({ status: "CANCELLED", cancelledAt: new Date(), cancelReason: reason ? `Klient: ${reason}` : "Klient tühistas" }).where(eq(s.bookings.id, m.booking.id));
   return { ok: true, bookingId: m.booking.id, businessId: m.booking.businessId };
 }

@@ -101,7 +101,7 @@ export function ProfileForm({ v }: { v: ProfileValues }) {
                 <Input id="vatNumber" name="vatNumber" defaultValue={v.vatNumber ?? ""} placeholder="EE…" />
               </Field>
               <Field label="Tegevusala" htmlFor="industry">
-                <Input id="industry" name="industry" defaultValue={v.industry ?? ""} placeholder="nt Ilu- ja massaažisalong" />
+                <Input id="industry" name="industry" defaultValue={v.industry ?? ""} placeholder="nt Massaaž ja spaa" />
               </Field>
               <Field label="Ajavöönd" htmlFor="timezone">
                 <Select id="timezone" name="timezone" defaultValue={v.timezone}>

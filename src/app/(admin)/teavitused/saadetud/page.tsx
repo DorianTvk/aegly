@@ -13,9 +13,9 @@ export const metadata: Metadata = { title: "Saadetud teavitused" };
 
 const KIND: Record<string, string> = {
   ...Object.fromEntries(NOTIFICATIONS.map((n) => [n.type, n.title])),
-  SALON_NEW: "Salongile: uus broneering",
-  SALON_CHANGED: "Salongile: aeg muutus",
-  SALON_CANCELLED: "Salongile: tühistamine",
+  SALON_NEW: "Endale: uus broneering",
+  SALON_CHANGED: "Endale: aeg muutus",
+  SALON_CANCELLED: "Endale: tühistamine",
   ACCOUNT_VERIFY: "Konto: e-posti kinnitamine",
   ACCOUNT_RESET: "Konto: parooli taastamine",
   ACCOUNT_INVITE: "Konto: kutse",
@@ -112,7 +112,7 @@ async function Log() {
 export default function SentPage() {
   return (
     <div className="space-y-5">
-      <PageHeader title="Saadetud teavitused" subtitle="Viimased 100 kirja ja SMS-i klientidele ja salongile." />
+      <PageHeader title="Saadetud teavitused" subtitle="Viimased 100 kirja ja SMS-i klientidele ja endale." />
       <Suspense fallback={<Card className="h-[420px] animate-pulse" />}>
         <Log />
       </Suspense>

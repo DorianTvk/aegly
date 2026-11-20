@@ -13,7 +13,7 @@ async function Gate({ allow, children }: { allow: Role[]; children: ReactNode })
         <Lock size={20} aria-hidden />
       </span>
       <h1 className="mt-4 text-[18px] font-semibold">Sul pole sellele lehele ligipääsu</h1>
-      <p className="mt-1.5 text-sm text-muted">Selle osa haldamiseks küsi salongi omanikult või administraatorilt.</p>
+      <p className="mt-1.5 text-sm text-muted">Selle osa haldamiseks küsi konto omanikult või administraatorilt.</p>
       <Link href="/toolaud" className="mt-5 inline-flex h-10 items-center rounded-[10px] bg-ink px-4 text-sm font-semibold text-white">
         Tagasi töölauale
       </Link>

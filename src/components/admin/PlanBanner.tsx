@@ -23,7 +23,7 @@ export async function PlanBanner() {
           {st === "PAST_DUE" ? "Uuenda makseviisi" : "Vali pakett"}
         </Link>
       ) : (
-        <span className="text-[13px]">Palu salongi omanikul pakett aktiveerida.</span>
+        <span className="text-[13px]">Palu konto omanikul pakett aktiveerida.</span>
       )}
     </div>
   );

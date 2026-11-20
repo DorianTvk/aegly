@@ -27,7 +27,8 @@ const loginSchema = z.object({
 });
 
 const registerSchema = z.object({
-  businessName: z.string().trim().min(2, "Salongi nimi on liiga lühike").max(80),
+  businessName: z.string().trim().min(2, "Ettevõtte nimi on liiga lühike").max(80),
+  industry: z.string().max(20).optional(),
   ownerName: z.string().trim().min(2, "Sisesta oma nimi").max(80),
   email: z.email("Sisesta kehtiv e-posti aadress").transform((v) => v.toLowerCase().trim()),
   password: z.string().min(8, "Parool peab olema vähemalt 8 märki"),
@@ -75,6 +76,7 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
     passwordHash: await hashPassword(parsed.data.password),
     plan: parsePlan(formData.get("plan")),
     billingPeriod: parsePeriod(formData.get("period")),
+    industry: parsed.data.industry,
     // tasuta perioodi pole: pakett aktiveerub pärast esimest makset
     planStatus: billingEnabled() ? "PENDING" : "ACTIVE",
   });
@@ -161,7 +163,7 @@ export async function acceptInvite(_prev: FormState, formData: FormData): Promis
   if (!parsed.success) return { errors: z.flattenError(parsed.error).fieldErrors };
   const row = await findToken(parsed.data.token, "INVITE");
   const inv = row?.data;
-  if (!row || !inv) return { message: "Kutse on aegunud või juba kasutatud. Palu salongil saata uus kutse." };
+  if (!row || !inv) return { message: "Kutse on aegunud või juba kasutatud. Palu konto omanikul saata uus kutse." };
   if (await findUserByEmail(inv.email)) return { message: "Selle e-postiga konto on juba olemas. Logi sisse." };
   await markUsed(parsed.data.token);
   const [user] = await db

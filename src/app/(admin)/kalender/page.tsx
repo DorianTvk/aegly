@@ -81,7 +81,7 @@ async function Calendar({
   if (user.role === "STAFF" && !user.staffId) {
     return (
       <p className="rounded-[12px] border border-line bg-white p-8 text-center text-sm text-muted">
-        Sinu kasutaja pole veel töötaja profiiliga seotud. Palu salongi omanikul
+        Sinu kasutaja pole veel töötaja profiiliga seotud. Palu konto omanikul
         see Seadete all siduda.
       </p>
     );

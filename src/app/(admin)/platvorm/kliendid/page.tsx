@@ -38,7 +38,7 @@ async function Clients() {
 export default function ClientsPage() {
   return (
     <div className="space-y-5">
-      <PageHeader title="Kliendid" subtitle="Kõik Aegly kasutajad (salongid ja teenusepakkujad). Vajuta nimele, et näha detaile, muuta paketti või vaadata kliendi vaadet." />
+      <PageHeader title="Kliendid" subtitle="Kõik Aegly kliendid. Vajuta nimele, et näha detaile, muuta paketti või vaadata kliendi vaadet." />
       <Suspense fallback={<Card className="h-[480px] animate-pulse" />}>
         <Clients />
       </Suspense>

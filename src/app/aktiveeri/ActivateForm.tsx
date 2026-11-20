@@ -67,7 +67,7 @@ export function ActivateForm({ plan: initialPlan, period: initialPeriod, isOwner
           {pending ? "Avan makselehe…" : `Maksa ${formatEuro(Math.round(price * 1.24), { decimals: true })} ja alusta`}
         </button>
       ) : (
-        <p className="rounded-[10px] bg-line-soft p-3 text-sm text-muted">Paketi saab aktiveerida salongi omanik.</p>
+        <p className="rounded-[10px] bg-line-soft p-3 text-sm text-muted">Paketi saab aktiveerida konto omanik.</p>
       )}
       <p className="text-center text-xs text-muted">Hind sisaldab 24% käibemaksu. Tellimust saad igal ajal lõpetada.</p>
       <p className="text-center text-xs text-muted">{ENTERPRISE_NOTE}</p>

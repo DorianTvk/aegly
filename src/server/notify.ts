@@ -34,7 +34,7 @@ async function deliver(opts: {
 }) {
   const { business: b, type, client } = opts;
   const set = await notificationSetting(b.id, type);
-  const vars = { "{eesnimi}": firstName(client.name), "{salong}": b.name, "{aadress}": b.address ?? "", ...opts.vars };
+  const vars = { "{eesnimi}": firstName(client.name), "{ettevõte}": b.name, "{salong}": b.name, "{aadress}": b.address ?? "", ...opts.vars };
   const tasks: Promise<void>[] = [];
   if (set.emailEnabled && client.email) {
     const text = renderTemplate(set.emailBody, vars);
@@ -115,7 +115,7 @@ export async function notifySalon(bookingId: string, event: keyof typeof SALON_T
     businessId: b.id, bookingId: bk.id, kind: `SALON_${event}`,
     dedupeKey: event === "CHANGED" ? null : `SALON_${event}:${bk.id}`,
     to: b.email!, subject: `${t.subject}: ${bk.service.name} ${date} ${time}`, text,
-    html: emailHtml({ body: text, salon: "Aegly", color: "#1f2937", footer: "Selle teate saatis Aegly sinu salongi kontolt." }),
+    html: emailHtml({ body: text, salon: "Aegly", color: "#1f2937", footer: "Selle teate saatis Aegly sinu ettevõtte kontolt." }),
     fromName: "Aegly",
   });
 }

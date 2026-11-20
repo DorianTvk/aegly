@@ -19,10 +19,18 @@ const lookupKey = (plan: PlanId, period: BillingPeriod) => `aegly_${plan}_${peri
 /** Leia või loo paketi hind (lookup_key järgi) */
 async function priceId(plan: PlanId, period: BillingPeriod): Promise<string> {
   const key = lookupKey(plan, period);
-  const found = await stripe().prices.list({ lookup_keys: [key], active: true, limit: 1 });
-  if (found.data[0]) return found.data[0].id;
+  const found = await stripe().prices.list({ lookup_keys: [key], active: true, limit: 1, expand: ["data.product"] });
+  if (found.data[0]) {
+    // paketi nimi võis muutuda (nt Salong → Tiim) – hoia Stripe'i toote nimi arvetel ajakohane
+    const prod = found.data[0].product;
+    if (typeof prod === "object" && !("deleted" in prod && prod.deleted) && prod.name !== `Aegly ${PLANS[plan].name}`) {
+      await stripe().products.update(prod.id, { name: `Aegly ${PLANS[plan].name}` }).catch(() => null);
+    }
+    return found.data[0].id;
+  }
   const products = await stripe().products.search({ query: `metadata['aegly_plan']:'${plan}'` }).catch(() => ({ data: [] as Stripe.Product[] }));
   const product = products.data[0] ?? (await stripe().products.create({ name: `Aegly ${PLANS[plan].name}`, metadata: { aegly_plan: plan } }));
+  if (product.name !== `Aegly ${PLANS[plan].name}`) await stripe().products.update(product.id, { name: `Aegly ${PLANS[plan].name}` }).catch(() => null);
   const price = await stripe().prices.create({
     product: product.id,
     currency: "eur",

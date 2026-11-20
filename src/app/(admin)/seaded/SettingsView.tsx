@@ -78,7 +78,7 @@ function StripeConnect({ status, available, isOwner }: { status: "none" | "incom
           {"Ava Stripe'i töölaud"}
         </a>
       )}
-      {!isOwner && status !== "active" && <p className="text-[13px] text-muted">Makseid saab ühendada salongi omanik.</p>}
+      {!isOwner && status !== "active" && <p className="text-[13px] text-muted">Makseid saab ühendada konto omanik.</p>}
     </div>
   );
 }

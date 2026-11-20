@@ -25,7 +25,7 @@ async function Load({ params, searchParams }: { params: Promise<{ slug: string }
       <main className="grid min-h-dvh place-items-center bg-white p-6 text-center">
         <div>
           <p className="text-[17px] font-semibold">{exists.name}</p>
-          <p className="mt-2 text-[14px] text-[#6b7280]">{lang === "en" ? "Online booking is not available right now. Please contact the salon directly." : lang === "ru" ? "Онлайн-запись сейчас недоступна. Пожалуйста, свяжитесь с салоном напрямую." : "Online broneerimine pole hetkel saadaval. Palun võta salongiga otse ühendust."}</p>
+          <p className="mt-2 text-[14px] text-[#6b7280]">{lang === "en" ? "Online booking is not available right now. Please contact the business directly." : lang === "ru" ? "Онлайн-запись сейчас недоступна. Пожалуйста, свяжитесь с салоном напрямую." : "Online broneerimine pole hetkel saadaval. Palun võta teenusepakkujaga otse ühendust."}</p>
         </div>
       </main>
     );

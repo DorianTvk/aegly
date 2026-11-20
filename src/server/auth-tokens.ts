@@ -38,7 +38,7 @@ export async function markUsed(token: string) {
 export async function sendAccountEmail(opts: { businessId: string; to: string; kind: string; subject: string; text: string }) {
   await sendEmail({
     businessId: opts.businessId, kind: opts.kind, to: opts.to, subject: opts.subject, text: opts.text,
-    html: emailHtml({ body: opts.text, salon: "Aegly", color: "#1f2937", footer: "Aegly · broneerimissüsteem ilu- ja heaolusalongidele" }),
+    html: emailHtml({ body: opts.text, salon: "Aegly", color: "#1f2937", footer: "Aegly · broneerimissüsteem teenusepakkujatele" }),
     fromName: "Aegly",
   });
 }

@@ -17,8 +17,8 @@ export type Plan = {
 
 export const PLANS: Record<PlanId, Plan> = {
   SOLO: { id: "SOLO", name: "Solo", staffLimit: 1, monthlyCents: 900, yearlyCents: 9000, tagline: "Üksi töötavale spetsialistile" },
-  SALONG: { id: "SALONG", name: "Salong", staffLimit: 6, monthlyCents: 1900, yearlyCents: 19000, tagline: "Väikesele ja keskmisele salongile" },
-  SUUR: { id: "SUUR", name: "Suur salong", staffLimit: 12, monthlyCents: 2900, yearlyCents: 29000, tagline: "Suuremale meeskonnale" },
+  SALONG: { id: "SALONG", name: "Tiim", staffLimit: 6, monthlyCents: 1900, yearlyCents: 19000, tagline: "Väikesele meeskonnale" },
+  SUUR: { id: "SUUR", name: "Ettevõte", staffLimit: 12, monthlyCents: 2900, yearlyCents: 29000, tagline: "Suuremale meeskonnale" },
 };
 
 export const PLAN_STATUS_LABEL: Record<PlanStatus, string> = {

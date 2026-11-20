@@ -120,7 +120,7 @@ export function Manage({ token, today, theme, biz, booking: b, payment, canPay }
                   <Info size={16} className="mt-0.5 shrink-0" aria-hidden />
                   {b.canChange
                     ? `Tasuta muutmine ja tühistamine kuni ${dayShort(b.deadlineDate)} kell ${b.deadlineTime}.`
-                    : "Veebis muutmise aeg on läbi. Muutmiseks võta ühendust salongiga."}
+                    : "Veebis muutmise aeg on läbi. Muutmiseks võta ühendust teenusepakkujaga."}
                 </p>
               )}
               {b.status === "CANCELLED" && (

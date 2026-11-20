@@ -54,7 +54,7 @@ async function StaffDashboard({ business, user }: { business: Awaited<ReturnType
     <div className="space-y-5">
       <PageHeader title={`Tere, ${user.name.split(" ")[0]}`} subtitle={formatLongDate(today)} />
       {!user.staffId ? (
-        <Card className="p-8 text-center text-sm text-muted">Sinu kasutaja pole veel töötaja profiiliga seotud. Palu salongi omanikul see Seadete all siduda.</Card>
+        <Card className="p-8 text-center text-sm text-muted">Sinu kasutaja pole veel töötaja profiiliga seotud. Palu konto omanikul see Seadete all siduda.</Card>
       ) : (
         mine.map(({ date, bookings }, i) =>
           i === 0 || bookings.length > 0 ? (

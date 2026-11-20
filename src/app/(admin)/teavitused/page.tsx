@@ -26,6 +26,7 @@ async function Notifications() {
         "{töötaja}": "Kadri Tamm",
         "{link}": `${url.replace(/^https?:\/\//, "")}/b/x7k2`,
         "{aadress}": b.address ?? "",
+        "{ettevõte}": b.name,
         "{salong}": b.name,
       }}
       initial={{

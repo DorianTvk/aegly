@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LEGAL } from "../legal";
 import { SubprocessorTable } from "../subprocessors";
 
-export const metadata: Metadata = { title: "Andmetöötlusleping", description: "Aegly ja salongi vaheline isikuandmete töötlemise leping (GDPR art 28)." };
+export const metadata: Metadata = { title: "Andmetöötlusleping", description: "Aegly ja kliendi (teenusepakkuja) vaheline isikuandmete töötlemise leping (GDPR art 28)." };
 
 export default function DpaPage() {
   return (
@@ -11,7 +11,7 @@ export default function DpaPage() {
       <h1>Andmetöötlusleping</h1>
       <p className="text-sm text-muted">Isikuandmete kaitse üldmääruse (GDPR) artikli 28 kohane leping · kehtib alates {LEGAL.effective}</p>
 
-      <p>See leping on Aegly <Link href="/tingimused">kasutustingimuste</Link> lahutamatu osa ja sõlmitakse Aegly konto loomisega salongi (edaspidi <b>Vastutav töötleja</b>) ja {LEGAL.company} (edaspidi <b>Volitatud töötleja</b>) vahel.</p>
+      <p>See leping on Aegly <Link href="/tingimused">kasutustingimuste</Link> lahutamatu osa ja sõlmitakse Aegly konto loomisega teenusepakkuja (edaspidi <b>Vastutav töötleja</b>) ja {LEGAL.company} (edaspidi <b>Volitatud töötleja</b>) vahel.</p>
 
       <h2>1. Töötlemise ese ja kestus</h2>
       <p>Volitatud töötleja töötleb Vastutava töötleja nimel isikuandmeid Aegly broneerimistarkvara osutamiseks lepingu kehtivuse ajal.</p>

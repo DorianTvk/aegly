@@ -84,7 +84,7 @@ export function ManageBusiness({
                 </Select>
               </Field>
             </div>
-            <p className="text-xs text-muted">„Peatatud“ lülitab salongi vidina välja (kliendid ei saa broneerida). Halduspaneel jääb kasutatavaks.</p>
+            <p className="text-xs text-muted">„Peatatud“ lülitab kliendi vidina välja (kliendid ei saa broneerida). Halduspaneel jääb kasutatavaks.</p>
             <Button variant="primary" disabled={pending} onClick={() => start(async () => setPlanState(await setBusinessPlan({ businessId: b.id, ...plan })))}>
               Salvesta pakett
             </Button>
@@ -92,7 +92,7 @@ export function ManageBusiness({
         </Card>
 
         <Card>
-          <CardHeader title="Salongi andmed" />
+          <CardHeader title="Ettevõtte andmed" />
           <div className="space-y-4 p-5">
             <FormMessage state={infoState} />
             <Field label="Nimi" htmlFor="b-name">
@@ -156,10 +156,10 @@ export function ManageBusiness({
 
       {!isOwn && (
         <Card className="border-bad/30">
-          <CardHeader title="Kustuta salong" subtitle="Kustutab salongi koos kõigi töötajate, klientide, broneeringute ja kasutajatega. Seda ei saa tagasi võtta." />
+          <CardHeader title="Kustuta klient" subtitle="Kustutab kliendikonto koos kõigi töötajate, klientide, broneeringute ja kasutajatega. Seda ei saa tagasi võtta." />
           <div className="space-y-3 p-5">
             <FormMessage state={delState} />
-            <Field label={<>Kinnitamiseks sisesta salongi lühinimi <code className="font-mono">{b.slug}</code></>} htmlFor="del-confirm">
+            <Field label={<>Kinnitamiseks sisesta kliendi lühinimi <code className="font-mono">{b.slug}</code></>} htmlFor="del-confirm">
               <Input id="del-confirm" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="off" className="max-w-[320px]" />
             </Field>
             <button

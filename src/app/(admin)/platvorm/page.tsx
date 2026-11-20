@@ -162,11 +162,11 @@ export default function PlatformPage() {
     <div className="space-y-5">
       <PageHeader
         title="Platvorm"
-        subtitle="Aegly kliendid, tulu ja kasutus. Sinu enda demosalong ei ole siinsetes arvudes."
+        subtitle="Aegly kliendid, tulu ja kasutus. Sinu enda demokonto ei ole siinsetes arvudes."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <a href="/api/vaade?m=salon" className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border border-line bg-white px-3 text-[13px] font-semibold hover:bg-line-soft">
-              <Eye size={15} /> Salongi vaade (demo)
+              <Eye size={15} /> Kliendi vaade (demo)
             </a>
             {process.env.NEXT_PUBLIC_SENTRY_DSN ? (
               <a href="/api/sentry-test" target="_blank" rel="noreferrer" className="inline-flex h-9 items-center rounded-[10px] border border-line bg-white px-3 text-[13px] font-semibold hover:bg-line-soft">

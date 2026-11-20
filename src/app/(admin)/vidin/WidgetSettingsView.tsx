@@ -235,7 +235,7 @@ export function WidgetSettingsView({
                 }}
                 className="flex gap-2"
               >
-                <Input value={newDomain} onChange={(e) => setNewDomain(e.target.value)} placeholder="www.minusalong.ee" aria-label="Uus domeen" />
+                <Input value={newDomain} onChange={(e) => setNewDomain(e.target.value)} placeholder="www.minuettevote.ee" aria-label="Uus domeen" />
                 <Button type="submit">
                   <Plus size={15} /> Lisa domeen
                 </Button>

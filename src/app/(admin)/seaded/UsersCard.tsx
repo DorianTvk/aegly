@@ -32,7 +32,7 @@ export function UsersCard({ me, users, invites, staff }: { me: { role: Role }; u
     <Card>
       <CardHeader
         title="Kasutajad ja rollid"
-        subtitle="Omanik haldab kõike. Administraator haldab salongi, aga mitte paketti ega kontot. Töötaja näeb oma kalendrit, broneeringuid ja kliente."
+        subtitle="Omanik haldab kõike. Administraator haldab ettevõtet, aga mitte paketti ega kontot. Töötaja näeb oma kalendrit, broneeringuid ja kliente."
         action={
           can.length > 0 && (
             <Button size="sm" onClick={openInvite}>
@@ -155,7 +155,7 @@ export function UsersCard({ me, users, invites, staff }: { me: { role: Role }; u
             <Field label="Roll" htmlFor="iRole">
               <Select id="iRole" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as "ADMIN" | "STAFF" })}>
                 {can.includes("STAFF") && <option value="STAFF">Töötaja – näeb oma kalendrit ja broneeringuid</option>}
-                {can.includes("ADMIN") && <option value="ADMIN">Administraator – haldab salongi</option>}
+                {can.includes("ADMIN") && <option value="ADMIN">Administraator – haldab ettevõtet</option>}
               </Select>
             </Field>
             {form.role === "STAFF" && (

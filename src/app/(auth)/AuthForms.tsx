@@ -8,7 +8,8 @@ import { clsx } from "clsx";
 import { ENTERPRISE_NOTE, PLAN_IDS, PLANS, staffLimitText, type BillingPeriod, type PlanId } from "@/lib/plans";
 import { formatEuro } from "@/lib/time";
 
-import { Field, FormMessage, Input } from "@/components/ui/form";
+import { Field, FormMessage, Input, Select } from "@/components/ui/form";
+import { findIndustry, INDUSTRIES } from "@/lib/industries";
 import { Button } from "@/components/ui/primitives";
 import { acceptInvite, login, register, requestPasswordReset, resetPassword } from "./actions";
 import { BotProtection } from "@/components/ui/BotProtection";
@@ -50,6 +51,7 @@ export function RegisterForm({ defaultPlan = "SALONG", defaultPeriod = "MONTH", 
   const [plan, setPlan] = useState<PlanId>(defaultPlan);
   const [period, setPeriod] = useState<BillingPeriod>(defaultPeriod);
   const [showPw, setShowPw] = useState(false);
+  const [industry, setIndustry] = useState("ilu");
   const e = state?.errors ?? {};
   const yearly = period === "YEAR";
   const chosen = PLANS[plan];
@@ -124,16 +126,25 @@ export function RegisterForm({ defaultPlan = "SALONG", defaultPeriod = "MONTH", 
           <span className="grid size-6 place-items-center rounded-full bg-ink text-xs text-white">2</span>
           Sinu andmed
         </legend>
+        <Field label="Valdkond" htmlFor="industry" hint="Valime selle järgi esialgsed teenusekategooriad – saad neid hiljem muuta">
+          <Select id="industry" name="industry" value={industry} onChange={(ev) => setIndustry(ev.target.value)}>
+            {INDUSTRIES.map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.label}
+              </option>
+            ))}
+          </Select>
+        </Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Salongi nimi" htmlFor="businessName" error={e.businessName}>
-            <Input id="businessName" name="businessName" placeholder="nt Studio Lumi" autoComplete="organization" aria-invalid={!!e.businessName} />
+          <Field label="Ettevõtte nimi" htmlFor="businessName" error={e.businessName}>
+            <Input id="businessName" name="businessName" placeholder={findIndustry(industry).example} autoComplete="organization" aria-invalid={!!e.businessName} />
           </Field>
           <Field label="Sinu nimi" htmlFor="ownerName" error={e.ownerName}>
             <Input id="ownerName" name="ownerName" placeholder="Ees- ja perekonnanimi" autoComplete="name" aria-invalid={!!e.ownerName} />
           </Field>
         </div>
         <Field label="E-post" htmlFor="email" error={e.email} hint={e.email ? undefined : "Saadame sinna kinnituslingi"}>
-          <Input id="email" name="email" type="email" placeholder="nimi@salong.ee" autoComplete="email" aria-invalid={!!e.email} />
+          <Input id="email" name="email" type="email" placeholder="nimi@ettevote.ee" autoComplete="email" aria-invalid={!!e.email} />
         </Field>
         <Field label="Parool" htmlFor="password" hint={e.password ? undefined : "Vähemalt 8 märki"} error={e.password}>
           <div className="relative">

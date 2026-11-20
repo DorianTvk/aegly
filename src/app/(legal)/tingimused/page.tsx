@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LEGAL } from "../legal";
 
-export const metadata: Metadata = { title: "Kasutustingimused", description: "Aegly broneerimistarkvara kasutustingimused salongidele." };
+export const metadata: Metadata = { title: "Kasutustingimused", description: "Aegly broneerimistarkvara kasutustingimused teenusepakkujatele." };
 
 export default function TermsPage() {
   return (
@@ -14,7 +14,7 @@ export default function TermsPage() {
       <ul>
         <li><b>Aegly</b> või <b>Teenusepakkuja</b> – {LEGAL.company} (registrikood {LEGAL.regCode}), kes pakub Aegly tarkvara.</li>
         <li><b>Teenus</b> – Aegly broneerimistarkvara: halduspaneel, broneerimisvidin, teavitused ja nendega seotud funktsioonid.</li>
-        <li><b>Klient</b> – ettevõte või füüsilisest isikust ettevõtja (nt salong), kes loob Aegly konto ja kasutab Teenust oma majandustegevuses.</li>
+        <li><b>Klient</b> – ettevõte või füüsilisest isikust ettevõtja (nt salong, massaažistuudio, treener või autoteenindus), kes loob Aegly konto ja kasutab Teenust oma majandustegevuses.</li>
         <li><b>Kasutaja</b> – Kliendi omanik, administraator või töötaja, kellel on Kliendi kontol ligipääs.</li>
         <li><b>Lõppklient</b> – isik, kes broneerib Kliendi teenuse broneerimisvidina kaudu.</li>
       </ul>

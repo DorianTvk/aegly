@@ -5,6 +5,7 @@ import { db, schema as s } from "@/db";
 import { formatShortDate, localDate, localTime } from "@/lib/time";
 import { notifyBooking, notifySalon } from "./notify";
 import { recordActivity } from "./activity";
+import { industryByLabel } from "@/lib/industries";
 
 /**
  * Stripe Connect (direct charges): klient maksab ettemaksu otse salongi Stripe'i kontole.
@@ -40,7 +41,7 @@ export async function onboardingLink(businessId: string, base: string): Promise<
       type: "standard",
       country: "EE",
       email: owner?.email,
-      business_profile: { name: b.name, url: b.website ?? undefined, mcc: "7230" },
+      business_profile: { name: b.name, url: b.website ?? undefined, mcc: industryByLabel(b.industry)?.mcc },
       metadata: { businessId },
     });
     accountId = acct.id;

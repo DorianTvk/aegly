@@ -17,7 +17,7 @@ async function Invite({ searchParams }: { searchParams: Promise<{ token?: string
     return (
       <>
         <h1 className="text-[26px] font-bold tracking-[-0.4px]">Kutse ei kehti</h1>
-        <p className="mt-2 text-sm text-muted">Kutse on aegunud või juba kasutatud. Palu salongi omanikul saata uus kutse.</p>
+        <p className="mt-2 text-sm text-muted">Kutse on aegunud või juba kasutatud. Palu konto omanikul saata uus kutse.</p>
         <Link href="/logi-sisse" className="mt-6 inline-block text-sm font-semibold underline-offset-4 hover:underline">
           Logi sisse
         </Link>
@@ -26,7 +26,7 @@ async function Invite({ searchParams }: { searchParams: Promise<{ token?: string
   }
   return (
     <>
-      <h1 className="text-[26px] font-bold tracking-[-0.4px]">Liitu salongiga {biz.name}</h1>
+      <h1 className="text-[26px] font-bold tracking-[-0.4px]">Liitu meeskonnaga: {biz.name}</h1>
       <p className="mt-1 mb-8 text-sm text-muted">
         {inv.invitedBy} kutsus sind {inv.role === "ADMIN" ? "administraatoriks" : "töötajaks"}. Loo endale parool.
       </p>

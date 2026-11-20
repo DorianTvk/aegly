@@ -87,8 +87,8 @@ export async function resetUserPassword(userId: string): Promise<{ ok: true; pas
 export async function deleteBusiness(businessId: string, confirmSlug: string): Promise<FormState> {
   const { business: own } = await requireSuperadmin();
   const b = await db.query.businesses.findFirst({ where: eq(s.businesses.id, businessId) });
-  if (!b) return { message: "Salongi ei leitud" };
-  if (b.id === own.id) return { message: "Oma salongi siit kustutada ei saa." };
+  if (!b) return { message: "Klienti ei leitud" };
+  if (b.id === own.id) return { message: "Oma kontot siit kustutada ei saa." };
   if (confirmSlug.trim() !== b.slug) return { message: `Kinnitamiseks sisesta täpselt: ${b.slug}` };
   await cancelSubscriptionNow(b.stripeSubscriptionId);
   await db.delete(s.businesses).where(eq(s.businesses.id, businessId));
@@ -101,15 +101,15 @@ export async function deleteBusinesses(ids: string[], confirmWord: string): Prom
   const { business: own } = await requireSuperadmin();
   if (confirmWord.trim() !== "KUSTUTA") return { ok: false, message: "Kinnitamiseks kirjuta KUSTUTA" };
   const unique = [...new Set(ids)].filter((id) => typeof id === "string" && id !== own.id).slice(0, 500);
-  if (!unique.length) return { ok: false, message: "Ühtegi salongi pole valitud" };
+  if (!unique.length) return { ok: false, message: "Ühtegi klienti pole valitud" };
   const owners = await db.query.users.findMany({ where: inArray(s.users.businessId, unique) });
   const protectedIds = new Set(owners.filter((u) => isSuperadmin(u.email)).map((u) => u.businessId));
   const toDelete = unique.filter((id) => !protectedIds.has(id));
-  if (!toDelete.length) return { ok: false, message: "Valitud salonge ei saa kustutada (platvormi halduri salong)." };
+  if (!toDelete.length) return { ok: false, message: "Valitud kliente ei saa kustutada (platvormi halduri konto)." };
   const subs = await db.select({ sub: s.businesses.stripeSubscriptionId }).from(s.businesses).where(inArray(s.businesses.id, toDelete));
   await Promise.all(subs.map((x) => cancelSubscriptionNow(x.sub)));
   const deleted = await db.delete(s.businesses).where(inArray(s.businesses.id, toDelete)).returning({ id: s.businesses.id });
   revalidatePath("/platvorm");
   const skipped = unique.length - deleted.length;
-  return { ok: true, message: `Kustutatud ${deleted.length} salongi.${skipped ? ` ${skipped} jäeti vahele (kaitstud).` : ""}` };
+  return { ok: true, message: `Kustutatud ${deleted.length} klienti.${skipped ? ` ${skipped} jäeti vahele (kaitstud).` : ""}` };
 }

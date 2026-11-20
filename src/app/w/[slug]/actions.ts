@@ -148,7 +148,7 @@ export async function book(input: z.input<typeof bookSchema>) {
     } catch (e) {
       reportError("stripe checkout", e);
       await db.update(s.bookings).set({ status: "CANCELLED", cancelledAt: new Date(), cancelReason: "Makse alustamine ebaõnnestus" }).where(eq(s.bookings.id, b!.id));
-      return { ok: false as const, reason: "Makse alustamine ebaõnnestus. Proovi uuesti või helista salongi." };
+      return { ok: false as const, reason: "Makse alustamine ebaõnnestus. Proovi uuesti või võta ühendust teenusepakkujaga." };
     }
   }
   after(() =>

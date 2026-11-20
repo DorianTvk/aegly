@@ -42,11 +42,11 @@ export function PlatformTable({ rows }: { rows: PlatformRow[] }) {
       <div className="flex flex-wrap items-center gap-3">
         <label className="flex h-10 min-w-[260px] flex-1 items-center gap-2 rounded-[10px] border border-line bg-white px-3 sm:max-w-[360px]">
           <Search size={16} className="text-muted" aria-hidden />
-          <span className="sr-only">Otsi salonge</span>
+          <span className="sr-only">Otsi kliente</span>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Otsi nime, lühinime või e-posti järgi" className="h-full flex-1 bg-transparent text-sm outline-none" />
         </label>
         <span className="text-sm text-muted">
-          {filtered.length} salongi{selected.size > 0 && ` · ${selected.size} valitud`}
+          {filtered.length} klienti{selected.size > 0 && ` · ${selected.size} valitud`}
         </span>
         {selected.size > 0 && (
           <div className="ml-auto flex gap-2">
@@ -70,7 +70,7 @@ export function PlatformTable({ rows }: { rows: PlatformRow[] }) {
                   checked={allChecked}
                   disabled={selectable.length === 0}
                   onChange={(e) => setSelected(e.target.checked ? new Set([...selected, ...selectable.map((r) => r.id)]) : new Set([...selected].filter((id) => !selectable.some((r) => r.id === id))))}
-                  aria-label="Vali kõik nähtavad salongid"
+                  aria-label="Vali kõik nähtavad kliendid"
                   className="size-4 accent-[#d92d20]"
                 />
               </th>
@@ -103,9 +103,9 @@ export function PlatformTable({ rows }: { rows: PlatformRow[] }) {
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={() => !pending && setDialog(false)}>
           <div role="dialog" aria-modal="true" aria-labelledby="bulk-title" className="w-full max-w-[480px] rounded-[16px] bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h2 id="bulk-title" className="text-[18px] font-bold">
-              Kustutada {chosen.length} salongi?
+              Kustutada {chosen.length} klienti?
             </h2>
-            <p className="mt-1 text-sm text-muted">Kustutatakse salongid koos kõigi töötajate, klientide, broneeringute ja kasutajatega. Seda ei saa tagasi võtta.</p>
+            <p className="mt-1 text-sm text-muted">Kustutatakse kliendikontod koos kõigi töötajate, klientide, broneeringute ja kasutajatega. Seda ei saa tagasi võtta.</p>
             <ul className="mt-3 max-h-[160px] overflow-y-auto rounded-[10px] border border-line-soft px-3 py-2 text-sm">
               {chosen.map((r) => (
                 <li key={r.id} className="py-0.5">

@@ -143,7 +143,7 @@ export function ScheduleSettings({ initial, sideCards }: { initial: SettingsInpu
                 <Field label="Broneeringu kinnitamine" htmlFor="confirm">
                   <Select id="confirm" value={v.autoConfirm ? "auto" : "manual"} onChange={(e) => set("autoConfirm", e.target.value === "auto")}>
                     <option value="auto">Automaatne</option>
-                    <option value="manual">Käsitsi (salong kinnitab)</option>
+                    <option value="manual">Käsitsi (sina kinnitad)</option>
                   </Select>
                 </Field>
               </div>

@@ -27,8 +27,8 @@ describe("paketid", () => {
     expect(parsePeriod(undefined)).toBe("MONTH");
   });
   it("täis piiri teade soovitab järgmist paketti", () => {
-    expect(staffLimitMessage("SOLO")).toContain("Salong");
-    expect(staffLimitMessage("SALONG")).toContain("Suur salong");
+    expect(staffLimitMessage("SOLO")).toContain("Tiim");
+    expect(staffLimitMessage("SALONG")).toContain("Ettevõte");
   });
   it("superadmin keskkonnamuutujast", () => {
     expect(isSuperadmin("Dorian@x.ee", "a@b.ee, dorian@x.ee")).toBe(true);

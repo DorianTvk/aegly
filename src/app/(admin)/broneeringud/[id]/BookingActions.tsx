@@ -10,7 +10,7 @@ import { saveBookingNote, setBookingStatus } from "../actions";
 export function BookingActions({ id, status, isPast }: { id: string; status: string; isPast: boolean }) {
   const [state, setState] = useState<FormState>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
-  const [reason, setReason] = useState("Tühistas salong");
+  const [reason, setReason] = useState("Tühistas teenusepakkuja");
   const [pending, start] = useTransition();
   const run = (s: "CONFIRMED" | "COMPLETED" | "NO_SHOW" | "CANCELLED", r?: string) => start(async () => setState(await setBookingStatus(id, s, r)));
 
@@ -60,7 +60,7 @@ export function BookingActions({ id, status, isPast }: { id: string; status: str
       >
         <Field label="Põhjus" htmlFor="cReason">
           <Select id="cReason" value={reason} onChange={(e) => setReason(e.target.value)}>
-            <option>Tühistas salong</option>
+            <option>Tühistas teenusepakkuja</option>
             <option>Klient tühistas telefoni teel</option>
             <option>Töötaja haigestus</option>
             <option>Topeltbroneering</option>

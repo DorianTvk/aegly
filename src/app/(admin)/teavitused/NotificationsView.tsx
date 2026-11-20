@@ -170,7 +170,7 @@ export function NotificationsView({ initial, sample, delivery }: { initial: Noti
                 <div className="rounded-[12px] border border-line">
                   <div className="border-b border-line-soft px-4 py-2.5 text-xs text-muted">
                     <p>
-                      Saatja: <span className="text-ink">{v.emailSenderName || sample["{salong}"]}</span>
+                      Saatja: <span className="text-ink">{v.emailSenderName || sample["{ettevõte}"]}</span>
                     </p>
                     <p>
                       Teema: <span className="font-semibold text-ink">{renderTemplate(item.emailSubject, sample)}</span>

@@ -10,7 +10,7 @@ import { isSuperadmin, PLANS } from "@/lib/plans";
 import { Card, PageHeader } from "@/components/ui/primitives";
 import { ManageBusiness } from "./ManageBusiness";
 
-export const metadata: Metadata = { title: "Salongi haldus" };
+export const metadata: Metadata = { title: "Kliendi haldus" };
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000);
 
@@ -62,9 +62,9 @@ export default function PlatformBusinessPage(props: PageProps<"/platvorm/[id]">)
   return (
     <div className="max-w-[1100px] space-y-5">
       <Link href="/platvorm" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-ink">
-        <ArrowLeft size={15} aria-hidden /> Kõik salongid
+        <ArrowLeft size={15} aria-hidden /> Kõik kliendid
       </Link>
-      <Suspense fallback={<><PageHeader title="Salongi haldus" /><Card className="h-[480px] animate-pulse" /></>}>
+      <Suspense fallback={<><PageHeader title="Kliendi haldus" /><Card className="h-[480px] animate-pulse" /></>}>
         <Detail params={props.params} />
       </Suspense>
     </div>

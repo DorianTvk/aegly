@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: { default: "Aegly", template: "%s · Aegly" },
-  description: "Broneerimistarkvara ilu- ja heaolusalongidele",
+  description: "Broneerimissüsteem teenusepakkujatele – broneeringud otse sinu kodulehel",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

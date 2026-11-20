@@ -13,20 +13,20 @@ export default function PrivacyPage() {
 
       <p>See poliitika selgitab, kuidas {LEGAL.company} („Aegly“) töötleb isikuandmeid. Aeglyl on kaks rolli:</p>
       <ul>
-        <li><b>Vastutav töötleja</b> – salongide (meie klientide) ja nende kasutajate andmete puhul, mida vajame konto, arvelduse ja kliendisuhtluse jaoks.</li>
-        <li><b>Volitatud töötleja</b> – salongi klientide (broneerijate) andmete puhul. Nende andmete vastutav töötleja on salong, kelle juurde aeg broneeritakse. Selle töötlemise tingimused on kirjas <Link href="/andmetootlus">andmetöötluslepingus</Link>. Küsimuste korral oma broneeringu andmete kohta pöördu esmalt salongi poole.</li>
+        <li><b>Vastutav töötleja</b> – teenusepakkujate (meie klientide) ja nende kasutajate andmete puhul, mida vajame konto, arvelduse ja kliendisuhtluse jaoks.</li>
+        <li><b>Volitatud töötleja</b> – teenusepakkujate klientide (broneerijate) andmete puhul. Nende andmete vastutav töötleja on teenusepakkuja, kelle juurde aeg broneeritakse. Selle töötlemise tingimused on kirjas <Link href="/andmetootlus">andmetöötluslepingus</Link>. Küsimuste korral oma broneeringu andmete kohta pöördu esmalt salongi poole.</li>
       </ul>
 
       <h2>1. Milliseid andmeid töötleme</h2>
-      <h3>Salongid ja kasutajad</h3>
+      <h3>Teenusepakkujad ja kasutajad</h3>
       <ul>
         <li>Konto andmed: nimi, e-post, roll, krüpteeritud parool.</li>
         <li>Ettevõtte andmed: nimi, registrikood, aadress, kontaktid, pakett ja arveldusandmed.</li>
         <li>Turvalisuse ja tehnilised andmed: sisselogimiste aeg, IP-aadress (robotikaitse ja kuritarvituste tõkestamine), sessiooniküpsis.</li>
       </ul>
-      <h3>Broneerijad (salongi nimel)</h3>
+      <h3>Broneerijad (teenusepakkuja nimel)</h3>
       <ul>
-        <li>Nimi, e-post, telefon, broneeritud teenus, aeg ja töötaja, makse olek, nõusolekud (nt SMS-meeldetuletused), salongi lisatud märkmed.</li>
+        <li>Nimi, e-post, telefon, broneeritud teenus, aeg ja töötaja, makse olek, nõusolekud (nt SMS-meeldetuletused), teenusepakkuja lisatud märkmed.</li>
       </ul>
 
       <h2>2. Eesmärgid ja õiguslikud alused</h2>
@@ -42,7 +42,7 @@ export default function PrivacyPage() {
           <tr><td>Arveldus ja raamatupidamine</td><td>Juriidiline kohustus</td></tr>
           <tr><td>Turvalisus, robotikaitse, kuritarvituste tõkestamine</td><td>Õigustatud huvi</td></tr>
           <tr><td>Teenusega seotud teated (nt parooli taastamine, muudatused)</td><td>Lepingu täitmine</td></tr>
-          <tr><td>Broneeringute haldamine ja teavitused broneerijatele</td><td>Salongi juhised (volitatud töötlejana)</td></tr>
+          <tr><td>Broneeringute haldamine ja teavitused broneerijatele</td><td>Teenusepakkuja juhised (volitatud töötlejana)</td></tr>
         </tbody>
       </table>
 
@@ -55,7 +55,7 @@ export default function PrivacyPage() {
       <ul>
         <li>Konto andmeid säilitame lepingu kehtivuse ajal ja kustutame 30 päeva jooksul pärast konto kustutamist, välja arvatud andmed, mida peame seaduse järgi kauem säilitama (nt raamatupidamisdokumendid 7 aastat).</li>
         <li>Sisselogimiskatsete ja turvalogide andmeid säilitame kuni 7 päeva.</li>
-        <li>Broneerijate andmeid säilitame salongi juhiste järgi; salong saab andmeid igal ajal eksportida või kustutada.</li>
+        <li>Broneerijate andmeid säilitame teenusepakkuja juhiste järgi; teenusepakkuja saab andmeid igal ajal eksportida või kustutada.</li>
       </ul>
 
       <h2>5. Küpsised</h2>
@@ -69,7 +69,7 @@ export default function PrivacyPage() {
       <p>Ühendused on krüpteeritud (HTTPS), paroolid salvestatakse räsituna, ligipääs on rollipõhine ja sisselogimiskatseid piiratakse. Andmed asuvad Euroopa Liidus asuvates andmekeskustes.</p>
 
       <h2>8. Muudatused</h2>
-      <p>Poliitika olulistest muudatustest teavitame salonge e-posti teel. Kehtiv versioon on alati sellel lehel.</p>
+      <p>Poliitika olulistest muudatustest teavitame kliente e-posti teel. Kehtiv versioon on alati sellel lehel.</p>
     </>
   );
 }

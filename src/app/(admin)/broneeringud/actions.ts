@@ -109,13 +109,13 @@ export async function setBookingStatus(bookingId: string, status: "CONFIRMED" | 
     .set({
       status,
       cancelledAt: status === "CANCELLED" ? new Date() : null,
-      cancelReason: status === "CANCELLED" ? (reason?.trim() || "Tühistas salong") : null,
+      cancelReason: status === "CANCELLED" ? (reason?.trim() || "Tühistas teenusepakkuja") : null,
     })
     .where(eq(s.bookings.id, bookingId));
   const base = await appUrl();
   // salong tühistas → veebis tasutud ettemaks tagasi
   let refunded = 0;
-  if (status === "CANCELLED") refunded = await refundBooking(bookingId, "Tühistas salong").catch((e) => { reportError("stripe refund", e); return -1; });
+  if (status === "CANCELLED") refunded = await refundBooking(bookingId, "Tühistas teenusepakkuja").catch((e) => { reportError("stripe refund", e); return -1; });
   if (status === "CANCELLED" && b.startsAt > new Date()) {
     after(async () => {
       await notifyBooking(bookingId, "CANCELLED", base);

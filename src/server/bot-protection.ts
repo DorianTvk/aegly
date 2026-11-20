@@ -99,6 +99,6 @@ export async function widgetGuard(kind: "WIDGET_BOOK" | "WIDGET_WAIT", email: st
     ip === "unknown" ? 0 : recentAttempts(kind, { ip }, 60),
     recentAttempts(kind, { email: email.toLowerCase() }, 60),
   ]);
-  if (byIp >= perIp || byEmail >= perEmail) return { ip, error: "Liiga palju päringuid. Proovi tunni aja pärast uuesti või helista salongi." };
+  if (byIp >= perIp || byEmail >= perEmail) return { ip, error: "Liiga palju päringuid. Proovi tunni aja pärast uuesti või võta ühendust teenusepakkujaga." };
   return { ip, error: null };
 }

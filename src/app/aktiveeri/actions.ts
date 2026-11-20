@@ -12,7 +12,7 @@ import { subscriptionCheckout } from "@/server/billing";
 export async function startSubscription(input: { plan: string; period: string }): Promise<{ message: string } | null> {
   const session = await readSession();
   if (!session) redirect("/logi-sisse");
-  if (session.user.role !== "OWNER") return { message: "Paketi saab aktiveerida salongi omanik." };
+  if (session.user.role !== "OWNER") return { message: "Paketi saab aktiveerida konto omanik." };
   const plan = parsePlan(input.plan);
   const period = parsePeriod(input.period);
   const active = await activeStaffCount(session.business.id);
