@@ -15,14 +15,17 @@ import { appUrl } from "@/lib/app-url";
 import { manageableRoles } from "@/lib/permissions";
 import { createToken, sendAccountEmail } from "@/server/auth-tokens";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import { validateNewPassword } from "@/server/pwned";
 import type { FormState } from "@/components/ui/form";
 
 export async function changePassword(_prev: FormState, formData: FormData): Promise<FormState> {
-  const { user } = await requireSession();
+  const { user, business } = await requireSession();
   const current = String(formData.get("current") ?? "");
   const next = String(formData.get("next") ?? "");
-  if (next.length < 8) return { errors: { next: ["Vähemalt 8 märki"] } };
   if (!(await verifyPassword(current, user.passwordHash))) return { errors: { current: ["Vale parool"] } };
+  if (next === current) return { errors: { next: ["Uus parool peab erinema praegusest"] } };
+  const pwError = await validateNewPassword(next, { email: user.email, name: user.name, business: business.name });
+  if (pwError) return { errors: { next: [pwError] } };
   await db.update(s.users).set({ passwordHash: await hashPassword(next) }).where(eq(s.users.id, user.id));
   // logi välja teistest seadmetest (praegune sessioon jääb)
   const token = (await cookies()).get(SESSION_COOKIE)?.value;

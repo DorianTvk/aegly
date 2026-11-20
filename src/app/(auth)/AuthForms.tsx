@@ -3,7 +3,7 @@
 import { useFormAction } from "@/components/ui/use-form-action";
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowRight, Check, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { clsx } from "clsx";
 import { ENTERPRISE_NOTE, PLAN_IDS, PLANS, staffLimitText, type BillingPeriod, type PlanId } from "@/lib/plans";
 import { formatEuro } from "@/lib/time";
@@ -13,6 +13,8 @@ import { findIndustry, INDUSTRIES } from "@/lib/industries";
 import { Button } from "@/components/ui/primitives";
 import { acceptInvite, login, register, requestPasswordReset, resetPassword } from "./actions";
 import { BotProtection } from "@/components/ui/BotProtection";
+import { PasswordInput } from "@/components/ui/PasswordInput";
+import { PASSWORD_HINT } from "@/lib/password-policy";
 
 export function LoginForm({ next, siteKey }: { next?: string; siteKey?: string | null }) {
   const [state, action, pending] = useFormAction(login);
@@ -50,7 +52,6 @@ export function RegisterForm({ defaultPlan = "SALONG", defaultPeriod = "MONTH", 
   const [state, action, pending] = useFormAction(register);
   const [plan, setPlan] = useState<PlanId>(defaultPlan);
   const [period, setPeriod] = useState<BillingPeriod>(defaultPeriod);
-  const [showPw, setShowPw] = useState(false);
   const [industry, setIndustry] = useState("ilu");
   const e = state?.errors ?? {};
   const yearly = period === "YEAR";
@@ -146,19 +147,8 @@ export function RegisterForm({ defaultPlan = "SALONG", defaultPeriod = "MONTH", 
         <Field label="E-post" htmlFor="email" error={e.email} hint={e.email ? undefined : "Saadame sinna kinnituslingi"}>
           <Input id="email" name="email" type="email" placeholder="nimi@ettevote.ee" autoComplete="email" aria-invalid={!!e.email} />
         </Field>
-        <Field label="Parool" htmlFor="password" hint={e.password ? undefined : "Vähemalt 8 märki"} error={e.password}>
-          <div className="relative">
-            <Input id="password" name="password" type={showPw ? "text" : "password"} autoComplete="new-password" aria-invalid={!!e.password} className="pr-11" />
-            <button
-              type="button"
-              onClick={() => setShowPw((v) => !v)}
-              aria-label={showPw ? "Peida parool" : "Näita parooli"}
-              aria-pressed={showPw}
-              className="absolute top-1/2 right-2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-muted hover:bg-line-soft hover:text-ink"
-            >
-              {showPw ? <EyeOff size={17} /> : <Eye size={17} />}
-            </button>
-          </div>
+        <Field label="Parool" htmlFor="password" hint={e.password ? undefined : PASSWORD_HINT} error={e.password}>
+          <PasswordInput id="password" name="password" invalid={!!e.password} />
         </Field>
       </fieldset>
 
@@ -243,8 +233,8 @@ export function ResetForm({ token }: { token: string }) {
     <form onSubmit={action} className="space-y-4" noValidate>
       <FormMessage state={state} />
       <input type="hidden" name="token" value={token} />
-      <Field label="Uus parool" htmlFor="password" error={e.password} hint="Vähemalt 8 märki">
-        <Input id="password" name="password" type="password" autoComplete="new-password" required aria-invalid={!!e.password} />
+      <Field label="Uus parool" htmlFor="password" error={e.password} hint={PASSWORD_HINT}>
+        <PasswordInput id="password" name="password" invalid={!!e.password} />
       </Field>
       <Field label="Korda parooli" htmlFor="password2" error={e.password2}>
         <Input id="password2" name="password2" type="password" autoComplete="new-password" required aria-invalid={!!e.password2} />
@@ -269,8 +259,8 @@ export function InviteForm({ token, email, name }: { token: string; email: strin
       <Field label="Sinu nimi" htmlFor="name" error={e.name}>
         <Input id="name" name="name" defaultValue={name} autoComplete="name" required aria-invalid={!!e.name} />
       </Field>
-      <Field label="Parool" htmlFor="password" error={e.password} hint="Vähemalt 8 märki">
-        <Input id="password" name="password" type="password" autoComplete="new-password" required aria-invalid={!!e.password} />
+      <Field label="Parool" htmlFor="password" error={e.password} hint={PASSWORD_HINT}>
+        <PasswordInput id="password" name="password" invalid={!!e.password} context={{ email }} />
       </Field>
       <Field label="Korda parooli" htmlFor="password2" error={e.password2}>
         <Input id="password2" name="password2" type="password" autoComplete="new-password" required aria-invalid={!!e.password2} />

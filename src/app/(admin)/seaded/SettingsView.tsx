@@ -36,6 +36,8 @@ import {
 } from "./actions";
 import { UsersCard, type PendingInvite, type SettingsUser } from "./UsersCard";
 import { TwoFactorCard } from "./TwoFactorCard";
+import { PasswordInput } from "@/components/ui/PasswordInput";
+import { PASSWORD_HINT } from "@/lib/password-policy";
 
 type User = SettingsUser;
 
@@ -198,15 +200,10 @@ export function SettingsView({
             <Field
               label="Uus parool"
               htmlFor="pwNew"
-              hint="Vähemalt 8 märki"
+              hint={PASSWORD_HINT}
               error={pwState?.errors?.next}
             >
-              <Input
-                id="pwNew"
-                name="next"
-                type="password"
-                autoComplete="new-password"
-              />
+              <PasswordInput id="pwNew" name="next" invalid={!!pwState?.errors?.next} context={{ email: me.email, name: me.name }} />
             </Field>
             <div className="flex items-center gap-3">
               <Button size="sm" type="submit" disabled={pwPending}>

@@ -82,6 +82,14 @@ check("välja lülitatud", sql(`select totp_enabled_at is null from users where 
 await page.goto(B + "/api/auth/valja"); await login();
 check("jälle ainult parooliga", inApp());
 
+// 6. paroolireeglid: nõrk uus parool lükatakse tagasi
+await page.goto(B + "/seaded", { waitUntil: "networkidle0" });
+await page.type("#pwCur", PW); await page.type("#pwNew", "Parool2024!");
+check("tugevuse riba hoiatab", (await text()).includes("levinud parool"));
+await page.click("form button[type=submit] ::-p-text(Muuda parooli)"); await wait(1500);
+check("server lükkab nõrga tagasi", (await text()).includes("levinud parool"));
+check("parool jäi samaks", sql(`select count(*) from users where email='${EMAIL}'`) === "1");
+
 console.log("errors:", errors);
 await browser.close();
 process.exit(fails ? 1 : 0);

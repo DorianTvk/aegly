@@ -15,6 +15,7 @@ import { z } from "zod";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { completeMfa, createSession, destroySession, readPendingMfa } from "@/lib/session";
 import { checkSecondFactor } from "@/server/mfa";
+import { validateNewPassword } from "@/server/pwned";
 import { createBusinessWithOwner, findUserByEmail } from "@/server/business";
 import type { FormState } from "@/components/ui/form";
 import { parsePeriod, parsePlan } from "@/lib/plans";
@@ -33,7 +34,7 @@ const registerSchema = z.object({
   industry: z.string().max(20).optional(),
   ownerName: z.string().trim().min(2, "Sisesta oma nimi").max(80),
   email: z.email("Sisesta kehtiv e-posti aadress").transform((v) => v.toLowerCase().trim()),
-  password: z.string().min(8, "Parool peab olema vähemalt 8 märki"),
+  password: z.string().min(1, "Sisesta parool").max(128),
   terms: z.literal("on", { error: "Nõustu tingimustega" }),
 });
 
@@ -99,6 +100,8 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
   if (isHoneypotFilled(formData)) return { message: BOT_MESSAGE };
   if (await isRegisterBlocked(ip)) return { message: "Sellelt võrgult on loodud liiga palju kontosid. Proovi tunni aja pärast uuesti." };
   if (!(await verifyTurnstile(formData.get("cf-turnstile-response"), ip))) return { message: BOT_MESSAGE };
+  const pwError = await validateNewPassword(parsed.data.password, { email: parsed.data.email, name: parsed.data.ownerName, business: parsed.data.businessName });
+  if (pwError) return { errors: { password: [pwError] } };
 
   if (await findUserByEmail(parsed.data.email)) {
     return { errors: { email: ["Selle e-postiga konto on juba olemas. Logi sisse."] } };
@@ -174,12 +177,15 @@ export async function requestPasswordReset(_prev: FormState, formData: FormData)
 
 export async function resetPassword(_prev: FormState, formData: FormData): Promise<FormState> {
   const parsed = z
-    .object({ token: z.string(), password: z.string().min(8, "Parool peab olema vähemalt 8 märki"), password2: z.string() })
+    .object({ token: z.string(), password: z.string().min(1, "Sisesta parool").max(128), password2: z.string() })
     .refine((d) => d.password === d.password2, { message: "Paroolid ei kattu", path: ["password2"] })
     .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { errors: z.flattenError(parsed.error).fieldErrors };
   const row = await findToken(parsed.data.token, "RESET");
   if (!row?.userId) return { message: "Link on aegunud või juba kasutatud. Küsi uus link." };
+  const owner = await db.query.users.findFirst({ where: eq(s.users.id, row.userId), columns: { email: true, name: true } });
+  const pwError = await validateNewPassword(parsed.data.password, { email: owner?.email, name: owner?.name });
+  if (pwError) return { errors: { password: [pwError] } };
   await markUsed(parsed.data.token);
   await db.update(s.users).set({ passwordHash: await hashPassword(parsed.data.password), emailVerifiedAt: new Date() }).where(eq(s.users.id, row.userId));
   // kõik vanad sessioonid (ka võimaliku ründaja oma) lõpetatakse
@@ -196,7 +202,7 @@ export async function acceptInvite(_prev: FormState, formData: FormData): Promis
     .object({
       token: z.string(),
       name: z.string().trim().min(2, "Sisesta oma nimi").max(80),
-      password: z.string().min(8, "Parool peab olema vähemalt 8 märki"),
+      password: z.string().min(1, "Sisesta parool").max(128),
       password2: z.string(),
     })
     .refine((d) => d.password === d.password2, { message: "Paroolid ei kattu", path: ["password2"] })
@@ -206,6 +212,8 @@ export async function acceptInvite(_prev: FormState, formData: FormData): Promis
   const inv = row?.data;
   if (!row || !inv) return { message: "Kutse on aegunud või juba kasutatud. Palu konto omanikul saata uus kutse." };
   if (await findUserByEmail(inv.email)) return { message: "Selle e-postiga konto on juba olemas. Logi sisse." };
+  const pwError = await validateNewPassword(parsed.data.password, { email: inv.email, name: parsed.data.name });
+  if (pwError) return { errors: { password: [pwError] } };
   await markUsed(parsed.data.token);
   const [user] = await db
     .insert(s.users)

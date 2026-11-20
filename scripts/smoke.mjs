@@ -22,7 +22,7 @@ const email = `test${Date.now()}@example.com`;
 await page.type("#businessName", "Testsalong Õie");
 await page.type("#ownerName", "Test Kasutaja");
 await page.type("#email", email);
-await page.type("#password", "parool123");
+await page.type("#password", "Kollane-kass-71");
 await page.click("input[name=terms]");
 await page.click("main button[type=submit], form button[type=submit]:not([aria-label])"); await until(/\/toolaud/); await wait(800);
 check("registreerumine → töölaud", page.url().endsWith("/toolaud") && (await text()).includes("Tere, Test"));
