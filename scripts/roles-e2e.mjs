@@ -45,7 +45,7 @@ check("kutselink", !!invite);
 // 3. töötaja võtab kutse vastu
 await page.deleteCookie(...(await page.cookies()));
 await page.goto(invite, { waitUntil: "networkidle0" });
-check("kutse leht", (await text()).includes("Liitu salongiga Rollide Salong"));
+check("kutse leht", (await text()).includes("Liitu meeskonnaga: Rollide Salong"));
 await page.type("#password", "tootaja123"); await page.type("#password2", "tootaja123");
 await page.click("form button[type=submit]"); await wait(3500);
 check("töötaja töölaud", page.url().endsWith("/toolaud") && (await text()).includes("Täna"));

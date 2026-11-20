@@ -17,7 +17,7 @@ const until = (re) => page.waitForFunction((src) => new RegExp(src).test(locatio
 await page.goto(B + "/registreeru?pakett=solo", { waitUntil: "networkidle0" });
 check("müügilehelt valitud pakett: Solo", (await page.$eval("input[name=plan]:checked", (e) => e.value)) === "SOLO");
 await page.click("main button[type=submit], form button[type=submit]:not([aria-label])"); await wait(800);
-check("registreerumise valideerimine", (await text()).includes("Salongi nimi on liiga lühike"));
+check("registreerumise valideerimine", (await text()).includes("Ettevõtte nimi on liiga lühike"));
 const email = `test${Date.now()}@example.com`;
 await page.type("#businessName", "Testsalong Õie");
 await page.type("#ownerName", "Test Kasutaja");
@@ -40,7 +40,7 @@ await page.goto(B + "/tootajad/uus", { waitUntil: "networkidle0" });
 check("Solo: töötajate piir täis", (await text()).includes("Töötajate piir on täis"));
 await page.goto(B + "/seaded/pakett", { waitUntil: "networkidle0" });
 await page.click("main button ::-p-text(Vali see pakett)"); await wait(1200);
-check("pakett vahetatud: Salong", (await text()).includes("Pakett vahetatud: Salong"));
+check("pakett vahetatud: Tiim", (await text()).includes("Pakett vahetatud: Tiim"));
 await page.goto(B + "/tootajad/uus", { waitUntil: "networkidle0" });
 check("Salong: töötaja lisamise vorm avaneb", !!(await page.$("#name")));
 
