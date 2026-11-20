@@ -5,6 +5,7 @@ import {
   CalendarDays,
   Clock,
   Code2,
+  ConciergeBell,
   Gift,
   History,
   LayoutGrid,
@@ -28,6 +29,7 @@ export const NAV: { section: string; items: NavItem[] }[] = [
     items: [
       { href: "/toolaud", label: "Töölaud", icon: LayoutGrid, section: "Ülevaade" },
       { href: "/kalender", label: "Kalender", icon: CalendarDays, section: "Ülevaade" },
+      { href: "/vastuvott", label: "Vastuvõtt", icon: ConciergeBell, section: "Ülevaade" },
       { href: "/kliendid", label: "Kliendid", icon: UserRound, section: "Ülevaade" },
       { href: "/aruanded", label: "Aruanded", icon: BarChart3, section: "Ülevaade" },
     ],

@@ -40,5 +40,5 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   // API (cron, Stripe'i webhook) ja staatilised failid jäävad väravast välja
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|robots.txt|.*\\.(?:png|svg|jpg|jpeg|webp|ico|css|woff2?)$).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|robots.txt|manifest.webmanifest|.*\\.(?:png|svg|jpg|jpeg|webp|ico|css|woff2?)$).*)"],
 };

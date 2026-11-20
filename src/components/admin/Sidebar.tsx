@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -54,6 +54,15 @@ function NavLink({
   );
 }
 
+// tahvel rõhtpaigutuses (1024–1279 px): menüü vaikimisi ahendatud
+const NARROW = "(min-width: 1024px) and (max-width: 1279px)";
+const subscribeNarrow = (cb: () => void) => {
+  const mq = window.matchMedia(NARROW);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+};
+const isNarrow = () => window.matchMedia(NARROW).matches;
+
 export function Sidebar({
   businessName,
   userName,
@@ -61,7 +70,7 @@ export function Sidebar({
   role = "OWNER",
   superadmin = false,
   mode = "salon",
-  initialCollapsed = false,
+  initialCollapsed = null,
 }: {
   businessName: string;
   userName: string;
@@ -69,10 +78,12 @@ export function Sidebar({
   role?: Role;
   superadmin?: boolean;
   mode?: "platform" | "salon";
-  initialCollapsed?: boolean;
+  initialCollapsed?: boolean | null;
 }) {
   const pathname = usePathname();
-  const [desktopCollapsed, setCollapsed] = useState(initialCollapsed);
+  const [choice, setChoice] = useState<boolean | null>(initialCollapsed);
+  const narrow = useSyncExternalStore(subscribeNarrow, isNarrow, () => false);
+  const desktopCollapsed = choice ?? narrow;
   // mobiilis (< lg) on menüü sahtel, mille avab ülariba nupp
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openedAt, setOpenedAt] = useState(pathname);
@@ -102,7 +113,7 @@ export function Sidebar({
 
   const toggle = () => {
     const next = !desktopCollapsed;
-    setCollapsed(next);
+    setChoice(next);
     // küpsis, et server joonistaks järgmisel laadimisel kohe õige laiusega (ilma vilkumiseta)
     document.cookie = `${SIDEBAR_COOKIE}=${next ? "collapsed" : "open"}; path=/; max-age=31536000; samesite=lax`;
   };

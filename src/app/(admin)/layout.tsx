@@ -13,7 +13,9 @@ import { PlanBanner } from "@/components/admin/PlanBanner";
 async function SidebarWithData() {
   const business = await getCurrentBusiness();
   const user = await getCurrentUser();
-  const collapsed = (await cookies()).get(SIDEBAR_COOKIE)?.value === "collapsed";
+  // null = kasutaja pole valinud → tahvlil (rõhtpaigutus) ahendatud, arvutis avatud
+  const pref = (await cookies()).get(SIDEBAR_COOKIE)?.value;
+  const collapsed = pref === "collapsed" ? true : pref === "open" ? false : null;
   const platform = await isPlatformMode(user);
   return (
     <Sidebar

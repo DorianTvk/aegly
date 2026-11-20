@@ -87,7 +87,7 @@ export function TimeGrid({
   endMin,
   step,
   now,
-  minColWidth = 160,
+  minColWidth = 136,
 }: {
   columns: GridColumn[];
   bookings: GridBooking[];
